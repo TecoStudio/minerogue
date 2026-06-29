@@ -6,10 +6,13 @@ import com.roguelike.mob.MobManager;
 import com.roguelike.data.PlayerDataManager;
 import com.roguelike.item.CustomItem;
 import com.roguelike.item.CustomWeapon;
+import com.roguelike.item.WeaponInstanceData;
 import com.roguelike.level.LevelManager;
-import com.roguelike.scoreboard.ScoreboardManager;
+import com.roguelike.scoreboard.RoguelikeScoreboard;
 import com.roguelike.ticket.TicketManager;
 import com.roguelike.ticket.TicketType;
+import com.roguelike.util.DevLog;
+import com.roguelike.util.DisplayCleanup;
 import com.roguelike.util.Message;
 import com.roguelike.weapon.WeaponManager;
 import org.bukkit.Bukkit;
@@ -72,10 +75,21 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
         switch (args[0].toLowerCase()) {
             case "reload" -> {
                 ConfigManager.reload();
+                RoguelikeScoreboard.restartTask();
+                RoguelikeScoreboard.updateAll();
                 Message.send(sender, "&a配置已重载。");
             }
             case "init" -> {
                 return handleInit(sender);
+            }
+            case "export" -> {
+                return handleExport(sender);
+            }
+            case "debug" -> {
+                return handleDebug(sender, args);
+            }
+            case "affixes" -> {
+                return handleAffixes(sender, args);
             }
             case "give" -> {
                 if (args.length < 3) {
@@ -143,7 +157,6 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
                 PlayerDataManager.unload(target);
                 PlayerDataManager.get(target);
                 LevelManager.updateExpBar(target);
-                ScoreboardManager.updatePlayer(target);
                 Message.send(sender, "&a已重置 " + target.getName() + " 的 Roguelike 数据。");
             }
             case "monster" -> {
@@ -191,16 +204,85 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
         var plugin = ConfigManager.getPlugin();
         plugin.getConfig().set("scoreboard.enabled", false);
         plugin.saveConfig();
-        Bukkit.getOnlinePlayers().forEach(ScoreboardManager::clear);
+        RoguelikeScoreboard.restartTask();
+        RoguelikeScoreboard.clearAll();
+        int removedBossBars = DisplayCleanup.clearAll();
 
-        Path serverRoot = plugin.getDataFolder().toPath().getParent();
-        Path tabScoreboard = serverRoot.resolve("TAB").resolve("scoreboards").resolve("roguelike.yml");
-        Path mythicMob = serverRoot.resolve("MythicMobs").resolve("Mobs").resolve("RoguelikeElite.yml");
-        Path mythicDrop = serverRoot.resolve("MythicMobs").resolve("DropTables").resolve("RoguelikeDrops.yml");
         Path notes = plugin.getDataFolder().toPath().resolve("init-notes.yml");
 
         try {
-            writeFile(tabScoreboard, "scoreboards:\n" +
+            writeFile(notes, "roguelike-init:\n" +
+                    "  defaults: 'weapons, items and mob experience are built in; no json files are required'\n" +
+                    "  external-overrides: 'optional json files under Roguelike/weapons, Roguelike/items and Roguelike/mobs override or extend built-ins'\n" +
+                    "  integrations: 'PlaceholderAPI, TAB, MythicMobs and Nova are optional soft integrations'\n" +
+                    "  examples: 'run /rw export only when you need editable examples'\n");
+        } catch (IOException e) {
+            Message.send(sender, "&c初始化配置失败: " + e.getMessage());
+            return true;
+        }
+
+        Message.send(sender, "&aRoguelike 初始化完成。");
+        Message.send(sender, "&7已关闭内置显示并清理 " + removedBossBars + " 个 BossBar。默认武器、物品和怪物经验已内置，无需额外 JSON 文件。");
+        Message.send(sender, "&7如需自定义或接入第三方插件示例，可执行 /rw export。");
+        return true;
+    }
+
+    private boolean handleExport(CommandSender sender) {
+        var plugin = ConfigManager.getPlugin();
+        Path examples = plugin.getDataFolder().toPath().resolve("examples");
+
+        try {
+            writeFile(examples.resolve("weapons.json"), "{\n" +
+                    "  \"description\": \"Optional weapon overrides. Same id replaces the built-in template.\",\n" +
+                    "  \"weapons\": [\n" +
+                    "    {\n" +
+                    "      \"id\": \"flame_sword\",\n" +
+                    "      \"item\": \"minecraft:diamond_sword\",\n" +
+                    "      \"name\": \"烈焰之剑\",\n" +
+                    "      \"description\": \"燃烧敌人的剑\",\n" +
+                    "      \"base_damage\": 10,\n" +
+                    "      \"attack_speed\": 1.4,\n" +
+                    "      \"durability\": 800,\n" +
+                    "      \"rarity\": \"epic\",\n" +
+                    "      \"effects\": {\n" +
+                    "        \"attack_range\": 3.2,\n" +
+                    "        \"fire_damage\": 4.0,\n" +
+                    "        \"fire_duration\": 3.0,\n" +
+                    "        \"crit_chance\": 0.1,\n" +
+                    "        \"crit_damage\": 1.75\n" +
+                    "      }\n" +
+                    "    }\n" +
+                    "  ]\n" +
+                    "}\n");
+            writeFile(examples.resolve("items.json"), "{\n" +
+                    "  \"description\": \"Optional item overrides. Copy to Roguelike/items/*.json to enable.\",\n" +
+                    "  \"items\": [\n" +
+                    "    {\n" +
+                    "      \"id\": \"healing_potion\",\n" +
+                    "      \"name\": \"治疗药水\",\n" +
+                    "      \"description\": \"恢复生命值\",\n" +
+                    "      \"item_type\": \"potion\",\n" +
+                    "      \"rarity\": \"common\",\n" +
+                    "      \"effects\": {\"heal_amount\": 10}\n" +
+                    "    }\n" +
+                    "  ]\n" +
+                    "}\n");
+            writeFile(examples.resolve("mobs.json"), "{\n" +
+                    "  \"description\": \"Optional mob overrides. Copy to Roguelike/mobs/*.json to enable.\",\n" +
+                    "  \"default_exp\": 10,\n" +
+                    "  \"mobs\": {\n" +
+                    "    \"zombie\": 15,\n" +
+                    "    \"skeleton\": 15\n" +
+                    "  },\n" +
+                    "  \"modifiers\": {\n" +
+                    "    \"zombie\": {\n" +
+                    "      \"health_multiplier\": 1.5,\n" +
+                    "      \"damage_multiplier\": 1.2,\n" +
+                    "      \"weapon_template\": \"wooden_sword\"\n" +
+                    "    }\n" +
+                    "  }\n" +
+                    "}\n");
+            writeFile(examples.resolve("tab-scoreboard.yml"), "scoreboards:\n" +
                     "  roguelike:\n" +
                     "    title: '&6&lRoguelike'\n" +
                     "    lines:\n" +
@@ -209,32 +291,20 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
                     "      - '&7击杀: &c%roguelike_kills%'\n" +
                     "      - '&7死亡: &4%roguelike_deaths%'\n" +
                     "      - '&7武器: &f%roguelike_weapon_name%'\n");
-            writeFile(mythicMob, "RoguelikeSkeletonKnight:\n" +
+            writeFile(examples.resolve("mythicmobs.yml"), "RoguelikeSkeletonKnight:\n" +
                     "  Type: SKELETON\n" +
                     "  Display: '&6Skeletal Knight'\n" +
                     "  Health: 40\n" +
                     "  Damage: 6\n" +
                     "  Options:\n" +
-                    "    PreventOtherDrops: false\n" +
-                    "  Drops:\n" +
-                    "    - RoguelikeEliteDrops\n");
-            writeFile(mythicDrop, "RoguelikeEliteDrops:\n" +
-                    "  Drops:\n" +
-                    "    - exp 20 1\n" +
-                    "    - paper 1 0.2\n");
-            writeFile(notes, "roguelike-init:\n" +
-                    "  scoreboard: 'disabled in Roguelike/config.yml; use TAB + PlaceholderAPI instead'\n" +
-                    "  commandapi: 'Bukkit commands are registered; CommandAPI is optional'\n" +
-                    "  placeholderapi: 'Use %roguelike_*% placeholders in TAB or other display plugins'\n" +
-                    "  mythicmobs: 'Example mob/drop files were generated under plugins/MythicMobs'\n" +
-                    "  nova: 'Set weapon item fields to nova:<namespace>:<id> in Roguelike weapon json files'\n");
+                    "    PreventOtherDrops: false\n");
         } catch (IOException e) {
-            Message.send(sender, "&c初始化配置失败: " + e.getMessage());
+            Message.send(sender, "&c导出示例失败: " + e.getMessage());
             return true;
         }
 
-        Message.send(sender, "&aRoguelike 初始化完成。");
-        Message.send(sender, "&7已关闭内置侧边栏，并生成 TAB/MythicMobs 示例配置。请重载对应插件使配置生效。");
+        Message.send(sender, "&a已导出可选示例到 plugins/Roguelike/examples。");
+        Message.send(sender, "&7这些文件不会自动生效；需要自定义时再复制到对应插件或 Roguelike 扩展目录。");
         return true;
     }
 
@@ -303,6 +373,92 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    private boolean handleDebug(CommandSender sender, String[] args) {
+        var plugin = ConfigManager.getPlugin();
+        if (args.length < 2) {
+            Message.send(sender, "&6Debug 日志: " + (DevLog.isEnabled() ? "&a开启" : "&c关闭"));
+            Message.send(sender, "&7用法: /rw debug <on|off|status>");
+            return true;
+        }
+
+        switch (args[1].toLowerCase()) {
+            case "on", "true", "enable" -> {
+                plugin.getConfig().set("debug.enabled", true);
+                plugin.saveConfig();
+                DevLog.info("Debug logging enabled by " + sender.getName());
+                Message.send(sender, "&aDebug 日志已开启。");
+            }
+            case "off", "false", "disable" -> {
+                plugin.getConfig().set("debug.enabled", false);
+                plugin.saveConfig();
+                DevLog.info("Debug logging disabled by " + sender.getName());
+                Message.send(sender, "&cDebug 日志已关闭。");
+            }
+            case "status" -> Message.send(sender, "&6Debug 日志: " + (DevLog.isEnabled() ? "&a开启" : "&c关闭"));
+            default -> Message.send(sender, "&c用法: /rw debug <on|off|status>");
+        }
+        return true;
+    }
+
+    private boolean handleAffixes(CommandSender sender, String[] args) {
+        if (args.length >= 2 && args[1].equalsIgnoreCase("hand")) {
+            if (!(sender instanceof Player player)) {
+                Message.send(sender, "&c只有玩家可以查看手持武器词条。");
+                return true;
+            }
+            showHeldWeaponAffixes(player);
+            return true;
+        }
+
+        Message.send(sender, "&6&l═══ 可用武器词条 ═══");
+        Message.send(sender, "&e基础属性:");
+        for (String stat : TicketManager.getBaseStatKeys()) {
+            sender.sendMessage("§7- §f" + TicketManager.getStatDisplayName(stat) + " §8(" + stat + ")");
+        }
+        Message.send(sender, "&e效果词条:");
+        for (String stat : TicketManager.getEffectStatKeys()) {
+            sender.sendMessage("§7- §f" + TicketManager.getStatDisplayName(stat) + " §8(" + stat + ")");
+        }
+        Message.send(sender, "&7查看手持武器当前词条: /rw affixes hand");
+        return true;
+    }
+
+    private void showHeldWeaponAffixes(Player player) {
+        ItemStack hand = player.getInventory().getItemInMainHand();
+        CustomWeapon template = WeaponManager.getTemplate(hand);
+        WeaponInstanceData data = WeaponManager.getData(hand);
+        if (template == null || data == null) {
+            Message.send(player, "&c你手上没有 Roguelike 武器。");
+            return;
+        }
+
+        Message.send(player, "&6&l═══ 当前武器词条 ═══");
+        Message.send(player, "&7模板: &f" + template.getName() + " &8(" + template.getId() + ")");
+        sendAffixLine(player, "damage", template.getBaseDamage(), data.getTotalDamage(template));
+        sendAffixLine(player, "attack_speed", template.getAttackSpeed(), data.getTotalAttackSpeed(template));
+        sendAffixLine(player, "attack_range", template.getEffect("attack_range", 3.0), data.getTotalEffect(template, "attack_range", 3.0));
+        for (String stat : TicketManager.getEffectStatKeys()) {
+            if (stat.equals("attack_range")) continue;
+            double base = template.getEffect(stat, 0.0);
+            double total = data.getTotalEffect(template, stat, 0.0);
+            if (base != 0.0 || total != 0.0) {
+                sendAffixLine(player, stat, base, total);
+            }
+        }
+        Message.send(player, "&7强化券使用次数: &f" + data.getTicketAUses() + " &7开发券: &f" + data.getTicketBUses() + " &7重置券: &f" + data.getTicketCUses());
+    }
+
+    private void sendAffixLine(CommandSender sender, String stat, double base, double total) {
+        String text = "§7- §f" + TicketManager.getStatDisplayName(stat)
+                + " §8(" + stat + ") §7基础: §f" + TicketManager.formatStatValue(stat, base)
+                + " §7当前: §e" + TicketManager.formatStatValue(stat, total);
+        if (base != total) {
+            String sign = total > base ? "+" : "";
+            text += " §a(" + sign + TicketManager.formatStatValue(stat, total - base) + ")";
+        }
+        sender.sendMessage(text);
+    }
+
     private void showStatus(Player player) {
         PlayerData data = PlayerDataManager.get(player);
         Message.send(player, "&6&l═══ 状态 ═══");
@@ -361,7 +517,10 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
 
     private void showAdminHelp(CommandSender sender) {
         Message.send(sender, "&6&l═══ Roguelike 管理员帮助 ═══");
-        Message.send(sender, "&e/rw init &7- 生成推荐外部插件配置并关闭内置侧边栏");
+        Message.send(sender, "&e/rw init &7- 使用内置默认配置并关闭内置侧边栏");
+        Message.send(sender, "&e/rw export &7- 导出可选 JSON/TAB/MythicMobs 示例");
+        Message.send(sender, "&e/rw debug <on|off|status> &7- 控制开发日志输出");
+        Message.send(sender, "&e/rw affixes [hand] &7- 查看可用词条或手持武器词条");
         Message.send(sender, "&e/rw reload &7- 重载配置");
         Message.send(sender, "&e/rw give weapon <id> [玩家] [数量] &7- 给予武器");
         Message.send(sender, "&e/rw exp <数量> [玩家] &7- 给予经验");
@@ -382,9 +541,13 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
             }
         } else if (cmd.equals("rw") || cmd.equals("roguelike")) {
             if (args.length == 1) {
-                list.addAll(Arrays.asList("init", "reload", "give", "exp", "list", "stats", "reset", "monster", "fixhand", "help"));
+                list.addAll(Arrays.asList("init", "export", "debug", "affixes", "reload", "give", "exp", "list", "stats", "reset", "monster", "fixhand", "help"));
             } else if (args.length == 2 && args[0].equalsIgnoreCase("give")) {
                 list.addAll(Arrays.asList("weapon", "item", "ticket"));
+            } else if (args.length == 2 && args[0].equalsIgnoreCase("debug")) {
+                list.addAll(Arrays.asList("on", "off", "status"));
+            } else if (args.length == 2 && args[0].equalsIgnoreCase("affixes")) {
+                list.add("hand");
             } else if (args.length == 2 && args[0].equalsIgnoreCase("monster")) {
                 list.add("spawn");
             } else if (args.length == 3 && args[0].equalsIgnoreCase("give")) {

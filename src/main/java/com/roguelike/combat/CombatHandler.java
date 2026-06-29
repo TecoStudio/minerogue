@@ -48,7 +48,7 @@ public class CombatHandler {
             damage *= critDamage;
             player.getWorld().playSound(target.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 1f, 1f);
             player.getWorld().spawnParticle(Particle.CRIT, target.getEyeLocation(), 10, 0.3, 0.3, 0.3);
-            Message.action(player, "&c&l暴击！");
+            Message.send(player, "&c&l暴击！");
         }
 
         // 伤害存储爆发
@@ -60,7 +60,7 @@ public class CombatHandler {
                 double burst = data.getStoredDamage();
                 damage += burst;
                 data.setStoredDamage(0);
-                Message.action(player, "&6&l爆发！ 额外 " + WeaponManager.format(burst, 1) + " 伤害");
+                Message.send(player, "&6&l爆发！ 额外 " + WeaponManager.format(burst, 1) + " 伤害");
                 player.getWorld().spawnParticle(Particle.EXPLOSION, target.getLocation(), 1);
             }
             data.saveToItemStack(player.getInventory().getItemInMainHand());

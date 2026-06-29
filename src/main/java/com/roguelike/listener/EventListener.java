@@ -2,13 +2,12 @@ package com.roguelike.listener;
 
 import com.roguelike.RoguelikePlugin;
 import com.roguelike.combat.CombatHandler;
-import com.roguelike.config.ConfigManager;
 import com.roguelike.config.MobExperienceConfig;
 import com.roguelike.data.PlayerDataManager;
 import com.roguelike.integration.IntegrationManager;
 import com.roguelike.level.LevelManager;
 import com.roguelike.mob.MobManager;
-import com.roguelike.scoreboard.ScoreboardManager;
+import com.roguelike.scoreboard.RoguelikeScoreboard;
 import com.roguelike.ticket.TicketManager;
 import com.roguelike.ticket.TicketType;
 import com.roguelike.util.Message;
@@ -31,16 +30,16 @@ public class EventListener implements Listener {
         Player player = event.getPlayer();
         PlayerDataManager.get(player);
         LevelManager.updateExpBar(player);
-        ScoreboardManager.updatePlayer(player);
         player.getServer().getScheduler().runTaskLater(RoguelikePlugin.getInstance(), () -> {
             WeaponManager.refreshHeldWeapon(player);
+            RoguelikeScoreboard.updatePlayer(player);
         }, 1L);
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         PlayerDataManager.unload(event.getPlayer());
-        ScoreboardManager.remove(event.getPlayer());
+        RoguelikeScoreboard.clearPlayer(event.getPlayer());
         WeaponManager.clearAttributes(event.getPlayer());
     }
 
@@ -113,7 +112,7 @@ public class EventListener implements Listener {
                 LevelManager.addExperience(player, exp);
             }
             PlayerDataManager.get(player).addKill();
-            ScoreboardManager.updatePlayer(player);
+            RoguelikeScoreboard.updatePlayer(player);
             MobManager.handleDrop(entity);
         }
     }
@@ -122,24 +121,13 @@ public class EventListener implements Listener {
     public void onPlayerDeath(PlayerDeathEvent event) {
         Player player = event.getEntity();
         PlayerDataManager.get(player).addDeath();
-        ScoreboardManager.updatePlayer(player);
+        RoguelikeScoreboard.updatePlayer(player);
     }
 
     @EventHandler
     public void onSpawn(CreatureSpawnEvent event) {
         if (event.getSpawnReason() != CreatureSpawnEvent.SpawnReason.CUSTOM && !IntegrationManager.isMythicMobsEnabled()) return;
         MobManager.applyToMob(event.getEntity());
-    }
-
-    @EventHandler
-    public void onExpChange(PlayerExpChangeEvent event) {
-        // 将原版经验转换到自定义系统（可选）
-        if (!ConfigManager.getPluginConfig().getBoolean("convert-vanilla-exp", false)) return;
-        int amount = event.getAmount();
-        if (amount > 0) {
-            event.setAmount(0);
-            LevelManager.addExperience(event.getPlayer(), amount);
-        }
     }
 
     @EventHandler

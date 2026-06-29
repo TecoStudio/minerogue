@@ -8,8 +8,9 @@ import com.roguelike.integration.IntegrationManager;
 import com.roguelike.level.LevelManager;
 import com.roguelike.listener.EventListener;
 import com.roguelike.mob.MobManager;
-import com.roguelike.scoreboard.ScoreboardManager;
+import com.roguelike.scoreboard.RoguelikeScoreboard;
 import com.roguelike.ticket.TicketManager;
+import com.roguelike.util.DevLog;
 import com.roguelike.weapon.WeaponManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -20,6 +21,7 @@ public class RoguelikePlugin extends JavaPlugin {
     public void onEnable() {
         instance = this;
         saveDefaultConfig();
+        DevLog.init(this);
 
         ConfigManager.loadAll(this);
         IntegrationManager.init(this);
@@ -29,7 +31,7 @@ public class RoguelikePlugin extends JavaPlugin {
         MobManager.init(this);
         LevelManager.init(this);
         CombatHandler.init(this);
-        ScoreboardManager.init(this);
+        RoguelikeScoreboard.init(this);
 
         getServer().getPluginManager().registerEvents(new EventListener(), this);
 
@@ -39,13 +41,14 @@ public class RoguelikePlugin extends JavaPlugin {
         getCommand("rw").setExecutor(command);
         getCommand("rw").setTabCompleter(command);
 
-        getLogger().info("Roguelike plugin enabled.");
+        DevLog.info("Roguelike plugin enabled.");
     }
 
     @Override
     public void onDisable() {
+        RoguelikeScoreboard.shutdown();
         PlayerDataManager.shutdown();
-        getLogger().info("Roguelike plugin disabled.");
+        DevLog.info("Roguelike plugin disabled.");
     }
 
     public static RoguelikePlugin getInstance() {

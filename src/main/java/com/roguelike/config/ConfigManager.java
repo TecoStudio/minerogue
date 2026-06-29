@@ -11,10 +11,10 @@ import org.bukkit.configuration.file.FileConfiguration;
 
 import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -25,8 +25,8 @@ public class ConfigManager {
     private static File itemsDir;
     private static File mobsDir;
 
-    private static final List<CustomWeapon> weapons = new ArrayList<>();
-    private static final List<CustomItem> items = new ArrayList<>();
+    private static final Map<String, CustomWeapon> weapons = new LinkedHashMap<>();
+    private static final Map<String, CustomItem> items = new LinkedHashMap<>();
     private static final Map<String, MobConfig> mobs = new HashMap<>();
 
     public static void loadAll(RoguelikePlugin plugin) {
@@ -35,53 +35,44 @@ public class ConfigManager {
         weaponsDir = new File(data, "weapons");
         itemsDir = new File(data, "items");
         mobsDir = new File(data, "mobs");
-        weaponsDir.mkdirs();
-        itemsDir.mkdirs();
-        mobsDir.mkdirs();
 
-        createDefaults();
+        loadBuiltIns();
         loadWeapons();
-        ensureBuiltInWeaponTemplates();
         loadItems();
         loadMobs();
 
         plugin.getLogger().info("加载了 " + weapons.size() + " 个武器模板, " + items.size() + " 个物品, " + mobs.size() + " 个怪物配置。");
     }
 
-    private static void createDefaults() {
-        createDefaultWeapons();
-        createDefaultItems();
-        createDefaultMobs();
+    private static void loadBuiltIns() {
+        weapons.clear();
+        items.clear();
+        mobs.clear();
+        MobExperienceConfig.clear();
+
+        loadBuiltInWeapons();
+        loadBuiltInItems();
+        loadBuiltInMobs();
     }
 
-    private static void createDefaultWeapons() {
-        File file = new File(weaponsDir, "default_weapons.json");
-        if (file.exists()) return;
-        JsonObject root = new JsonObject();
-        root.addProperty("description", "Roguelike 武器模板");
-        root.addProperty("version", 1);
-        JsonArray arr = new JsonArray();
-
-        arr.add(weapon("wooden_sword", "minecraft:wooden_sword", "木剑", "最基础的武器", 4, 1.6, 59, "common",
+    private static void loadBuiltInWeapons() {
+        addWeapon(weapon("wooden_sword", "minecraft:wooden_sword", "木剑", "最基础的武器", 4, 1.6, 59, "common",
                 "{\"attack_range\":3.0,\"lifesteal_percent\":0.0,\"slow_duration\":0.0,\"chain_targets\":0,\"chain_range\":0.0,\"chain_damage_percent\":0.0,\"damage_store_percent\":0.0,\"damage_store_max\":0.0,\"crit_chance\":0.05,\"crit_damage\":1.5,\"bleed_chance\":0.0}"));
-        arr.add(weapon("flame_sword", "minecraft:diamond_sword", "烈焰之剑", "燃烧敌人的剑", 10, 1.4, 800, "epic",
+        addWeapon(weapon("flame_sword", "minecraft:diamond_sword", "烈焰之剑", "燃烧敌人的剑", 10, 1.4, 800, "epic",
                 "{\"attack_range\":3.2,\"fire_damage\":4.0,\"fire_duration\":3.0,\"crit_chance\":0.1,\"crit_damage\":1.75}"));
-        arr.add(weapon("vampire_dagger", "minecraft:iron_sword", "吸血匕首", "从敌人身上吸血", 5, 2.4, 600, "rare",
+        addWeapon(weapon("vampire_dagger", "minecraft:iron_sword", "吸血匕首", "从敌人身上吸血", 5, 2.4, 600, "rare",
                 "{\"attack_range\":2.8,\"lifesteal_percent\":0.15,\"crit_chance\":0.08,\"crit_damage\":1.6}"));
-        arr.add(weapon("thunder_axe", "minecraft:diamond_axe", "雷霆战斧", "几率召唤雷电", 14, 0.9, 1200, "legendary",
+        addWeapon(weapon("thunder_axe", "minecraft:diamond_axe", "雷霆战斧", "几率召唤雷电", 14, 0.9, 1200, "legendary",
                 "{\"attack_range\":3.0,\"lightning_chance\":0.15,\"crit_chance\":0.12,\"crit_damage\":2.0}"));
-        arr.add(weapon("whirlwind_blade", "minecraft:iron_sword", "旋风之刃", "攻击会波及周围敌人", 9, 1.3, 1000, "epic",
+        addWeapon(weapon("whirlwind_blade", "minecraft:iron_sword", "旋风之刃", "攻击会波及周围敌人", 9, 1.3, 1000, "epic",
                 "{\"attack_range\":3.1,\"chain_targets\":3,\"chain_range\":3.0,\"chain_damage_percent\":0.5,\"crit_chance\":0.1}"));
-        arr.add(weapon("inferno_greatsword", "minecraft:netherite_sword", "炼狱巨剑", "大范围火焰伤害", 18, 0.8, 2000, "legendary",
+        addWeapon(weapon("inferno_greatsword", "minecraft:netherite_sword", "炼狱巨剑", "大范围火焰伤害", 18, 0.8, 2000, "legendary",
                 "{\"attack_range\":3.5,\"fire_damage\":6.0,\"fire_duration\":4.0,\"chain_targets\":4,\"chain_range\":4.0,\"chain_damage_percent\":0.4,\"crit_chance\":0.15,\"crit_damage\":2.0}"));
-        arr.add(weapon("special_weapon", "minecraft:wooden_sword", "特殊武器", "由武器开发券唤醒的武器胚子", 3, 1.6, 250, "special",
+        addWeapon(weapon("special_weapon", "minecraft:wooden_sword", "特殊武器", "由武器开发券唤醒的武器胚子", 3, 1.6, 250, "special",
                 "{\"attack_range\":3.0}"));
-
-        root.add("weapons", arr);
-        writeJson(file, root);
     }
 
-    private static JsonObject weapon(String id, String item, String name, String desc, double damage, double speed, int durability, String rarity, String effectsJson) {
+    private static CustomWeapon weapon(String id, String item, String name, String desc, double damage, double speed, int durability, String rarity, String effectsJson) {
         JsonObject w = new JsonObject();
         w.addProperty("id", id);
         w.addProperty("item", item);
@@ -92,17 +83,10 @@ public class ConfigManager {
         w.addProperty("durability", durability);
         w.addProperty("rarity", rarity);
         w.add("effects", GSON.fromJson(effectsJson, JsonObject.class));
-        return w;
+        return parseWeapon(w);
     }
 
-    private static void createDefaultItems() {
-        File file = new File(itemsDir, "default_items.json");
-        if (file.exists()) return;
-        JsonObject root = new JsonObject();
-        root.addProperty("description", "Roguelike 自定义物品");
-        root.addProperty("version", 1);
-        JsonArray arr = new JsonArray();
-
+    private static void loadBuiltInItems() {
         JsonObject potion = new JsonObject();
         potion.addProperty("id", "healing_potion");
         potion.addProperty("name", "治疗药水");
@@ -112,38 +96,21 @@ public class ConfigManager {
         JsonObject eff = new JsonObject();
         eff.addProperty("heal_amount", 10);
         potion.add("effects", eff);
-        arr.add(potion);
-
-        root.add("items", arr);
-        writeJson(file, root);
+        addItem(parseItem(potion));
     }
 
-    private static void createDefaultMobs() {
-        File file = new File(mobsDir, "default_mobs.json");
-        if (file.exists()) return;
-        JsonObject root = new JsonObject();
-        root.addProperty("description", "Roguelike 怪物配置");
-        root.addProperty("version", 1);
-        root.addProperty("default_exp", 10);
-        JsonObject map = new JsonObject();
-        map.addProperty("zombie", 15);
-        map.addProperty("skeleton", 15);
-        map.addProperty("creeper", 20);
-        map.addProperty("spider", 12);
-        map.addProperty("enderman", 25);
-        map.addProperty("blaze", 22);
-        map.addProperty("warden", 100);
-        map.addProperty("ender_dragon", 500);
-        map.addProperty("wither", 300);
-        root.add("mobs", map);
-        JsonObject modifiers = new JsonObject();
-        JsonObject zombie = new JsonObject();
-        zombie.addProperty("health_multiplier", 1.5);
-        zombie.addProperty("damage_multiplier", 1.2);
-        zombie.addProperty("weapon_template", "wooden_sword");
-        modifiers.add("zombie", zombie);
-        root.add("modifiers", modifiers);
-        writeJson(file, root);
+    private static void loadBuiltInMobs() {
+        MobExperienceConfig.setDefaultExp(10);
+        MobExperienceConfig.setMobExp("zombie", 15);
+        MobExperienceConfig.setMobExp("skeleton", 15);
+        MobExperienceConfig.setMobExp("creeper", 20);
+        MobExperienceConfig.setMobExp("spider", 12);
+        MobExperienceConfig.setMobExp("enderman", 25);
+        MobExperienceConfig.setMobExp("blaze", 22);
+        MobExperienceConfig.setMobExp("warden", 100);
+        MobExperienceConfig.setMobExp("ender_dragon", 500);
+        MobExperienceConfig.setMobExp("wither", 300);
+        mobs.put("zombie", new MobConfig(1.5, 1.2, 1.0, "wooden_sword"));
     }
 
     private static void loadWeapons() {
@@ -156,7 +123,7 @@ public class ConfigManager {
                 if (!root.has("weapons")) continue;
                 JsonArray arr = root.getAsJsonArray("weapons");
                 for (int i = 0; i < arr.size(); i++) {
-                    weapons.add(parseWeapon(arr.get(i).getAsJsonObject()));
+                    addWeapon(parseWeapon(arr.get(i).getAsJsonObject()));
                 }
             } catch (IOException e) {
                 plugin.getLogger().warning("无法加载武器文件: " + file.getName());
@@ -164,12 +131,8 @@ public class ConfigManager {
         }
     }
 
-    private static void ensureBuiltInWeaponTemplates() {
-        if (getWeapon("special_weapon") != null) return;
-        Map<String, Double> effects = new HashMap<>();
-        effects.put("attack_range", 3.0);
-        weapons.add(new CustomWeapon("special_weapon", "特殊武器", "由武器开发券唤醒的武器胚子",
-                "minecraft:wooden_sword", 3, 1.6, 250, "special", effects));
+    private static void addWeapon(CustomWeapon weapon) {
+        weapons.put(weapon.getId().toLowerCase(), weapon);
     }
 
     private static CustomWeapon parseWeapon(JsonObject json) {
@@ -203,12 +166,16 @@ public class ConfigManager {
                 if (!root.has("items")) continue;
                 JsonArray arr = root.getAsJsonArray("items");
                 for (int i = 0; i < arr.size(); i++) {
-                    items.add(parseItem(arr.get(i).getAsJsonObject()));
+                    addItem(parseItem(arr.get(i).getAsJsonObject()));
                 }
             } catch (IOException e) {
                 plugin.getLogger().warning("无法加载物品文件: " + file.getName());
             }
         }
+    }
+
+    private static void addItem(CustomItem item) {
+        items.put(item.getId().toLowerCase(), item);
     }
 
     private static CustomItem parseItem(JsonObject json) {
@@ -230,8 +197,6 @@ public class ConfigManager {
     }
 
     private static void loadMobs() {
-        mobs.clear();
-        MobExperienceConfig.clear();
         File[] files = mobsDir.listFiles((d, n) -> n.endsWith(".json"));
         if (files == null) return;
         for (File file : files) {
@@ -252,7 +217,7 @@ public class ConfigManager {
                     JsonObject mods = root.getAsJsonObject("modifiers");
                     mods.entrySet().forEach(e -> {
                         if (e.getValue().isJsonObject()) {
-                            mobs.put(e.getKey(), parseMobConfig(e.getValue().getAsJsonObject()));
+                            mobs.put(e.getKey().toLowerCase(), parseMobConfig(e.getValue().getAsJsonObject()));
                         }
                     });
                 }
@@ -270,28 +235,20 @@ public class ConfigManager {
         return new MobConfig(health, damage, speed, weapon);
     }
 
-    private static void writeJson(File file, JsonObject obj) {
-        try (FileWriter writer = new FileWriter(file)) {
-            GSON.toJson(obj, writer);
-        } catch (IOException e) {
-            plugin.getLogger().warning("无法写入默认配置: " + file.getName());
-        }
-    }
-
     public static List<CustomWeapon> getWeapons() {
-        return new ArrayList<>(weapons);
+        return new ArrayList<>(weapons.values());
     }
 
     public static CustomWeapon getWeapon(String id) {
-        return weapons.stream().filter(w -> w.getId().equalsIgnoreCase(id)).findFirst().orElse(null);
+        return id == null ? null : weapons.get(id.toLowerCase());
     }
 
     public static List<CustomItem> getItems() {
-        return new ArrayList<>(items);
+        return new ArrayList<>(items.values());
     }
 
     public static CustomItem getItem(String id) {
-        return items.stream().filter(i -> i.getId().equalsIgnoreCase(id)).findFirst().orElse(null);
+        return id == null ? null : items.get(id.toLowerCase());
     }
 
     public static MobConfig getMobConfig(String entityType) {

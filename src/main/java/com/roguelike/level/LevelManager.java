@@ -3,7 +3,7 @@ package com.roguelike.level;
 import com.roguelike.RoguelikePlugin;
 import com.roguelike.data.PlayerData;
 import com.roguelike.data.PlayerDataManager;
-import com.roguelike.scoreboard.ScoreboardManager;
+import com.roguelike.scoreboard.RoguelikeScoreboard;
 import com.roguelike.ticket.TicketManager;
 import com.roguelike.util.Message;
 import org.bukkit.entity.Player;
@@ -40,7 +40,7 @@ public class LevelManager {
     }
 
     public static void updateExpBar(Player player) {
-        // 自定义等级只通过 TAB/scoreboard/placeholder 展示，不占用原版经验栏。
+        RoguelikeScoreboard.updatePlayer(player);
     }
 
     public static void addExperience(Player player, long amount) {
@@ -51,7 +51,6 @@ public class LevelManager {
         int newLevel = data.getLevel();
 
         updateExpBar(player);
-        ScoreboardManager.updatePlayer(player);
 
         if (newLevel > oldLevel) {
             final int gained = newLevel - oldLevel;

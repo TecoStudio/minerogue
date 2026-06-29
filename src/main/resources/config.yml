@@ -1,13 +1,14 @@
 # Roguelike 全局配置
 
-# 是否把原版经验自动转换到自定义经验系统
-convert-vanilla-exp: false
-
 storage:
   # 可选: json 或 sqlite
   type: json
   # SQLite 文件路径，相对于 plugins/Roguelike 目录
   sqlite-file: roguelike.db
+
+debug:
+  # 开启后会在控制台输出更多开发调试日志
+  enabled: false
 
 integrations:
   placeholderapi:
@@ -26,7 +27,7 @@ integrations:
     enabled: true
 
 scoreboard:
-  # 是否启用内置侧边栏与 Tab 列表；默认关闭，推荐用 TAB/PlaceholderAPI 展示
-  enabled: false
+  # 是否启用内置侧边栏与 Tab 列表；默认开启，不需要外部展示插件即可使用
+  enabled: true
   # 更新间隔 (ticks)
   update-interval: 20

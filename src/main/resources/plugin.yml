@@ -14,7 +14,7 @@ commands:
     usage: /rl [status|weapon|tickets|trade|help]
   rw:
     description: Roguelike admin commands
-    usage: /rw [reload|give|exp|list|stats|reset|monster|fixhand|help]
+    usage: /rw [init|export|debug|affixes|reload|give|exp|list|stats|reset|monster|fixhand|help]
     permission: roguelike.admin
     aliases: [roguelike]
 

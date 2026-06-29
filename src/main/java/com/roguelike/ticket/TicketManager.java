@@ -4,6 +4,7 @@ import com.roguelike.RoguelikePlugin;
 import com.roguelike.config.ConfigManager;
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.item.WeaponInstanceData;
+import com.roguelike.util.DevLog;
 import com.roguelike.util.Message;
 import com.roguelike.weapon.WeaponManager;
 import net.kyori.adventure.text.Component;
@@ -30,9 +31,11 @@ public class TicketManager {
     private static RoguelikePlugin plugin;
     private static NamespacedKey KEY;
     private static final Random RANDOM = ThreadLocalRandom.current();
-    private static final long CONFIRM_TIMEOUT_MS = 10_000L;
     private static final int[] CHOICE_SLOTS = {11, 13, 15};
-    private static final Map<UUID, TicketAConfirmation> pendingAConfirmations = new HashMap<>();
+    private static final int CONFIRM_SLOT = 11;
+    private static final int INFO_SLOT = 13;
+    private static final int CANCEL_SLOT = 15;
+    private static final Map<UUID, TicketAChoice> pendingAChoices = new HashMap<>();
     private static final Map<UUID, TicketBChoice> pendingBChoices = new HashMap<>();
 
     private static final String[] ALL_EFFECT_KEYS = {
@@ -86,6 +89,28 @@ public class TicketManager {
             player.getInventory().addItem(createTicket(TicketType.TICKET_B));
             player.getInventory().addItem(createTicket(TicketType.TICKET_C));
         }
+    }
+
+    public static List<String> getBaseStatKeys() {
+        return List.of("damage", "attack_speed", "attack_range");
+    }
+
+    public static List<String> getEffectStatKeys() {
+        return List.of(ALL_EFFECT_KEYS);
+    }
+
+    public static List<String> getAllStatKeys() {
+        List<String> stats = new ArrayList<>(getBaseStatKeys());
+        stats.addAll(getEffectStatKeys());
+        return stats;
+    }
+
+    public static String getStatDisplayName(String stat) {
+        return statName(stat);
+    }
+
+    public static String formatStatValue(String stat, double value) {
+        return format(value, stat);
     }
 
     public static boolean applyTicket(Player player, ItemStack ticketStack, ItemStack weaponStack) {
@@ -143,12 +168,13 @@ public class TicketManager {
 
         WeaponManager.makeWeapon(targetStack, template);
         WeaponManager.refreshHeldWeapon(player);
+        DevLog.debug(player.getName() + " developed item into weapon template " + template.getId());
         Message.send(player, "&d开发成功！目标物品已成为特殊品质武器，可继续使用开发券添加词条。");
         return true;
     }
 
     private static boolean applyTicketA(Player player, ItemStack ticketStack, CustomWeapon template, WeaponInstanceData data, ItemStack weaponStack) {
-        List<String> availableStats = getNonZeroStats(template, data);
+        List<String> availableStats = getStrengthenableStats(template, data);
         if (availableStats.isEmpty()) {
             Message.send(player, "&c武器没有可强化的词条！");
             return false;
@@ -156,41 +182,77 @@ public class TicketManager {
 
         int useCount = data.getTicketAUses();
         double successRate = calculateSuccessRate(useCount);
-        TicketAConfirmation pending = pendingAConfirmations.get(player.getUniqueId());
-        long now = System.currentTimeMillis();
-        if (pending == null || !pending.matches(ticketStack, weaponStack, useCount) || now > pending.expiresAt) {
-            pendingAConfirmations.put(player.getUniqueId(), new TicketAConfirmation(ticketStack, weaponStack, useCount, now + CONFIRM_TIMEOUT_MS));
-            Message.send(player, "&e强化成功率: &f" + String.format("%.1f%%", successRate * 100));
-            Message.send(player, "&7保持两手物品不变，10秒内再次右键确认强化。成功或失败都会消耗强化券。");
-            return false;
+        TicketAChoice choice = new TicketAChoice(ticketStack, weaponStack, template, data, availableStats, useCount, successRate);
+        pendingAChoices.put(player.getUniqueId(), choice);
+        DevLog.debug(player.getName() + " opened ticket_a GUI for " + template.getId() + ", successRate=" + formatPercent(successRate));
+        openTicketAConfirmGui(player, choice);
+        return false;
+    }
+
+    private static void openTicketAConfirmGui(Player player, TicketAChoice choice) {
+        Inventory inventory = Bukkit.createInventory(new TicketChoiceHolder(player.getUniqueId(), TicketGuiType.TICKET_A), 27, Message.toComponent("&c确认强化武器"));
+        ItemStack filler = createGuiItem(Material.BLACK_STAINED_GLASS_PANE, " ", List.of());
+        for (int i = 0; i < inventory.getSize(); i++) {
+            inventory.setItem(i, filler);
         }
-        pendingAConfirmations.remove(player.getUniqueId());
 
-        String stat = availableStats.get(RANDOM.nextInt(availableStats.size()));
+        inventory.setItem(CONFIRM_SLOT, createGuiItem(Material.LIME_CONCRETE, "&a确认强化", List.of(
+                "&7随机强化一个可强化词条",
+                "&7成功或失败都会消耗强化券",
+                "&e点击确认"
+        )));
+        inventory.setItem(INFO_SLOT, createGuiItem(Material.PAPER, "&e强化说明", List.of(
+                "&7成功率: &f" + formatPercent(choice.successRate),
+                "&7已使用强化券: &f" + choice.useCount + " 次",
+                "&7可强化词条: &f" + choice.availableStats.size() + " 个",
+                "&7成功后随机提升一个词条",
+                "&7失败后只增加强化次数"
+        )));
+        inventory.setItem(CANCEL_SLOT, createGuiItem(Material.RED_CONCRETE, "&c取消", List.of(
+                "&7关闭界面，不消耗强化券"
+        )));
+        player.openInventory(inventory);
+    }
 
-        if (RANDOM.nextDouble() > successRate) {
-            data.incrementTicketAUses();
-            data.saveToItemStack(weaponStack);
-            WeaponManager.updateLore(weaponStack, template, data);
+    private static void confirmTicketA(Player player, TicketAChoice choice) {
+        if (choice.ticket.getAmount() <= 0) {
+            Message.send(player, "&c强化券已不存在。");
+            return;
+        }
+        if (choice.availableStats.isEmpty()) {
+            Message.send(player, "&c武器没有可强化的词条！");
+            return;
+        }
+
+        String stat = choice.availableStats.get(RANDOM.nextInt(choice.availableStats.size()));
+
+        if (RANDOM.nextDouble() > choice.successRate) {
+            choice.data.incrementTicketAUses();
+            choice.data.saveToItemStack(choice.weapon);
+            WeaponManager.updateLore(choice.weapon, choice.template, choice.data);
+            WeaponManager.clearAttributes(player);
+            consumeTicket(choice.ticket);
+            DevLog.debug(player.getName() + " ticket_a failed on " + choice.template.getId() + ", stat=" + stat + ", useCount=" + choice.useCount);
             Message.send(player, "&c强化失败！");
-            Message.send(player, "&7当前成功率: " + String.format("%.1f%%", successRate * 100));
-            return false;
+            Message.send(player, "&7本次成功率: " + formatPercent(choice.successRate));
+            return;
         }
 
-        double baseValue = getStatBaseValue(template, data, stat);
-        double multiplierRange = 0.35 / Math.pow(2, useCount);
+        double baseValue = getStatBaseValue(choice.template, choice.data, stat);
+        double multiplierRange = 0.35 / Math.pow(2, choice.useCount);
         double multiplier = 0.35 + RANDOM.nextDouble() * multiplierRange;
         double newValue = baseValue * (1 + multiplier);
 
-        setStatValue(template, data, stat, newValue);
-        data.incrementTicketAUses();
-        data.saveToItemStack(weaponStack);
-        WeaponManager.updateLore(weaponStack, template, data);
+        setStatValue(choice.template, choice.data, stat, newValue);
+        choice.data.incrementTicketAUses();
+        choice.data.saveToItemStack(choice.weapon);
+        WeaponManager.updateLore(choice.weapon, choice.template, choice.data);
         WeaponManager.clearAttributes(player);
+        consumeTicket(choice.ticket);
+        DevLog.debug(player.getName() + " ticket_a succeeded on " + choice.template.getId() + ", stat=" + stat + ", old=" + baseValue + ", new=" + newValue);
 
         Message.send(player, "&a强化成功！ &f" + statName(stat) + " &7" + format(baseValue, stat) + " &f-> &e" + format(newValue, stat));
-        Message.send(player, "&7成功率: " + String.format("%.1f%%", successRate * 100));
-        return true;
+        Message.send(player, "&7本次成功率: " + formatPercent(choice.successRate));
     }
 
     private static boolean applyTicketB(Player player, ItemStack ticketStack, CustomWeapon template, WeaponInstanceData data, ItemStack weaponStack) {
@@ -206,6 +268,7 @@ public class TicketManager {
             List<String> choices = new ArrayList<>(availableEffects.subList(0, Math.min(3, availableEffects.size())));
             choice = new TicketBChoice(ticketStack, weaponStack, template, data, choices);
             pendingBChoices.put(player.getUniqueId(), choice);
+            DevLog.debug(player.getName() + " opened ticket_b choices for " + template.getId() + ": " + String.join(",", choices));
         }
         openTicketBChoiceGui(player, choice);
 
@@ -213,7 +276,7 @@ public class TicketManager {
     }
 
     private static void openTicketBChoiceGui(Player player, TicketBChoice choice) {
-        Inventory inventory = Bukkit.createInventory(new TicketChoiceHolder(player.getUniqueId()), 27, Message.toComponent("&6选择开发词条"));
+        Inventory inventory = Bukkit.createInventory(new TicketChoiceHolder(player.getUniqueId(), TicketGuiType.TICKET_B), 27, Message.toComponent("&6选择开发词条"));
         ItemStack filler = createGuiItem(Material.BLACK_STAINED_GLASS_PANE, " ", List.of());
         for (int i = 0; i < inventory.getSize(); i++) {
             inventory.setItem(i, filler);
@@ -260,6 +323,7 @@ public class TicketManager {
         data.saveToItemStack(weaponStack);
         WeaponManager.updateLore(weaponStack, template, data);
         WeaponManager.clearAttributes(player);
+        DevLog.debug(player.getName() + " used ticket_c on " + template.getId() + ", stat=" + stat + ", resetValue=" + baseValue);
 
         Message.send(player, "&9重置成功！ &f" + statName(stat) + " &7已重置为初始值 &e" + format(baseValue, stat));
         return true;
@@ -282,6 +346,19 @@ public class TicketManager {
         if (data.getTotalEffect(template, "attack_range", 3.0) != template.getEffect("attack_range", 3.0)) stats.add("attack_range");
         for (String key : ALL_EFFECT_KEYS) {
             if (data.getTotalEffect(template, key, 0.0) != template.getEffect(key, 0.0)) {
+                stats.add(key);
+            }
+        }
+        return stats;
+    }
+
+    private static List<String> getStrengthenableStats(CustomWeapon template, WeaponInstanceData data) {
+        List<String> stats = new ArrayList<>();
+        stats.add("damage");
+        stats.add("attack_speed");
+        stats.add("attack_range");
+        for (String key : ALL_EFFECT_KEYS) {
+            if (data.getTotalEffect(template, key, 0.0) != 0.0) {
                 stats.add(key);
             }
         }
@@ -351,6 +428,10 @@ public class TicketManager {
         return WeaponManager.format(value, 2);
     }
 
+    private static String formatPercent(double value) {
+        return String.format("%.1f%%", value * 100);
+    }
+
     private static void consumeTicket(ItemStack ticketStack) {
         ticketStack.setAmount(ticketStack.getAmount() - 1);
     }
@@ -376,29 +457,39 @@ public class TicketManager {
         }
     }
 
-    private static class TicketAConfirmation {
+    private static class TicketAChoice {
         final ItemStack ticket;
         final ItemStack weapon;
+        final CustomWeapon template;
+        final WeaponInstanceData data;
+        final List<String> availableStats;
         final int useCount;
-        final long expiresAt;
+        final double successRate;
 
-        TicketAConfirmation(ItemStack ticket, ItemStack weapon, int useCount, long expiresAt) {
+        TicketAChoice(ItemStack ticket, ItemStack weapon, CustomWeapon template, WeaponInstanceData data,
+                      List<String> availableStats, int useCount, double successRate) {
             this.ticket = ticket;
             this.weapon = weapon;
+            this.template = template;
+            this.data = data;
+            this.availableStats = availableStats;
             this.useCount = useCount;
-            this.expiresAt = expiresAt;
+            this.successRate = successRate;
         }
+    }
 
-        boolean matches(ItemStack ticket, ItemStack weapon, int useCount) {
-            return this.ticket == ticket && this.weapon == weapon && this.useCount == useCount;
-        }
+    private enum TicketGuiType {
+        TICKET_A,
+        TICKET_B
     }
 
     private static class TicketChoiceHolder implements InventoryHolder {
         final UUID playerId;
+        final TicketGuiType type;
 
-        TicketChoiceHolder(UUID playerId) {
+        TicketChoiceHolder(UUID playerId, TicketGuiType type) {
             this.playerId = playerId;
+            this.type = type;
         }
 
         @Override
@@ -418,6 +509,11 @@ public class TicketManager {
             if (event.getRawSlot() < 0 || event.getRawSlot() >= event.getView().getTopInventory().getSize()) return;
 
             UUID uuid = player.getUniqueId();
+            if (holder.type == TicketGuiType.TICKET_A) {
+                handleTicketAClick(player, event, uuid);
+                return;
+            }
+
             TicketBChoice choice = pendingBChoices.get(uuid);
             if (choice == null) return;
 
@@ -444,13 +540,32 @@ public class TicketManager {
 
             pendingBChoices.remove(uuid);
             player.closeInventory();
+            DevLog.debug(player.getName() + " selected ticket_b stat " + selectedStat + "=" + baseValue + " for " + choice.template.getId());
             Message.send(player, "&a已添加词条: &f" + statName(selectedStat) + " &e" + format(baseValue, selectedStat));
+        }
+
+        private void handleTicketAClick(Player player, InventoryClickEvent event, UUID uuid) {
+            TicketAChoice choice = pendingAChoices.get(uuid);
+            if (choice == null) return;
+
+            if (event.getSlot() == CONFIRM_SLOT) {
+                pendingAChoices.remove(uuid);
+                player.closeInventory();
+                confirmTicketA(player, choice);
+            } else if (event.getSlot() == CANCEL_SLOT) {
+                pendingAChoices.remove(uuid);
+                player.closeInventory();
+                Message.send(player, "&7已取消强化，未消耗强化券。");
+            }
         }
 
         @EventHandler
         public void onInventoryClose(InventoryCloseEvent event) {
             if (!(event.getInventory().getHolder() instanceof TicketChoiceHolder holder)) return;
-            // 关闭界面不刷新候选项；重新右键会打开同一组三选一，直到选择或更换目标物品。
+            if (holder.type == TicketGuiType.TICKET_A) {
+                pendingAChoices.remove(holder.playerId);
+            }
+            // 开发券关闭界面不刷新候选项；重新右键会打开同一组三选一，直到选择或更换目标物品。
         }
     }
 

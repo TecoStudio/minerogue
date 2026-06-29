@@ -7,14 +7,22 @@ version = '1.0.0'
 
 def gitCommit = {
     try {
-        def output = new ByteArrayOutputStream()
-        def result = exec {
-            commandLine 'git', 'rev-parse', '--short=6', 'HEAD'
-            standardOutput = output
-            errorOutput = new ByteArrayOutputStream()
-            ignoreExitValue = true
+        def gitDir = file('.git')
+        def headFile = new File(gitDir, 'HEAD')
+        if (!headFile.exists()) return 'nogit'
+        def head = headFile.text.trim()
+        if (head.startsWith('ref:')) {
+            def ref = head.substring('ref:'.length()).trim()
+            def refFile = new File(gitDir, ref)
+            if (refFile.exists()) return refFile.text.trim().take(6)
+            def packedRefs = new File(gitDir, 'packed-refs')
+            if (packedRefs.exists()) {
+                def packed = packedRefs.readLines().find { it.endsWith(' ' + ref) }
+                if (packed != null) return packed.split(' ')[0].take(6)
+            }
+            return 'nogit'
         }
-        return result.exitValue == 0 ? output.toString().trim() : 'nogit'
+        return head.take(6)
     } catch (Exception ignored) {
         return 'nogit'
     }
