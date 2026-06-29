@@ -121,13 +121,19 @@ public class EventListener implements Listener {
     public void onPlayerDeath(PlayerDeathEvent event) {
         Player player = event.getEntity();
         PlayerDataManager.get(player).addDeath();
+        LevelManager.applyDeathPenalty(player);
         RoguelikeScoreboard.updatePlayer(player);
     }
 
     @EventHandler
     public void onSpawn(CreatureSpawnEvent event) {
-        if (event.getSpawnReason() != CreatureSpawnEvent.SpawnReason.CUSTOM && !IntegrationManager.isMythicMobsEnabled()) return;
+        if (IntegrationManager.isMythicMobsEnabled()) return;
         MobManager.applyToMob(event.getEntity());
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onMobDamage(EntityDamageByEntityEvent event) {
+        MobManager.handleDamage(event);
     }
 
     @EventHandler

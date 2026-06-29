@@ -83,10 +83,24 @@ public class TicketManager {
         return TicketType.fromId(id);
     }
 
-    public static void giveLevelUpTickets(Player player, int levelsGained) {
-        for (int i = 0; i < levelsGained; i++) {
+    public static void giveLevelUpTickets(Player player, int oldLevel, int newLevel) {
+        int strengthenTickets = 0;
+        int developmentTickets = 0;
+        int resetTickets = 0;
+
+        for (int level = oldLevel + 1; level <= newLevel; level++) {
+            strengthenTickets++;
+            if (level == 2 || level % 3 == 0) developmentTickets++;
+            if (level == 2 || level % 5 == 0) resetTickets++;
+        }
+
+        for (int i = 0; i < strengthenTickets; i++) {
             player.getInventory().addItem(createTicket(TicketType.TICKET_A));
+        }
+        for (int i = 0; i < developmentTickets; i++) {
             player.getInventory().addItem(createTicket(TicketType.TICKET_B));
+        }
+        for (int i = 0; i < resetTickets; i++) {
             player.getInventory().addItem(createTicket(TicketType.TICKET_C));
         }
     }
@@ -614,7 +628,7 @@ public class TicketManager {
             case "slow_duration" -> 1.0 + RANDOM.nextDouble() * 2.0;
             case "slow_level" -> RANDOM.nextInt(2) + 1;
             case "damage_store_percent" -> 0.10 + RANDOM.nextDouble() * 0.15;
-            case "damage_store_hit_reduction" -> 0;
+            case "damage_store_hit_reduction" -> 1;
             case "burning_target_damage_percent", "poisoned_target_damage_percent" -> 0.15 + RANDOM.nextDouble() * 0.25;
             case "poison_chance" -> 0.10 + RANDOM.nextDouble() * 0.20;
             case "explosion_chance" -> 0.05 + RANDOM.nextDouble() * 0.10;

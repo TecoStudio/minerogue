@@ -70,6 +70,8 @@ public class ConfigManager {
                 "{\"attack_range\":3.5,\"fire_damage\":6.0,\"fire_duration\":4.0,\"chain_targets\":4,\"chain_range\":4.0,\"chain_damage_percent\":0.4,\"crit_chance\":0.15,\"crit_damage\":2.0}"));
         addWeapon(weapon("special_weapon", "minecraft:wooden_sword", "特殊武器", "由武器开发券唤醒的武器胚子", 3, 1.6, 250, "special",
                 "{\"attack_range\":3.0}"));
+        addWeapon(weapon("rusty_iron_sword", "minecraft:iron_sword", "生锈的铁剑", "骷髅精英使用的破旧铁剑", 5, 1.6, 250, "common",
+                "{\"attack_range\":3.0,\"poison_chance\":0.30,\"poisoned_target_damage_percent\":0.10}"));
     }
 
     private static CustomWeapon weapon(String id, String item, String name, String desc, double damage, double speed, int durability, String rarity, String effectsJson) {
@@ -261,6 +263,17 @@ public class ConfigManager {
 
     public static FileConfiguration getPluginConfig() {
         return plugin.getConfig();
+    }
+
+    public static boolean isInternalMonsterSystemEnabled() {
+        if (plugin == null) return false;
+        return plugin.getConfig().getBoolean("monsters.internal.enabled", true);
+    }
+
+    public static double getSkeletonEliteSpawnChance() {
+        if (plugin == null) return 0.0;
+        double chance = plugin.getConfig().getDouble("monsters.internal.skeleton-elite.spawn-chance", 0.12);
+        return Math.max(0.0, Math.min(1.0, chance));
     }
 
     public static RoguelikePlugin getPlugin() {

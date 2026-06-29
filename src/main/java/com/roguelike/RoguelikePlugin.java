@@ -46,6 +46,7 @@ public class RoguelikePlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        MobManager.shutdown();
         RoguelikeScoreboard.shutdown();
         PlayerDataManager.shutdown();
         DevLog.info("Roguelike plugin disabled.");
