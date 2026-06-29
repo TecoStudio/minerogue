@@ -1,0 +1,24 @@
+name: Roguelike
+version: ${version}
+main: com.roguelike.RoguelikePlugin
+api-version: '1.21'
+authors: [TRAE]
+description: Roguelike weapon, level, elite mob and free player trading system for Paper
+softdepend: [PlaceholderAPI, TAB, CommandAPI, MythicMobs, Nova]
+libraries:
+  - org.xerial:sqlite-jdbc:3.46.1.0
+
+commands:
+  rl:
+    description: Roguelike player commands
+    usage: /rl [status|weapon|tickets|trade|help]
+  rw:
+    description: Roguelike admin commands
+    usage: /rw [reload|give|exp|list|stats|reset|monster|fixhand|help]
+    permission: roguelike.admin
+    aliases: [roguelike]
+
+permissions:
+  roguelike.admin:
+    description: Allows admin roguelike commands
+    default: op

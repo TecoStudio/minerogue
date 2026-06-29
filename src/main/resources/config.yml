@@ -1,0 +1,32 @@
+# Roguelike 全局配置
+
+# 是否把原版经验自动转换到自定义经验系统
+convert-vanilla-exp: false
+
+storage:
+  # 可选: json 或 sqlite
+  type: json
+  # SQLite 文件路径，相对于 plugins/Roguelike 目录
+  sqlite-file: roguelike.db
+
+integrations:
+  placeholderapi:
+    enabled: true
+  tab:
+    # 启用后建议关闭内置 scoreboard，并在 TAB 中使用 PlaceholderAPI 占位符
+    enabled: false
+  commandapi:
+    # 当前为兼容检测；未安装时自动回退到 Bukkit 命令
+    enabled: true
+  mythicmobs:
+    # 启用后可通过 MythicMobs 生成的怪物获得本插件经验/掉落挂钩
+    enabled: true
+  nova:
+    # 启用后武器 item 可填写 nova:<namespace>:<id>
+    enabled: true
+
+scoreboard:
+  # 是否启用内置侧边栏与 Tab 列表；默认关闭，推荐用 TAB/PlaceholderAPI 展示
+  enabled: false
+  # 更新间隔 (ticks)
+  update-interval: 20

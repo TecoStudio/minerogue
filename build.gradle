@@ -1,0 +1,58 @@
+plugins {
+    id 'java'
+}
+
+group = 'com.roguelike'
+version = '1.0.0'
+
+def gitCommit = {
+    try {
+        def output = new ByteArrayOutputStream()
+        def result = exec {
+            commandLine 'git', 'rev-parse', '--short=6', 'HEAD'
+            standardOutput = output
+            errorOutput = new ByteArrayOutputStream()
+            ignoreExitValue = true
+        }
+        return result.exitValue == 0 ? output.toString().trim() : 'nogit'
+    } catch (Exception ignored) {
+        return 'nogit'
+    }
+}()
+
+repositories {
+    mavenCentral()
+    maven {
+        name = 'papermc-repo'
+        url = 'https://repo.papermc.io/repository/maven-public/'
+    }
+}
+
+dependencies {
+    compileOnly 'io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT'
+    compileOnly 'net.kyori:adventure-text-serializer-legacy:4.17.0'
+}
+
+processResources {
+    def props = [version: version]
+    inputs.properties props
+    filteringCharset 'UTF-8'
+    filesMatching('plugin.yml') {
+        expand props
+    }
+}
+
+jar {
+    archiveFileName = "${rootProject.name}-${version}-${gitCommit}.jar"
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 25
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}

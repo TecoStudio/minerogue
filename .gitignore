@@ -1,0 +1,6 @@
+/.gradle/
+/build/
+/.idea/
+sources.txt
+*.iml
+*.class
