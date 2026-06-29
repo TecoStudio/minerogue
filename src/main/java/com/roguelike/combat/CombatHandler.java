@@ -12,7 +12,6 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
@@ -40,6 +39,17 @@ public class CombatHandler {
 
         double damage = data.getTotalDamage(template);
 
+        boolean wasBurning = target.getFireTicks() > 0;
+        boolean wasPoisoned = target.hasPotionEffect(PotionEffectType.POISON);
+        double burningBonus = data.getTotalEffect(template, "burning_target_damage_percent", 0.0);
+        double poisonedBonus = data.getTotalEffect(template, "poisoned_target_damage_percent", 0.0);
+        if (wasBurning && burningBonus > 0) {
+            damage *= 1 + burningBonus;
+        }
+        if (wasPoisoned && poisonedBonus > 0) {
+            damage *= 1 + poisonedBonus;
+        }
+
         // 暴击
         double critChance = data.getTotalEffect(template, "crit_chance", 0.0);
         double critDamage = data.getTotalEffect(template, "crit_damage", 1.5);
@@ -48,21 +58,25 @@ public class CombatHandler {
             damage *= critDamage;
             player.getWorld().playSound(target.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 1f, 1f);
             player.getWorld().spawnParticle(Particle.CRIT, target.getEyeLocation(), 10, 0.3, 0.3, 0.3);
-            Message.send(player, "&c&l暴击！");
+            Message.send(player, "&c&l暴击！ &f" + WeaponManager.format(damage, 1) + " 伤害");
         }
 
-        // 伤害存储爆发
+        // 伤害存储爆发：按攻击次数触发，默认 20 下，最低 5 下。
         double storePercent = data.getTotalEffect(template, "damage_store_percent", 0.0);
-        double storeMax = data.getTotalEffect(template, "damage_store_max", 0.0);
-        if (storePercent > 0 && storeMax > 0) {
+        int storeHitReduction = (int) data.getTotalEffect(template, "damage_store_hit_reduction", 0.0);
+        int requiredHits = Math.max(5, 20 - storeHitReduction);
+        if (storePercent > 0) {
             data.addStoredDamage(damage * storePercent);
-            if (data.getStoredDamage() >= storeMax) {
+            data.incrementStoredDamageHits();
+            if (data.getStoredDamageHits() >= requiredHits) {
                 double burst = data.getStoredDamage();
                 damage += burst;
                 data.setStoredDamage(0);
+                data.setStoredDamageHits(0);
                 Message.send(player, "&6&l爆发！ 额外 " + WeaponManager.format(burst, 1) + " 伤害");
                 player.getWorld().spawnParticle(Particle.EXPLOSION, target.getLocation(), 1);
             }
+            sendStoreProgress(player, data.getStoredDamageHits(), requiredHits);
             data.saveToItemStack(player.getInventory().getItemInMainHand());
         }
 
@@ -84,14 +98,6 @@ public class CombatHandler {
             target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, (int) (slowDuration * 20), slowLevel));
         }
 
-        // 流血
-        double bleedChance = data.getTotalEffect(template, "bleed_chance", 0.0);
-        double bleedDamage = data.getTotalEffect(template, "bleed_damage", 0.0);
-        double bleedDuration = data.getTotalEffect(template, "bleed_duration", 0.0);
-        if (bleedChance > 0 && bleedDamage > 0 && RANDOM.nextDouble() < bleedChance) {
-            applyBleed(target, bleedDamage, (int) bleedDuration);
-        }
-
         // 火焰
         double fireDamage = data.getTotalEffect(template, "fire_damage", 0.0);
         double fireDuration = data.getTotalEffect(template, "fire_duration", 0.0);
@@ -102,17 +108,28 @@ public class CombatHandler {
             }
         }
 
+        // 中毒
+        double poisonChance = data.getTotalEffect(template, "poison_chance", 0.0);
+        if (poisonChance > 0 && RANDOM.nextDouble() < poisonChance) {
+            target.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 100, 0));
+        }
+
         // 雷电
         double lightning = data.getTotalEffect(template, "lightning_chance", 0.0);
         if (lightning > 0 && RANDOM.nextDouble() < lightning) {
             target.getWorld().strikeLightning(target.getLocation());
         }
 
-        // 眩晕（缓慢+挖掘疲劳）
-        double stun = data.getTotalEffect(template, "stun_duration", 0.0);
-        if (stun > 0) {
-            target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, (int) (stun * 20), 3));
-            target.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, (int) (stun * 20), 3));
+        // 爆炸
+        double explosionChance = data.getTotalEffect(template, "explosion_chance", 0.0);
+        if (explosionChance > 0 && RANDOM.nextDouble() < explosionChance) {
+            target.getWorld().createExplosion(target.getLocation(), 2.0f, false, false, player);
+        }
+
+        // 大爆炸：TNT 级别爆炸，会点火并破坏方块。
+        double bigExplosionChance = data.getTotalEffect(template, "big_explosion_chance", 0.0);
+        if (bigExplosionChance > 0 && RANDOM.nextDouble() < bigExplosionChance) {
+            target.getWorld().createExplosion(target.getLocation(), 4.0f, true, true, player);
         }
 
         // 连锁伤害
@@ -124,7 +141,15 @@ public class CombatHandler {
         }
 
         WeaponManager.updateLore(player.getInventory().getItemInMainHand(), template, data);
+        Message.send(player, "&7造成伤害: &f" + WeaponManager.format(damage, 1));
         return damage;
+    }
+
+    private static void sendStoreProgress(Player player, int hits, int requiredHits) {
+        int percent = requiredHits <= 0 ? 0 : (int) Math.min(100, Math.round(hits / (double) requiredHits * 100));
+        int filled = Math.min(10, Math.max(0, percent / 10));
+        String bar = "§6[" + "#".repeat(filled) + "§7" + "-".repeat(10 - filled) + "§6]§f" + percent + "%";
+        player.sendActionBar(Message.toComponent("§e伤害储存 " + bar + " §7" + hits + "/" + requiredHits));
     }
 
     private static void applyChainDamage(Player player, LivingEntity primary, double baseDamage, int maxTargets, double range, double percent) {
@@ -158,21 +183,4 @@ public class CombatHandler {
         }
     }
 
-    private static void applyBleed(LivingEntity target, double damagePerSecond, int durationSeconds) {
-        if (durationSeconds <= 0) return;
-        new BukkitRunnable() {
-            int ticks = durationSeconds * 20;
-            @Override
-            public void run() {
-                if (target.isDead() || !target.isValid()) {
-                    cancel();
-                    return;
-                }
-                target.damage(damagePerSecond);
-                target.getWorld().spawnParticle(Particle.DAMAGE_INDICATOR, target.getLocation().add(0, 1, 0), 3);
-                ticks -= 20;
-                if (ticks <= 0) cancel();
-            }
-        }.runTaskTimer(plugin, 20L, 20L);
-    }
 }

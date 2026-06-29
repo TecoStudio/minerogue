@@ -51,7 +51,6 @@ public class CustomWeapon {
     public double getFireDamage() { return getEffect("fire_damage", 0.0); }
     public double getFireDuration() { return getEffect("fire_duration", 0.0); }
     public double getLightningChance() { return getEffect("lightning_chance", 0.0); }
-    public double getStunDuration() { return getEffect("stun_duration", 0.0); }
 
     public double getAttackRange() { return getEffect("attack_range", 3.0); }
     public double getLifestealPercent() { return getEffect("lifesteal_percent", 0.0); }
@@ -62,10 +61,12 @@ public class CustomWeapon {
     public double getChainRange() { return getEffect("chain_range", 0.0); }
     public double getChainDamagePercent() { return getEffect("chain_damage_percent", 0.0); }
     public double getDamageStorePercent() { return getEffect("damage_store_percent", 0.0); }
-    public double getDamageStoreMax() { return getEffect("damage_store_max", 0.0); }
+    public int getDamageStoreHitReduction() { return (int) getEffect("damage_store_hit_reduction", 0.0); }
     public double getCritChance() { return getEffect("crit_chance", 0.0); }
     public double getCritDamage() { return getEffect("crit_damage", 1.5); }
-    public double getBleedChance() { return getEffect("bleed_chance", 0.0); }
-    public double getBleedDamage() { return getEffect("bleed_damage", 0.0); }
-    public double getBleedDuration() { return getEffect("bleed_duration", 0.0); }
+    public double getBurningTargetDamagePercent() { return getEffect("burning_target_damage_percent", 0.0); }
+    public double getPoisonedTargetDamagePercent() { return getEffect("poisoned_target_damage_percent", 0.0); }
+    public double getPoisonChance() { return getEffect("poison_chance", 0.0); }
+    public double getExplosionChance() { return getEffect("explosion_chance", 0.0); }
+    public double getBigExplosionChance() { return getEffect("big_explosion_chance", 0.0); }
 }

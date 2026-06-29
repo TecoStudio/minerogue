@@ -360,7 +360,7 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
             case "ticket" -> {
                 TicketType ticket = TicketType.fromId(id);
                 if (ticket == null) {
-                    Message.send(sender, "&c可用券类型: ticket_a, ticket_b, ticket_c, weapon_development");
+                    Message.send(sender, "&c可用券类型: ticket_a, super_ticket_a, ticket_b, ticket_c, weapon_development");
                     return true;
                 }
                 ItemStack stack = TicketManager.createTicket(ticket);
@@ -445,7 +445,8 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
                 sendAffixLine(player, stat, base, total);
             }
         }
-        Message.send(player, "&7强化券使用次数: &f" + data.getTicketAUses() + " &7开发券: &f" + data.getTicketBUses() + " &7重置券: &f" + data.getTicketCUses());
+        Message.send(player, "&7强化券使用次数: &f" + data.getTicketAUses() + " &7连续失败: &f" + data.getTicketAFailStreak());
+        Message.send(player, "&7开发券使用次数: &f" + data.getTicketBUses() + " &7重置券: &f" + data.getTicketCUses());
     }
 
     private void sendAffixLine(CommandSender sender, String stat, double base, double total) {
@@ -484,18 +485,20 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
     }
 
     private void showTickets(Player player) {
-        int a = 0, b = 0, c = 0;
+        int a = 0, superA = 0, b = 0, c = 0;
         for (ItemStack stack : player.getInventory().getContents()) {
             TicketType type = TicketManager.getTicketType(stack);
             if (type == null) continue;
             switch (type) {
                 case TICKET_A -> a += stack.getAmount();
+                case SUPER_TICKET_A -> superA += stack.getAmount();
                 case TICKET_B -> b += stack.getAmount();
                 case TICKET_C -> c += stack.getAmount();
             }
         }
         Message.send(player, "&6&l═══ 武器券 ═══");
         Message.send(player, "&c强化券: &f" + a);
+        Message.send(player, "&f超级强化券: &f" + superA);
         Message.send(player, "&a开发券: &f" + b);
         Message.send(player, "&9重置券: &f" + c);
     }
@@ -554,7 +557,7 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
                 switch (args[1].toLowerCase()) {
                     case "weapon" -> ConfigManager.getWeapons().forEach(w -> list.add(w.getId()));
                     case "item" -> ConfigManager.getItems().forEach(i -> list.add(i.getId()));
-                    case "ticket" -> list.addAll(Arrays.asList("ticket_a", "ticket_b", "ticket_c", "weapon_development"));
+                    case "ticket" -> list.addAll(Arrays.asList("ticket_a", "super_ticket_a", "ticket_b", "ticket_c", "weapon_development"));
                 }
             } else if (args.length == 3 && args[0].equalsIgnoreCase("monster") && args[1].equalsIgnoreCase("spawn")) {
                 list.addAll(Arrays.asList("zombie", "skeleton", "creeper", "spider", "enderman", "blaze"));

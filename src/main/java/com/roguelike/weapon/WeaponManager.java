@@ -27,9 +27,9 @@ public class WeaponManager {
 
     private static final String[] EFFECT_KEYS = {
             "attack_range", "lifesteal_percent", "lifesteal_flat", "slow_duration", "slow_level",
-            "chain_targets", "chain_range", "chain_damage_percent", "damage_store_percent", "damage_store_max",
-            "crit_chance", "crit_damage", "bleed_chance", "bleed_damage", "bleed_duration",
-            "fire_damage", "fire_duration", "lightning_chance", "stun_duration"
+            "chain_targets", "chain_range", "chain_damage_percent", "damage_store_percent", "damage_store_hit_reduction",
+            "crit_chance", "crit_damage", "fire_damage", "fire_duration", "lightning_chance",
+            "burning_target_damage_percent", "poisoned_target_damage_percent", "poison_chance", "explosion_chance", "big_explosion_chance"
     };
 
     public static void init(RoguelikePlugin plugin) {
@@ -127,7 +127,7 @@ public class WeaponManager {
         appendEffectLore(lore, template, data);
 
         if (data.getStoredDamage() > 0) {
-            lore.add(Message.toComponent("§6⚡ 爆发存储: §f" + format(data.getStoredDamage(), 1) + "伤害"));
+            lore.add(Message.toComponent("§6⚡ 爆发存储: §f" + format(data.getStoredDamage(), 1) + "伤害 §7(" + data.getStoredDamageHits() + "/" + getDamageStoreRequiredHits(template, data) + ")"));
         }
 
         if (!data.getAppliedModifiers().isEmpty()) {
@@ -196,13 +196,6 @@ public class WeaponManager {
             lore.add(Message.toComponent("§c✦ 暴击: §f" + format(critChance * 100, 0) + "% (" + format(critDamage, 1) + "x)"));
         }
 
-        double bleedChance = data.getTotalEffect(template, "bleed_chance", 0.0);
-        double bleedDamage = data.getTotalEffect(template, "bleed_damage", 0.0);
-        double bleedDuration = data.getTotalEffect(template, "bleed_duration", 0.0);
-        if (bleedChance > 0) {
-            lore.add(Message.toComponent("§4🩸 流血: §f" + format(bleedChance * 100, 0) + "% (" + format(bleedDamage, 1) + "伤害/s, " + format(bleedDuration, 1) + "s)"));
-        }
-
         double fireDamage = data.getTotalEffect(template, "fire_damage", 0.0);
         double fireDuration = data.getTotalEffect(template, "fire_duration", 0.0);
         if (fireDamage > 0) {
@@ -214,10 +207,40 @@ public class WeaponManager {
             lore.add(Message.toComponent("§9⚡ 雷电: §f" + format(lightning * 100, 0) + "%"));
         }
 
-        double stun = data.getTotalEffect(template, "stun_duration", 0.0);
-        if (stun > 0) {
-            lore.add(Message.toComponent("§5💫 眩晕: §f" + format(stun, 1) + "s"));
+        double storePercent = data.getTotalEffect(template, "damage_store_percent", 0.0);
+        if (storePercent > 0) {
+            lore.add(Message.toComponent("§6⚡ 伤害储存: §f" + format(storePercent * 100, 0) + "% / " + getDamageStoreRequiredHits(template, data) + "次"));
         }
+
+        double burningBonus = data.getTotalEffect(template, "burning_target_damage_percent", 0.0);
+        if (burningBonus > 0) {
+            lore.add(Message.toComponent("§c🔥 燃烧增伤: §f" + format(burningBonus * 100, 0) + "%"));
+        }
+
+        double poisonedBonus = data.getTotalEffect(template, "poisoned_target_damage_percent", 0.0);
+        if (poisonedBonus > 0) {
+            lore.add(Message.toComponent("§2☠ 中毒增伤: §f" + format(poisonedBonus * 100, 0) + "%"));
+        }
+
+        double poisonChance = data.getTotalEffect(template, "poison_chance", 0.0);
+        if (poisonChance > 0) {
+            lore.add(Message.toComponent("§2☠ 中毒概率: §f" + format(poisonChance * 100, 0) + "%"));
+        }
+
+        double explosionChance = data.getTotalEffect(template, "explosion_chance", 0.0);
+        if (explosionChance > 0) {
+            lore.add(Message.toComponent("§6✹ 爆炸概率: §f" + format(explosionChance * 100, 0) + "%"));
+        }
+
+        double bigExplosionChance = data.getTotalEffect(template, "big_explosion_chance", 0.0);
+        if (bigExplosionChance > 0) {
+            lore.add(Message.toComponent("§4✹ 大爆炸概率: §f" + format(bigExplosionChance * 100, 0) + "%"));
+        }
+    }
+
+    private static int getDamageStoreRequiredHits(CustomWeapon template, WeaponInstanceData data) {
+        int reduction = (int) data.getTotalEffect(template, "damage_store_hit_reduction", 0.0);
+        return Math.max(5, 20 - reduction);
     }
 
     public static void updateHeldAttributes(Player player) {

@@ -23,9 +23,11 @@ public class WeaponInstanceData {
     private double damageBonus;
     private double attackSpeedBonus;
     private double storedDamage;
+    private int storedDamageHits;
     private final Map<String, Double> effectBonuses;
     private final List<String> appliedModifiers;
     private int ticketAUses;
+    private int ticketAFailStreak;
     private int ticketBUses;
     private int ticketCUses;
 
@@ -35,9 +37,11 @@ public class WeaponInstanceData {
         this.damageBonus = 0;
         this.attackSpeedBonus = 0;
         this.storedDamage = 0;
+        this.storedDamageHits = 0;
         this.effectBonuses = new HashMap<>();
         this.appliedModifiers = new ArrayList<>();
         this.ticketAUses = 0;
+        this.ticketAFailStreak = 0;
         this.ticketBUses = 0;
         this.ticketCUses = 0;
     }
@@ -63,6 +67,10 @@ public class WeaponInstanceData {
     public double getStoredDamage() { return storedDamage; }
     public void setStoredDamage(double storedDamage) { this.storedDamage = storedDamage; }
     public void addStoredDamage(double amount) { this.storedDamage += amount; }
+
+    public int getStoredDamageHits() { return storedDamageHits; }
+    public void setStoredDamageHits(int storedDamageHits) { this.storedDamageHits = Math.max(0, storedDamageHits); }
+    public void incrementStoredDamageHits() { this.storedDamageHits++; }
 
     public Map<String, Double> getEffectBonuses() {
         return new HashMap<>(effectBonuses);
@@ -94,6 +102,10 @@ public class WeaponInstanceData {
 
     public int getTicketAUses() { return ticketAUses; }
     public void incrementTicketAUses() { this.ticketAUses++; }
+
+    public int getTicketAFailStreak() { return ticketAFailStreak; }
+    public void incrementTicketAFailStreak() { this.ticketAFailStreak++; }
+    public void resetTicketAFailStreak() { this.ticketAFailStreak = 0; }
 
     public int getTicketBUses() { return ticketBUses; }
     public void incrementTicketBUses() { this.ticketBUses++; }

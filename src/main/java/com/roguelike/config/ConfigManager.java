@@ -57,7 +57,7 @@ public class ConfigManager {
 
     private static void loadBuiltInWeapons() {
         addWeapon(weapon("wooden_sword", "minecraft:wooden_sword", "木剑", "最基础的武器", 4, 1.6, 59, "common",
-                "{\"attack_range\":3.0,\"lifesteal_percent\":0.0,\"slow_duration\":0.0,\"chain_targets\":0,\"chain_range\":0.0,\"chain_damage_percent\":0.0,\"damage_store_percent\":0.0,\"damage_store_max\":0.0,\"crit_chance\":0.05,\"crit_damage\":1.5,\"bleed_chance\":0.0}"));
+                "{\"attack_range\":3.0,\"lifesteal_percent\":0.0,\"slow_duration\":0.0,\"chain_targets\":0,\"chain_range\":0.0,\"chain_damage_percent\":0.0,\"damage_store_percent\":0.0,\"damage_store_hit_reduction\":0,\"crit_chance\":0.05,\"crit_damage\":1.5}"));
         addWeapon(weapon("flame_sword", "minecraft:diamond_sword", "烈焰之剑", "燃烧敌人的剑", 10, 1.4, 800, "epic",
                 "{\"attack_range\":3.2,\"fire_damage\":4.0,\"fire_duration\":3.0,\"crit_chance\":0.1,\"crit_damage\":1.75}"));
         addWeapon(weapon("vampire_dagger", "minecraft:iron_sword", "吸血匕首", "从敌人身上吸血", 5, 2.4, 600, "rare",

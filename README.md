@@ -183,7 +183,7 @@ integrations:
 /rw reload
 /rw give weapon <id> [玩家] [数量]
 /rw give item <id> [玩家] [数量]
-/rw give ticket <ticket_a|ticket_b|ticket_c|weapon_development> [玩家] [数量]
+/rw give ticket <ticket_a|super_ticket_a|ticket_b|ticket_c|weapon_development> [玩家] [数量]
 /rw exp <数量> [玩家]
 /rw list <weapons|items>
 /rw stats [玩家]
@@ -413,16 +413,17 @@ chain_targets
 chain_range
 chain_damage_percent
 damage_store_percent
-damage_store_max
+damage_store_hit_reduction
 crit_chance
 crit_damage
-bleed_chance
-bleed_damage
-bleed_duration
 fire_damage
 fire_duration
 lightning_chance
-stun_duration
+burning_target_damage_percent
+poisoned_target_damage_percent
+poison_chance
+explosion_chance
+big_explosion_chance
 ```
 
 ## 武器开发券
@@ -436,6 +437,7 @@ stun_duration
 ```text
 /rw give ticket weapon_development [玩家] [数量]
 /rw give ticket ticket_b [玩家] [数量]
+/rw give ticket super_ticket_a [玩家] [数量]
 ```
 
 使用方法：
