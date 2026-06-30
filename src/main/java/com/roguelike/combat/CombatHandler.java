@@ -107,7 +107,7 @@ public class CombatHandler {
         if (fireDuration > 0) {
             target.setFireTicks((int) (fireDuration * 20));
             if (fireDamage > 0) {
-                target.damage(fireDamage, player);
+                applyInternalDamage(target, fireDamage, player);
             }
         }
 
@@ -169,13 +169,17 @@ public class CombatHandler {
         }
         double chainDamage = baseDamage * percent;
         for (LivingEntity entity : nearby) {
-            internalDamage = true;
-            try {
-                entity.damage(chainDamage, player);
-            } finally {
-                internalDamage = false;
-            }
+            applyInternalDamage(entity, chainDamage, player);
             drawParticleLine(primary.getLocation().add(0, 1, 0), entity.getLocation().add(0, 1, 0));
+        }
+    }
+
+    private static void applyInternalDamage(LivingEntity target, double damage, Player player) {
+        internalDamage = true;
+        try {
+            target.damage(damage, player);
+        } finally {
+            internalDamage = false;
         }
     }
 
