@@ -7,6 +7,7 @@ import com.roguelike.data.PlayerDataManager;
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.item.WeaponInstanceData;
 import com.roguelike.level.LevelManager;
+import com.roguelike.weapon.WeaponAbilityManager;
 import com.roguelike.weapon.WeaponManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -65,15 +66,23 @@ public class RoguelikeScoreboard {
         objective.setDisplaySlot(DisplaySlot.SIDEBAR);
 
         PlayerData data = PlayerDataManager.get(player);
+        java.util.List<String> abilityLines = WeaponAbilityManager.getSidebarLines(player);
         long levelRequiredExp = LevelManager.expForLevel(data.getLevel() + 1);
-        setLine(objective, "§6统计", 8);
-        setLine(objective, "§f玩家: §e" + player.getName(), 7);
-        setLine(objective, "§f等级: §e" + data.getLevel(), 6);
-        setLine(objective, "§f经验: §a" + data.getExpForCurrentLevel() + "§7/§a" + levelRequiredExp, 5);
-        setLine(objective, "§f击杀: §c" + data.getKills(), 4);
-        setLine(objective, "§f死亡: §4" + data.getDeaths(), 3);
-        setLine(objective, "§1", 2);
-        setLine(objective, "§7-----", 1);
+        int score = 8 + abilityLines.size();
+        setLine(objective, "§6统计", score--);
+        setLine(objective, "§f玩家: §e" + player.getName(), score--);
+        setLine(objective, "§f等级: §e" + data.getLevel(), score--);
+        setLine(objective, "§f经验: §a" + data.getExpForCurrentLevel() + "§7/§a" + levelRequiredExp, score--);
+        setLine(objective, "§f击杀: §c" + data.getKills(), score--);
+        setLine(objective, "§f死亡: §4" + data.getDeaths(), score--);
+        if (!abilityLines.isEmpty()) {
+            setLine(objective, "§2", score--);
+            for (String line : abilityLines) {
+                setLine(objective, line, score--);
+            }
+        }
+        setLine(objective, "§1", score--);
+        setLine(objective, "§7-----", score);
 
         player.setScoreboard(board);
     }

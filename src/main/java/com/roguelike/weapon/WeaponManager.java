@@ -11,7 +11,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.EquipmentSlotGroup;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
@@ -20,16 +20,16 @@ import java.util.*;
 
 public class WeaponManager {
     private static RoguelikePlugin plugin;
-    private static final UUID LEGACY_ATTACK_SPEED_UUID = UUID.fromString("CB3F55D3-645C-4F38-A497-9C13A33DB5CF");
-    private static final UUID LEGACY_ATTACK_DAMAGE_UUID = UUID.fromString("FA233E1C-4180-4865-B01B-BCCE9785ACA3");
-    private static final UUID ITEM_ATTACK_SPEED_UUID = UUID.fromString("D9F7AA2E-1B55-4A51-9C5B-63C029C2F2D1");
-    private static final UUID ATTACK_RANGE_UUID = UUID.fromString("A3D7E2B1-9C4F-4A2E-8B1D-6E5F3C2A1D0E");
+    private static final NamespacedKey ATTACK_DAMAGE_KEY = NamespacedKey.minecraft("attack_damage");
+    private static final NamespacedKey ATTACK_SPEED_KEY = new NamespacedKey("roguelike", "attack_speed");
+    private static final NamespacedKey ATTACK_RANGE_KEY = new NamespacedKey("roguelike", "attack_range");
 
     private static final String[] EFFECT_KEYS = {
             "attack_range", "lifesteal_percent", "lifesteal_flat", "slow_duration", "slow_level",
             "chain_targets", "chain_range", "chain_damage_percent", "damage_store_percent", "damage_store_hit_reduction",
             "crit_chance", "crit_damage", "fire_damage", "fire_duration", "lightning_chance",
-            "burning_target_damage_percent", "poisoned_target_damage_percent", "poison_chance", "explosion_chance", "big_explosion_chance"
+            "burning_target_damage_percent", "poisoned_target_damage_percent", "poison_chance", "explosion_chance", "big_explosion_chance",
+            "smash", "bomb", "hyper", "gift", "dash"
     };
 
     public static void init(RoguelikePlugin plugin) {
@@ -160,13 +160,13 @@ public class WeaponManager {
         double damageBonus = damage - 1.0;
         if (damageBonus != 0) {
             meta.addAttributeModifier(Attribute.ATTACK_DAMAGE,
-                    new AttributeModifier(LEGACY_ATTACK_DAMAGE_UUID, "generic.attack_damage", damageBonus,
-                            AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.HAND));
+                    new AttributeModifier(ATTACK_DAMAGE_KEY, damageBonus,
+                            AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.HAND));
         }
         double vanillaSpeed = getVanillaMainHandAttackSpeed(material);
         meta.addAttributeModifier(Attribute.ATTACK_SPEED,
-                new AttributeModifier(ITEM_ATTACK_SPEED_UUID, "generic.attack_speed", speed - vanillaSpeed,
-                        AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.HAND));
+                new AttributeModifier(ATTACK_SPEED_KEY, speed - vanillaSpeed,
+                        AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.HAND));
     }
 
     private static void appendEffectLore(List<Component> lore, CustomWeapon template, WeaponInstanceData data) {
@@ -236,6 +236,23 @@ public class WeaponManager {
         if (bigExplosionChance > 0) {
             lore.add(Message.toComponent("§4✹ 大爆炸概率: §f" + format(bigExplosionChance * 100, 0) + "%"));
         }
+
+        if (data.getTotalEffect(template, "smash", 0.0) > 0) {
+            lore.add(Message.toComponent("§6✦ 猛击: §f3倍伤害，力量效果翻倍，使用后冷却7秒"));
+        }
+        if (data.getTotalEffect(template, "bomb", 0.0) > 0) {
+            lore.add(Message.toComponent("§6☄ 小心炸弹！: §f潜行投掷常规大爆炸TNT，20格或3秒后爆炸，30秒冷却"));
+        }
+        int hyper = (int) data.getTotalEffect(template, "hyper", 0.0);
+        if (hyper > 0) {
+            lore.add(Message.toComponent("§b✦ 亢奋: §f暴击后速度" + hyper + "、急迫" + hyper + " 3秒"));
+        }
+        if (data.getTotalEffect(template, "gift", 0.0) > 0) {
+            lore.add(Message.toComponent("§d❤ 馈赠: §f击杀后7秒回复50%生命并获得抗性提升"));
+        }
+        if (data.getTotalEffect(template, "dash", 0.0) > 0) {
+            lore.add(Message.toComponent("§b➤ Dash！: §f空中潜行按移动方向冲刺，5秒冷却，2次充能"));
+        }
     }
 
     private static int getDamageStoreRequiredHits(CustomWeapon template, WeaponInstanceData data) {
@@ -263,22 +280,22 @@ public class WeaponManager {
         double vanilla = attr.getBaseValue();
         double bonus = range - vanilla;
         if (bonus != 0) {
-            attr.addModifier(new AttributeModifier(ATTACK_RANGE_UUID, "generic.attack_range", bonus,
-                    AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.HAND));
+            attr.addModifier(new AttributeModifier(ATTACK_RANGE_KEY, bonus,
+                    AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.HAND));
         }
     }
 
     public static void clearAttributes(Player player) {
         var dmgAttr = player.getAttribute(Attribute.ATTACK_DAMAGE);
-        if (dmgAttr != null) dmgAttr.removeModifier(LEGACY_ATTACK_DAMAGE_UUID);
+        if (dmgAttr != null) dmgAttr.removeModifier(ATTACK_DAMAGE_KEY);
 
         var spdAttr = player.getAttribute(Attribute.ATTACK_SPEED);
-        if (spdAttr != null) spdAttr.removeModifier(LEGACY_ATTACK_SPEED_UUID);
+        if (spdAttr != null) spdAttr.removeModifier(ATTACK_SPEED_KEY);
 
         Attribute rangeAttr = getRangeAttribute();
         if (rangeAttr != null) {
             var rangeInst = player.getAttribute(rangeAttr);
-            if (rangeInst != null) rangeInst.removeModifier(ATTACK_RANGE_UUID);
+            if (rangeInst != null) rangeInst.removeModifier(ATTACK_RANGE_KEY);
         }
     }
 

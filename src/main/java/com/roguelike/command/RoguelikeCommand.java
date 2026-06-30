@@ -54,7 +54,6 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         switch (args[0].toLowerCase()) {
-            case "weapon", "w" -> showWeapon(player);
             case "tickets" -> showTickets(player);
             case "trade" -> showTrade(player);
             case "help", "?" -> showHelp(player);
@@ -469,21 +468,6 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
         Message.send(player, "&6死亡: &4" + data.getDeaths());
     }
 
-    private void showWeapon(Player player) {
-        ItemStack hand = player.getInventory().getItemInMainHand();
-        CustomWeapon template = WeaponManager.getTemplate(hand);
-        if (template == null) {
-            Message.send(player, "&c你手上没有 Roguelike 武器。");
-            return;
-        }
-        Message.send(player, "&6&l═══ 武器信息 ═══");
-        Message.send(player, "&7模板: &f" + template.getName() + " (" + template.getId() + ")");
-        Message.send(player, "&7总伤害: &f" + WeaponManager.format(WeaponManager.getData(hand).getTotalDamage(template), 1));
-        Message.send(player, "&7总攻速: &f" + WeaponManager.format(WeaponManager.getData(hand).getTotalAttackSpeed(template), 2));
-        Message.send(player, "&7材质原版攻速: &f" + WeaponManager.format(WeaponManager.getVanillaMainHandAttackSpeed(hand.getType()), 2));
-        Message.send(player, "&7品质: " + WeaponManager.getRarityColor(template.getRarity()) + template.getRarity());
-    }
-
     private void showTickets(Player player) {
         int a = 0, superA = 0, b = 0, c = 0;
         for (ItemStack stack : player.getInventory().getContents()) {
@@ -513,7 +497,6 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
     private void showHelp(Player player) {
         Message.send(player, "&6&l═══ Roguelike 帮助 ═══");
         Message.send(player, "&e/rl &7- 查看状态");
-        Message.send(player, "&e/rl weapon &7- 查看手持武器");
         Message.send(player, "&e/rl tickets &7- 查看武器券");
         Message.send(player, "&e/rl trade &7- 查看自由交易说明");
     }
@@ -540,7 +523,7 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
         List<String> list = new ArrayList<>();
         if (cmd.equals("rl")) {
             if (args.length == 1) {
-                list.addAll(Arrays.asList("status", "weapon", "tickets", "trade", "help"));
+                list.addAll(Arrays.asList("status", "tickets", "trade", "help"));
             }
         } else if (cmd.equals("rw") || cmd.equals("roguelike")) {
             if (args.length == 1) {

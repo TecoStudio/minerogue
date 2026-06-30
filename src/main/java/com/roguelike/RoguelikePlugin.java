@@ -11,6 +11,7 @@ import com.roguelike.mob.MobManager;
 import com.roguelike.scoreboard.RoguelikeScoreboard;
 import com.roguelike.ticket.TicketManager;
 import com.roguelike.util.DevLog;
+import com.roguelike.weapon.WeaponAbilityManager;
 import com.roguelike.weapon.WeaponManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -31,6 +32,7 @@ public class RoguelikePlugin extends JavaPlugin {
         MobManager.init(this);
         LevelManager.init(this);
         CombatHandler.init(this);
+        WeaponAbilityManager.init(this);
         RoguelikeScoreboard.init(this);
 
         getServer().getPluginManager().registerEvents(new EventListener(), this);
@@ -47,6 +49,7 @@ public class RoguelikePlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         MobManager.shutdown();
+        WeaponAbilityManager.shutdown();
         RoguelikeScoreboard.shutdown();
         PlayerDataManager.shutdown();
         DevLog.info("Roguelike plugin disabled.");

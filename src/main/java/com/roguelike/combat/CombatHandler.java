@@ -4,6 +4,7 @@ import com.roguelike.RoguelikePlugin;
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.item.WeaponInstanceData;
 import com.roguelike.util.Message;
+import com.roguelike.weapon.WeaponAbilityManager;
 import com.roguelike.weapon.WeaponManager;
 import org.bukkit.Location;
 import org.bukkit.Particle;
@@ -38,6 +39,7 @@ public class CombatHandler {
         if (template == null || data == null) return baseDamage;
 
         double damage = data.getTotalDamage(template);
+        damage = WeaponAbilityManager.applySmash(player, player.getInventory().getItemInMainHand(), template, data, damage);
 
         boolean wasBurning = target.getFireTicks() > 0;
         boolean wasPoisoned = target.hasPotionEffect(PotionEffectType.POISON);
@@ -56,6 +58,7 @@ public class CombatHandler {
         boolean crit = critChance > 0 && RANDOM.nextDouble() < critChance;
         if (crit) {
             damage *= critDamage;
+            WeaponAbilityManager.applyHyper(player, template, data, true);
             player.getWorld().playSound(target.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 1f, 1f);
             player.getWorld().spawnParticle(Particle.CRIT, target.getEyeLocation(), 10, 0.3, 0.3, 0.3);
             Message.send(player, "&c&l暴击！ &f" + WeaponManager.format(damage, 1) + " 伤害");

@@ -42,8 +42,10 @@ public class TicketManager {
             "lifesteal_percent", "chain_targets", "chain_range", "chain_damage_percent",
             "crit_chance", "crit_damage", "fire_damage", "fire_duration", "lightning_chance",
             "slow_duration", "slow_level", "damage_store_percent", "damage_store_hit_reduction",
-            "burning_target_damage_percent", "poisoned_target_damage_percent", "poison_chance", "explosion_chance", "big_explosion_chance"
+            "burning_target_damage_percent", "poisoned_target_damage_percent", "poison_chance", "explosion_chance", "big_explosion_chance",
+            "smash", "bomb", "hyper", "gift", "dash"
     };
+    private static final Set<String> NON_STRENGTHENABLE_EFFECTS = Set.of("smash", "bomb", "gift", "dash");
 
     public static void init(RoguelikePlugin plugin) {
         TicketManager.plugin = plugin;
@@ -265,6 +267,8 @@ public class TicketManager {
         double newValue;
         if (stat.equals("damage_store_hit_reduction")) {
             newValue = Math.min(15, baseValue + 1);
+        } else if (stat.equals("hyper")) {
+            newValue = Math.min(3, baseValue + 1);
         } else {
             double multiplierRange = 0.35 / Math.pow(2, choice.useCount);
             double multiplier = 0.35 + RANDOM.nextDouble() * multiplierRange;
@@ -393,9 +397,14 @@ public class TicketManager {
         stats.add("attack_speed");
         stats.add("attack_range");
         for (String key : ALL_EFFECT_KEYS) {
+            if (NON_STRENGTHENABLE_EFFECTS.contains(key)) continue;
             if (key.equals("damage_store_hit_reduction")) {
                 if (data.getTotalEffect(template, "damage_store_percent", 0.0) > 0.0
                         && data.getTotalEffect(template, key, 0.0) < 15.0) {
+                    stats.add(key);
+                }
+            } else if (key.equals("hyper")) {
+                if (data.getTotalEffect(template, key, 0.0) > 0.0 && data.getTotalEffect(template, key, 0.0) < 3.0) {
                     stats.add(key);
                 }
             } else if (data.getTotalEffect(template, key, 0.0) != 0.0) {
@@ -457,6 +466,11 @@ public class TicketManager {
             case "poison_chance" -> "中毒概率";
             case "explosion_chance" -> "爆炸概率";
             case "big_explosion_chance" -> "大爆炸概率";
+            case "smash" -> "猛击";
+            case "bomb" -> "小心炸弹！";
+            case "hyper" -> "亢奋";
+            case "gift" -> "馈赠";
+            case "dash" -> "Dash！";
             default -> stat;
         };
     }
@@ -465,7 +479,8 @@ public class TicketManager {
         if (stat.contains("chance") || stat.endsWith("_percent")) {
             return WeaponManager.format(value * 100, 1) + "%";
         }
-        if (stat.equals("chain_targets") || stat.equals("slow_level") || stat.equals("damage_store_hit_reduction")) return String.valueOf((int) value);
+        if (stat.equals("chain_targets") || stat.equals("slow_level") || stat.equals("damage_store_hit_reduction") || stat.equals("hyper")) return String.valueOf((int) value);
+        if (stat.equals("smash") || stat.equals("bomb") || stat.equals("gift") || stat.equals("dash")) return value > 0 ? "已启用" : "未启用";
         return WeaponManager.format(value, 2);
     }
 
@@ -633,6 +648,7 @@ public class TicketManager {
             case "poison_chance" -> 0.10 + RANDOM.nextDouble() * 0.20;
             case "explosion_chance" -> 0.05 + RANDOM.nextDouble() * 0.10;
             case "big_explosion_chance" -> 0.02 + RANDOM.nextDouble() * 0.06;
+            case "smash", "bomb", "hyper", "gift", "dash" -> 1;
             default -> RANDOM.nextDouble() * 0.2;
         };
     }

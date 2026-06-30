@@ -11,6 +11,7 @@ import com.roguelike.scoreboard.RoguelikeScoreboard;
 import com.roguelike.ticket.TicketManager;
 import com.roguelike.ticket.TicketType;
 import com.roguelike.util.Message;
+import com.roguelike.weapon.WeaponAbilityManager;
 import com.roguelike.weapon.WeaponManager;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -89,16 +90,32 @@ public class EventListener implements Listener {
         return ticket == TicketType.TICKET_B || ticket == TicketType.WEAPON_DEVELOPMENT;
     }
 
+    @EventHandler
+    public void onToggleSneak(PlayerToggleSneakEvent event) {
+        WeaponAbilityManager.handleSneak(event);
+    }
+
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onDamage(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof Player player)) return;
         if (!(event.getEntity() instanceof LivingEntity target)) return;
 
         if (CombatHandler.isInternalDamage()) return;
+        ItemStack hand = player.getInventory().getItemInMainHand();
+        if (WeaponManager.getTemplate(hand) != null && player.hasCooldown(hand.getType())) {
+            event.setCancelled(true);
+            Message.send(player, "&c武器暂时无法使用。");
+            return;
+        }
         if (WeaponManager.getTemplate(player.getInventory().getItemInMainHand()) != null) {
             double damage = CombatHandler.processAttack(player, target, event.getDamage());
             event.setDamage(damage);
         }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlayerDamaged(EntityDamageEvent event) {
+        WeaponAbilityManager.cancelGiftHeal(event);
     }
 
     @EventHandler
@@ -112,6 +129,7 @@ public class EventListener implements Listener {
                 LevelManager.addExperience(player, exp);
             }
             PlayerDataManager.get(player).addKill();
+            WeaponAbilityManager.applyGiftKill(player);
             RoguelikeScoreboard.updatePlayer(player);
             MobManager.handleDrop(entity);
         }
