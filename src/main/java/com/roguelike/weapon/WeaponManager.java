@@ -2,10 +2,10 @@ package com.roguelike.weapon;
 
 import com.roguelike.RoguelikePlugin;
 import com.roguelike.config.ConfigManager;
+import com.roguelike.equipment.affix.AffixManager;
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.item.WeaponInstanceData;
 import com.roguelike.util.Message;
-import com.roguelike.weapon.affix.WeaponAffixManager;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -33,7 +33,7 @@ public class WeaponManager {
     }
 
     public static String[] getEffectKeys() {
-        return WeaponAffixManager.effectIds().toArray(String[]::new);
+        return AffixManager.weaponEffectIds().toArray(String[]::new);
     }
 
     private static Material inferMaterial(CustomWeapon template) {
@@ -176,7 +176,7 @@ public class WeaponManager {
     }
 
     private static void appendEffectLore(List<Component> lore, CustomWeapon template, WeaponInstanceData data) {
-        WeaponAffixManager.appendLore(lore, template, data);
+        AffixManager.appendWeaponLore(lore, template, data);
     }
 
     private static int getDamageStoreRequiredHits(CustomWeapon template, WeaponInstanceData data) {

@@ -3,11 +3,11 @@ package com.roguelike.ticket;
 import com.roguelike.RoguelikePlugin;
 import com.roguelike.config.ConfigManager;
 import com.roguelike.data.PlayerDataManager;
+import com.roguelike.equipment.affix.AffixManager;
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.item.WeaponInstanceData;
 import com.roguelike.util.DevLog;
 import com.roguelike.util.Message;
-import com.roguelike.weapon.affix.WeaponAffixManager;
 import com.roguelike.weapon.WeaponManager;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
@@ -111,7 +111,7 @@ public class TicketManager {
     }
 
     public static List<String> getEffectStatKeys() {
-        return WeaponAffixManager.effectIds();
+        return AffixManager.weaponEffectIds();
     }
 
     public static List<String> getAllStatKeys() {
@@ -222,10 +222,11 @@ public class TicketManager {
         int useCount = data.getTicketAUses();
         int failStreak = data.getTicketAFailStreak();
         double baseSuccessRate = calculateSuccessRate(useCount);
-        double successRate = guaranteed ? 1.0 : calculateSuccessRate(useCount, failStreak);
+        double failBonus = data.getTicketAFailBonus();
+        double successRate = guaranteed ? 1.0 : calculateSuccessRate(useCount, failBonus);
         TicketAChoice choice = new TicketAChoice(ticketStack, weaponStack, template, data, availableStats, useCount, successRate, guaranteed);
         pendingAChoices.put(player.getUniqueId(), choice);
-        DevLog.debug(player.getName() + " opened " + (guaranteed ? "super_ticket_a" : "ticket_a") + " GUI for " + template.getId() + ", baseSuccessRate=" + formatPercent(baseSuccessRate) + ", failStreak=" + failStreak + ", successRate=" + formatPercent(successRate));
+        DevLog.debug(player.getName() + " opened " + (guaranteed ? "super_ticket_a" : "ticket_a") + " GUI for " + template.getId() + ", baseSuccessRate=" + formatPercent(baseSuccessRate) + ", failStreak=" + failStreak + ", failBonus=" + formatPercent(failBonus) + ", successRate=" + formatPercent(successRate));
         openTicketAChoiceGui(player, choice);
         return false;
     }
@@ -241,12 +242,12 @@ public class TicketManager {
                 "&7成功率: &f" + formatPercent(choice.successRate),
                 "&7已使用强化券: &f" + choice.useCount + " 次",
                 "&7连续失败: &f" + choice.failStreak + " 次",
-                "&7失败加成: &f+" + formatPercent(choice.failStreak * 0.25),
+                "&7失败加成: &f+" + formatPercent(choice.failBonus),
                 "&7可强化词条: &f" + choice.availableStats.size() + " 个",
                 "&7羊毛: 基础属性",
                 "&7陶瓦: 效果词条",
                 "&7点击词条后立即尝试强化",
-                choice.guaranteed ? "&7超级强化不会失败" : "&7失败后下次成功率 +25%",
+                choice.guaranteed ? "&7超级强化不会失败" : "&7失败后下次成功率随机 +3% 到 +13%",
                 "&7成功后清空失败加成"
         )));
         for (int i = 0; i < choice.availableStats.size() && i < STRENGTHEN_SLOTS.length; i++) {
@@ -280,8 +281,10 @@ public class TicketManager {
         }
 
         if (!choice.guaranteed && RANDOM.nextDouble() > choice.successRate) {
+            double bonus = 0.03 + RANDOM.nextDouble() * 0.10;
             choice.data.incrementTicketAUses();
             choice.data.incrementTicketAFailStreak();
+            choice.data.addTicketAFailBonus(bonus);
             choice.data.saveToItemStack(choice.weapon);
             WeaponManager.updateLore(choice.weapon, choice.template, choice.data);
             WeaponManager.clearAttributes(player);
@@ -290,6 +293,7 @@ public class TicketManager {
             DevLog.debug(player.getName() + " ticket_a failed on " + choice.template.getId() + ", stat=" + stat + ", useCount=" + choice.useCount);
             Message.send(player, "&c强化失败！");
             Message.send(player, "&7本次成功率: " + formatPercent(choice.successRate));
+            Message.send(player, "&7下次成功率加成: &a+" + formatPercent(bonus));
             return;
         }
 
@@ -397,8 +401,8 @@ public class TicketManager {
         return Math.pow(0.5, useCount - 8);
     }
 
-    private static double calculateSuccessRate(int useCount, int failStreak) {
-        return Math.min(1.0, calculateSuccessRate(useCount) + Math.max(0, failStreak) * 0.25);
+    private static double calculateSuccessRate(int useCount, double failBonus) {
+        return Math.min(1.0, calculateSuccessRate(useCount) + Math.max(0, failBonus));
     }
 
     private static List<String> getNonZeroStats(CustomWeapon template, WeaponInstanceData data) {
@@ -406,7 +410,7 @@ public class TicketManager {
         if (data.getTotalDamage(template) != template.getBaseDamage()) stats.add("damage");
         if (data.getTotalAttackSpeed(template) != template.getAttackSpeed()) stats.add("attack_speed");
         if (data.getTotalEffect(template, "attack_range", 3.0) != template.getEffect("attack_range", 3.0)) stats.add("attack_range");
-        for (String key : WeaponAffixManager.effectIds()) {
+        for (String key : AffixManager.weaponEffectIds()) {
             if (data.getTotalEffect(template, key, 0.0) != template.getEffect(key, 0.0)) {
                 stats.add(key);
             }
@@ -423,8 +427,8 @@ public class TicketManager {
         stats.add("damage");
         stats.add("attack_speed");
         stats.add("attack_range");
-        for (String key : WeaponAffixManager.effectIds()) {
-            if (WeaponAffixManager.isStrengthenable(template, data, key, material)) {
+        for (String key : AffixManager.weaponEffectIds()) {
+            if (AffixManager.isWeaponAffixStrengthenable(template, data, key, material)) {
                 stats.add(key);
             }
         }
@@ -437,8 +441,8 @@ public class TicketManager {
 
     private static List<String> getAvailableEffects(CustomWeapon template, WeaponInstanceData data, Material material) {
         List<String> available = new ArrayList<>();
-        for (String key : WeaponAffixManager.effectIds()) {
-            if (WeaponAffixManager.isAvailable(template, data, key, material)) {
+        for (String key : AffixManager.weaponEffectIds()) {
+            if (AffixManager.isWeaponAffixAvailable(template, data, key, material)) {
                 available.add(key);
             }
         }
@@ -465,11 +469,9 @@ public class TicketManager {
 
     private static double strengthenStat(String stat, double currentValue, int useCount) {
         if (stat.equals("damage") || stat.equals("attack_speed") || stat.equals("attack_range")) {
-            double multiplierRange = 0.35 / Math.pow(2, useCount);
-            double multiplier = 0.35 + RANDOM.nextDouble() * multiplierRange;
-            return currentValue * (1 + multiplier);
+            return AffixManager.strengthenRawNumber(currentValue, RANDOM);
         }
-        return WeaponAffixManager.strengthen(stat, currentValue, useCount, RANDOM);
+        return AffixManager.strengthenWeapon(stat, currentValue, useCount, RANDOM);
     }
 
     private static String statName(String stat) {
@@ -477,13 +479,13 @@ public class TicketManager {
             case "damage" -> "基础伤害";
             case "attack_speed" -> "攻击速度";
             case "attack_range" -> "攻击距离";
-            default -> WeaponAffixManager.displayName(stat);
+            default -> AffixManager.displayName(com.roguelike.equipment.EquipmentKind.WEAPON, stat);
         };
     }
 
     private static String format(double value, String stat) {
         if (!stat.equals("damage") && !stat.equals("attack_speed") && !stat.equals("attack_range")) {
-            return WeaponAffixManager.format(stat, value);
+            return AffixManager.formatWeapon(stat, value);
         }
         return WeaponManager.format(value, 2);
     }
@@ -547,6 +549,7 @@ public class TicketManager {
         final List<String> availableStats;
         final int useCount;
         final int failStreak;
+        final double failBonus;
         final double successRate;
         final boolean guaranteed;
 
@@ -559,6 +562,7 @@ public class TicketManager {
             this.availableStats = availableStats;
             this.useCount = useCount;
             this.failStreak = data.getTicketAFailStreak();
+            this.failBonus = data.getTicketAFailBonus();
             this.successRate = successRate;
             this.guaranteed = guaranteed;
         }
@@ -664,7 +668,7 @@ public class TicketManager {
 
     private static double generateBaseValue(String stat) {
         return switch (stat) {
-            default -> WeaponAffixManager.generateBaseValue(stat, RANDOM);
+            default -> AffixManager.generateWeaponBaseValue(stat, RANDOM);
         };
     }
 }

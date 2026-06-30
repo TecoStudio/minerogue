@@ -3,6 +3,8 @@ package com.roguelike.command;
 import com.roguelike.config.ConfigManager;
 import com.roguelike.data.PlayerData;
 import com.roguelike.data.PlayerDataManager;
+import com.roguelike.equipment.EquipmentKind;
+import com.roguelike.equipment.affix.AffixManager;
 import com.roguelike.item.CustomItem;
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.item.WeaponInstanceData;
@@ -393,6 +395,11 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
         Message.send(sender, "&e效果词条:");
         for (String stat : TicketManager.getEffectStatKeys()) {
             sender.sendMessage("§7- §f" + TicketManager.getStatDisplayName(stat) + " §8(" + stat + ")");
+        }
+        Message.send(sender, "&6&l═══ 可用防具词条 ═══");
+        Message.send(sender, "&e原版附魔:");
+        for (String stat : AffixManager.armorEffectIds()) {
+            sender.sendMessage("§7- §f" + AffixManager.displayName(EquipmentKind.ARMOR, stat) + " §8(" + stat + ")");
         }
         return true;
     }

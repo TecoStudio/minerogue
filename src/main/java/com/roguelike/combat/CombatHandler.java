@@ -53,7 +53,7 @@ public class CombatHandler {
         }
 
         // 暴击
-        double critChance = data.getTotalEffect(template, "crit_chance", 0.0);
+        double critChance = chance(data.getTotalEffect(template, "crit_chance", 0.0));
         double critDamage = data.getTotalEffect(template, "crit_damage", 1.5);
         boolean crit = critChance > 0 && RANDOM.nextDouble() < critChance;
         if (crit) {
@@ -112,25 +112,25 @@ public class CombatHandler {
         }
 
         // 中毒
-        double poisonChance = data.getTotalEffect(template, "poison_chance", 0.0);
+        double poisonChance = chance(data.getTotalEffect(template, "poison_chance", 0.0));
         if (poisonChance > 0 && RANDOM.nextDouble() < poisonChance) {
             target.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 100, 0));
         }
 
         // 雷电
-        double lightning = data.getTotalEffect(template, "lightning_chance", 0.0);
+        double lightning = chance(data.getTotalEffect(template, "lightning_chance", 0.0));
         if (lightning > 0 && RANDOM.nextDouble() < lightning) {
             target.getWorld().strikeLightning(target.getLocation());
         }
 
         // 爆炸
-        double explosionChance = data.getTotalEffect(template, "explosion_chance", 0.0);
+        double explosionChance = chance(data.getTotalEffect(template, "explosion_chance", 0.0));
         if (explosionChance > 0 && RANDOM.nextDouble() < explosionChance) {
             target.getWorld().createExplosion(target.getLocation(), 2.0f, false, false, player);
         }
 
         // 大爆炸：TNT 级别爆炸，会点火并破坏方块。
-        double bigExplosionChance = data.getTotalEffect(template, "big_explosion_chance", 0.0);
+        double bigExplosionChance = chance(data.getTotalEffect(template, "big_explosion_chance", 0.0));
         if (bigExplosionChance > 0 && RANDOM.nextDouble() < bigExplosionChance) {
             target.getWorld().createExplosion(target.getLocation(), 4.0f, true, true, player);
         }
@@ -153,6 +153,10 @@ public class CombatHandler {
         int filled = Math.min(10, Math.max(0, percent / 10));
         String bar = "§6[" + "#".repeat(filled) + "§7" + "-".repeat(10 - filled) + "§6]§f" + percent + "%";
         player.sendActionBar(Message.toComponent("§e伤害储存 " + bar + " §7" + hits + "/" + requiredHits));
+    }
+
+    private static double chance(double value) {
+        return Math.max(0.0, Math.min(1.0, value));
     }
 
     private static void applyChainDamage(Player player, LivingEntity primary, double baseDamage, int maxTargets, double range, double percent) {

@@ -2,6 +2,8 @@ package com.roguelike.weapon.affix;
 
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.item.WeaponInstanceData;
+import com.roguelike.equipment.EquipmentKind;
+import com.roguelike.equipment.EquipmentTypeResolver;
 import com.roguelike.util.Message;
 import com.roguelike.weapon.WeaponManager;
 import net.kyori.adventure.text.Component;
@@ -38,7 +40,7 @@ public class WeaponAffixManager {
         register(number("chain_range", "连锁范围", 2.0, 4.0, null));
         register(percent("chain_damage_percent", "连锁伤害", 0.30, 0.50, null));
         register(percent("crit_chance", "暴击率", 0.05, 0.15, (lore, template, data) -> {
-            double critChance = total(template, data, "crit_chance", 0.0);
+            double critChance = chance(total(template, data, "crit_chance", 0.0));
             double critDamage = total(template, data, "crit_damage", 1.5);
             if (critChance > 0) lore.add(Message.toComponent("§c✦ 暴击: §f" + WeaponManager.format(critChance * 100, 0) + "% (" + WeaponManager.format(critDamage, 1) + "x)"));
         }));
@@ -50,7 +52,7 @@ public class WeaponAffixManager {
         }));
         register(number("fire_duration", "燃烧时长", 2.0, 5.0, null));
         register(percent("lightning_chance", "雷电概率", 0.05, 0.15, (lore, template, data) -> {
-            double value = total(template, data, "lightning_chance", 0.0);
+            double value = chance(total(template, data, "lightning_chance", 0.0));
             if (value > 0) lore.add(Message.toComponent("§9⚡ 雷电: §f" + WeaponManager.format(value * 100, 0) + "%"));
         }));
         register(number("slow_duration", "减速时长", 1.0, 3.0, (lore, template, data) -> {
@@ -83,15 +85,15 @@ public class WeaponAffixManager {
             if (value > 0) lore.add(Message.toComponent("§2☠ 中毒增伤: §f" + WeaponManager.format(value * 100, 0) + "%"));
         }));
         register(percent("poison_chance", "中毒概率", 0.10, 0.30, (lore, template, data) -> {
-            double value = total(template, data, "poison_chance", 0.0);
+            double value = chance(total(template, data, "poison_chance", 0.0));
             if (value > 0) lore.add(Message.toComponent("§2☠ 中毒概率: §f" + WeaponManager.format(value * 100, 0) + "%"));
         }));
         register(percent("explosion_chance", "爆炸概率", 0.05, 0.15, (lore, template, data) -> {
-            double value = total(template, data, "explosion_chance", 0.0);
+            double value = chance(total(template, data, "explosion_chance", 0.0));
             if (value > 0) lore.add(Message.toComponent("§6✹ 爆炸概率: §f" + WeaponManager.format(value * 100, 0) + "%"));
         }));
         register(percent("big_explosion_chance", "大爆炸概率", 0.02, 0.08, (lore, template, data) -> {
-            double value = total(template, data, "big_explosion_chance", 0.0);
+            double value = chance(total(template, data, "big_explosion_chance", 0.0));
             if (value > 0) lore.add(Message.toComponent("§4✹ 大爆炸概率: §f" + WeaponManager.format(value * 100, 0) + "%"));
         }));
         register(toggle("smash", "猛击", "§6✦ 猛击: §f3倍伤害，力量效果翻倍，使用后冷却7秒", false));
@@ -161,8 +163,12 @@ public class WeaponAffixManager {
     }
 
     public static boolean isApplicable(String id, Material material) {
+        return isApplicable(id, EquipmentTypeResolver.resolve(material));
+    }
+
+    public static boolean isApplicable(String id, EquipmentKind kind) {
         Target target = TARGETS.getOrDefault(id, Target.WEAPON);
-        return target == Target.ALL || target == Target.WEAPON || isPickaxeOrAxe(material);
+        return target == Target.ALL || target == Target.WEAPON || kind == EquipmentKind.TOOL;
     }
 
     public static boolean isStrengthenable(CustomWeapon template, WeaponInstanceData data, String id) {
@@ -198,7 +204,14 @@ public class WeaponAffixManager {
     private static SimpleAffix percent(String id, String displayName, double min, double max, LoreAppender loreAppender) {
         return new SimpleAffix(id, displayName, true, min, max, false, loreAppender) {
             @Override
+            public double strengthen(double currentValue, int useCount, Random random) {
+                double value = strengthenNumber(currentValue, random);
+                return id.endsWith("_chance") ? Math.min(1.0, value) : value;
+            }
+
+            @Override
             public String format(double value) {
+                if (id.endsWith("_chance")) value = chance(value);
                 return WeaponManager.format(value * 100, 1) + "%";
             }
         };
@@ -247,6 +260,10 @@ public class WeaponAffixManager {
         return data.getTotalEffect(template, id, defaultValue);
     }
 
+    private static double chance(double value) {
+        return Math.max(0.0, Math.min(1.0, value));
+    }
+
     private static int damageStoreRequiredHits(CustomWeapon template, WeaponInstanceData data) {
         int reduction = (int) data.getTotalEffect(template, "damage_store_hit_reduction", 0.0);
         return Math.max(5, 20 - reduction);
@@ -262,15 +279,17 @@ public class WeaponAffixManager {
         };
     }
 
-    private static boolean isPickaxeOrAxe(Material material) {
-        String name = material == null ? "" : material.name();
-        return name.endsWith("_PICKAXE") || name.endsWith("_AXE");
+    private static double strengthenNumber(double currentValue, int useCount, Random random) {
+        return strengthenNumber(currentValue, random);
     }
 
-    private static double strengthenNumber(double currentValue, int useCount, Random random) {
-        double multiplierRange = 0.35 / Math.pow(2, useCount);
-        double multiplier = 0.35 + random.nextDouble() * multiplierRange;
-        return currentValue * (1 + multiplier);
+    public static double strengthenRawNumber(double currentValue, Random random) {
+        return strengthenNumber(currentValue, random);
+    }
+
+    private static double strengthenNumber(double currentValue, Random random) {
+        double multiplier = 1.1 + 1.4 * Math.pow(random.nextDouble(), 2.0);
+        return currentValue * multiplier;
     }
 
     private static class SimpleAffix implements WeaponAffix {

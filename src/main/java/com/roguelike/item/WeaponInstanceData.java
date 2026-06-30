@@ -28,6 +28,7 @@ public class WeaponInstanceData {
     private final List<String> appliedModifiers;
     private int ticketAUses;
     private int ticketAFailStreak;
+    private double ticketAFailBonus;
     private int ticketBUses;
     private int ticketCUses;
 
@@ -42,6 +43,7 @@ public class WeaponInstanceData {
         this.appliedModifiers = new ArrayList<>();
         this.ticketAUses = 0;
         this.ticketAFailStreak = 0;
+        this.ticketAFailBonus = 0;
         this.ticketBUses = 0;
         this.ticketCUses = 0;
     }
@@ -105,7 +107,13 @@ public class WeaponInstanceData {
 
     public int getTicketAFailStreak() { return ticketAFailStreak; }
     public void incrementTicketAFailStreak() { this.ticketAFailStreak++; }
-    public void resetTicketAFailStreak() { this.ticketAFailStreak = 0; }
+    public void resetTicketAFailStreak() {
+        this.ticketAFailStreak = 0;
+        this.ticketAFailBonus = 0;
+    }
+
+    public double getTicketAFailBonus() { return ticketAFailBonus; }
+    public void addTicketAFailBonus(double amount) { this.ticketAFailBonus += Math.max(0, amount); }
 
     public int getTicketBUses() { return ticketBUses; }
     public void incrementTicketBUses() { this.ticketBUses++; }
