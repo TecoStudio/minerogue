@@ -6,12 +6,20 @@ public class PlayerData {
     private int kills;
     private int deaths;
     private long totalExp;
+    private int ticketAUses;
+    private int superTicketAUses;
+    private int ticketBUses;
+    private int ticketCUses;
     private int cachedLevel;
 
     public PlayerData() {
         this.kills = 0;
         this.deaths = 0;
         this.totalExp = 0;
+        this.ticketAUses = 0;
+        this.superTicketAUses = 0;
+        this.ticketBUses = 0;
+        this.ticketCUses = 0;
         recalculateLevel();
     }
 
@@ -68,5 +76,32 @@ public class PlayerData {
 
     public long getExpToNextLevel() {
         return LevelManager.expToNextLevel(totalExp);
+    }
+
+    public int getTicketAUses() {
+        return ticketAUses;
+    }
+
+    public int getSuperTicketAUses() {
+        return superTicketAUses;
+    }
+
+    public int getTicketBUses() {
+        return ticketBUses;
+    }
+
+    public int getTicketCUses() {
+        return ticketCUses;
+    }
+
+    public void addTicketUse(String ticketId) {
+        switch (ticketId) {
+            case "ticket_a" -> ticketAUses++;
+            case "super_ticket_a" -> superTicketAUses++;
+            case "ticket_b", "weapon_development" -> ticketBUses++;
+            case "ticket_c" -> ticketCUses++;
+            default -> {
+            }
+        }
     }
 }

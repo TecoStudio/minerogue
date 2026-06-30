@@ -1,42 +1,40 @@
 package com.roguelike.config;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
 import com.roguelike.RoguelikePlugin;
 import com.roguelike.item.CustomItem;
 import com.roguelike.item.CustomWeapon;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 public class ConfigManager {
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static RoguelikePlugin plugin;
-    private static File weaponsDir;
-    private static File itemsDir;
-    private static File mobsDir;
+    private static File weaponsFile;
+    private static File itemsFile;
+    private static File mobsFile;
+    private static boolean internalMonsterSystemEnabled = true;
+    private static double skeletonEliteSpawnChance = 0.12;
 
     private static final Map<String, CustomWeapon> weapons = new LinkedHashMap<>();
     private static final Map<String, CustomItem> items = new LinkedHashMap<>();
-    private static final Map<String, MobConfig> mobs = new HashMap<>();
+    private static final Map<String, MobConfig> mobs = new LinkedHashMap<>();
 
     public static void loadAll(RoguelikePlugin plugin) {
         ConfigManager.plugin = plugin;
         File data = plugin.getDataFolder();
-        weaponsDir = new File(data, "weapons");
-        itemsDir = new File(data, "items");
-        mobsDir = new File(data, "mobs");
+        weaponsFile = new File(data, "weapons.yml");
+        itemsFile = new File(data, "items.yml");
+        mobsFile = new File(data, "mobs.yml");
 
         loadBuiltIns();
+        exportYamlDefaults();
         loadWeapons();
         loadItems();
         loadMobs();
@@ -50,86 +48,21 @@ public class ConfigManager {
         mobs.clear();
         MobExperienceConfig.clear();
 
-        loadBuiltInWeapons();
-        loadBuiltInItems();
-        loadBuiltInMobs();
-    }
-
-    private static void loadBuiltInWeapons() {
-        addWeapon(weapon("wooden_sword", "minecraft:wooden_sword", "木剑", "最基础的武器", 4, 1.6, 59, "common",
-                "{\"attack_range\":3.0,\"lifesteal_percent\":0.0,\"slow_duration\":0.0,\"chain_targets\":0,\"chain_range\":0.0,\"chain_damage_percent\":0.0,\"damage_store_percent\":0.0,\"damage_store_hit_reduction\":0,\"crit_chance\":0.05,\"crit_damage\":1.5}"));
-        addWeapon(weapon("flame_sword", "minecraft:diamond_sword", "烈焰之剑", "燃烧敌人的剑", 10, 1.4, 800, "epic",
-                "{\"attack_range\":3.2,\"fire_damage\":4.0,\"fire_duration\":3.0,\"crit_chance\":0.1,\"crit_damage\":1.75}"));
-        addWeapon(weapon("vampire_dagger", "minecraft:iron_sword", "吸血匕首", "从敌人身上吸血", 5, 2.4, 600, "rare",
-                "{\"attack_range\":2.8,\"lifesteal_percent\":0.15,\"crit_chance\":0.08,\"crit_damage\":1.6}"));
-        addWeapon(weapon("thunder_axe", "minecraft:diamond_axe", "雷霆战斧", "几率召唤雷电", 14, 0.9, 1200, "legendary",
-                "{\"attack_range\":3.0,\"lightning_chance\":0.15,\"crit_chance\":0.12,\"crit_damage\":2.0}"));
-        addWeapon(weapon("whirlwind_blade", "minecraft:iron_sword", "旋风之刃", "攻击会波及周围敌人", 9, 1.3, 1000, "epic",
-                "{\"attack_range\":3.1,\"chain_targets\":3,\"chain_range\":3.0,\"chain_damage_percent\":0.5,\"crit_chance\":0.1}"));
-        addWeapon(weapon("inferno_greatsword", "minecraft:netherite_sword", "炼狱巨剑", "大范围火焰伤害", 18, 0.8, 2000, "legendary",
-                "{\"attack_range\":3.5,\"fire_damage\":6.0,\"fire_duration\":4.0,\"chain_targets\":4,\"chain_range\":4.0,\"chain_damage_percent\":0.4,\"crit_chance\":0.15,\"crit_damage\":2.0}"));
-        addWeapon(weapon("special_weapon", "minecraft:wooden_sword", "特殊武器", "由武器开发券唤醒的武器胚子", 3, 1.6, 250, "special",
-                "{\"attack_range\":3.0}"));
-        addWeapon(weapon("rusty_iron_sword", "minecraft:iron_sword", "生锈的铁剑", "骷髅精英使用的破旧铁剑", 5, 1.6, 250, "common",
-                "{\"attack_range\":3.0,\"poison_chance\":0.30,\"poisoned_target_damage_percent\":0.10}"));
-    }
-
-    private static CustomWeapon weapon(String id, String item, String name, String desc, double damage, double speed, int durability, String rarity, String effectsJson) {
-        JsonObject w = new JsonObject();
-        w.addProperty("id", id);
-        w.addProperty("item", item);
-        w.addProperty("name", name);
-        w.addProperty("description", desc);
-        w.addProperty("base_damage", damage);
-        w.addProperty("attack_speed", speed);
-        w.addProperty("durability", durability);
-        w.addProperty("rarity", rarity);
-        w.add("effects", GSON.fromJson(effectsJson, JsonObject.class));
-        return parseWeapon(w);
-    }
-
-    private static void loadBuiltInItems() {
-        JsonObject potion = new JsonObject();
-        potion.addProperty("id", "healing_potion");
-        potion.addProperty("name", "治疗药水");
-        potion.addProperty("description", "恢复生命值");
-        potion.addProperty("item_type", "potion");
-        potion.addProperty("rarity", "common");
-        JsonObject eff = new JsonObject();
-        eff.addProperty("heal_amount", 10);
-        potion.add("effects", eff);
-        addItem(parseItem(potion));
-    }
-
-    private static void loadBuiltInMobs() {
-        MobExperienceConfig.setDefaultExp(10);
-        MobExperienceConfig.setMobExp("zombie", 15);
-        MobExperienceConfig.setMobExp("skeleton", 15);
-        MobExperienceConfig.setMobExp("creeper", 20);
-        MobExperienceConfig.setMobExp("spider", 12);
-        MobExperienceConfig.setMobExp("enderman", 25);
-        MobExperienceConfig.setMobExp("blaze", 22);
-        MobExperienceConfig.setMobExp("warden", 100);
-        MobExperienceConfig.setMobExp("ender_dragon", 500);
-        MobExperienceConfig.setMobExp("wither", 300);
-        mobs.put("zombie", new MobConfig(1.5, 1.2, 1.0, "wooden_sword"));
+        weapons.putAll(DefaultWeapons.create());
+        items.putAll(DefaultItems.create());
+        internalMonsterSystemEnabled = DefaultMobs.internalSystemEnabled();
+        skeletonEliteSpawnChance = DefaultMobs.skeletonEliteSpawnChance();
+        MobExperienceConfig.setDefaultExp(DefaultMobs.defaultExperience());
+        DefaultMobs.experience().forEach(MobExperienceConfig::setMobExp);
+        mobs.putAll(DefaultMobs.modifiers());
     }
 
     private static void loadWeapons() {
-        weapons.clear();
-        File[] files = weaponsDir.listFiles((d, n) -> n.endsWith(".json"));
-        if (files == null) return;
-        for (File file : files) {
-            try (FileReader reader = new FileReader(file)) {
-                JsonObject root = GSON.fromJson(reader, JsonObject.class);
-                if (!root.has("weapons")) continue;
-                JsonArray arr = root.getAsJsonArray("weapons");
-                for (int i = 0; i < arr.size(); i++) {
-                    addWeapon(parseWeapon(arr.get(i).getAsJsonObject()));
-                }
-            } catch (IOException e) {
-                plugin.getLogger().warning("无法加载武器文件: " + file.getName());
-            }
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(weaponsFile);
+        ConfigurationSection section = config.getConfigurationSection("weapons");
+        if (section == null) return;
+        for (String id : section.getKeys(false)) {
+            addWeapon(parseWeapon(id, section.getConfigurationSection(id)));
         }
     }
 
@@ -137,42 +70,25 @@ public class ConfigManager {
         weapons.put(weapon.getId().toLowerCase(), weapon);
     }
 
-    private static CustomWeapon parseWeapon(JsonObject json) {
-        String id = json.get("id").getAsString();
-        String item = json.has("item") ? json.get("item").getAsString() : id;
-        String name = json.has("name") ? json.get("name").getAsString() : id;
-        String desc = json.has("description") ? json.get("description").getAsString() : "";
-        double damage = json.has("base_damage") ? json.get("base_damage").getAsDouble() : 5.0;
-        double speed = json.has("attack_speed") ? json.get("attack_speed").getAsDouble() : 1.6;
-        int durability = json.has("durability") ? json.get("durability").getAsInt() : 250;
-        String rarity = json.has("rarity") ? json.get("rarity").getAsString() : "common";
-        Map<String, Double> effects = new HashMap<>();
-        if (json.has("effects")) {
-            JsonObject effectsJson = json.getAsJsonObject("effects");
-            effectsJson.entrySet().forEach(e -> {
-                if (e.getValue().isJsonPrimitive()) {
-                    effects.put(e.getKey(), e.getValue().getAsDouble());
-                }
-            });
-        }
+    private static CustomWeapon parseWeapon(String id, ConfigurationSection section) {
+        if (section == null) return DefaultWeapons.create().get(id.toLowerCase());
+        String item = section.getString("item", id);
+        String name = section.getString("name", id);
+        String desc = section.getString("description", "");
+        double damage = section.getDouble("base-damage", 5.0);
+        double speed = section.getDouble("attack-speed", 1.6);
+        int durability = section.getInt("durability", 250);
+        String rarity = section.getString("rarity", "common");
+        Map<String, Double> effects = readDoubleMap(section.getConfigurationSection("effects"));
         return new CustomWeapon(id, name, desc, item, damage, speed, durability, rarity, effects);
     }
 
     private static void loadItems() {
-        items.clear();
-        File[] files = itemsDir.listFiles((d, n) -> n.endsWith(".json"));
-        if (files == null) return;
-        for (File file : files) {
-            try (FileReader reader = new FileReader(file)) {
-                JsonObject root = GSON.fromJson(reader, JsonObject.class);
-                if (!root.has("items")) continue;
-                JsonArray arr = root.getAsJsonArray("items");
-                for (int i = 0; i < arr.size(); i++) {
-                    addItem(parseItem(arr.get(i).getAsJsonObject()));
-                }
-            } catch (IOException e) {
-                plugin.getLogger().warning("无法加载物品文件: " + file.getName());
-            }
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(itemsFile);
+        ConfigurationSection section = config.getConfigurationSection("items");
+        if (section == null) return;
+        for (String id : section.getKeys(false)) {
+            addItem(parseItem(id, section.getConfigurationSection(id)));
         }
     }
 
@@ -180,61 +96,128 @@ public class ConfigManager {
         items.put(item.getId().toLowerCase(), item);
     }
 
-    private static CustomItem parseItem(JsonObject json) {
-        String id = json.get("id").getAsString();
-        String name = json.has("name") ? json.get("name").getAsString() : id;
-        String desc = json.has("description") ? json.get("description").getAsString() : "";
-        String type = json.has("item_type") ? json.get("item_type").getAsString() : "misc";
-        String rarity = json.has("rarity") ? json.get("rarity").getAsString() : "common";
-        Map<String, Double> effects = new HashMap<>();
-        if (json.has("effects")) {
-            JsonObject effectsJson = json.getAsJsonObject("effects");
-            effectsJson.entrySet().forEach(e -> {
-                if (e.getValue().isJsonPrimitive()) {
-                    effects.put(e.getKey(), e.getValue().getAsDouble());
-                }
-            });
-        }
+    private static CustomItem parseItem(String id, ConfigurationSection section) {
+        if (section == null) return DefaultItems.create().get(id.toLowerCase());
+        String name = section.getString("name", id);
+        String desc = section.getString("description", "");
+        String type = section.getString("item-type", "misc");
+        String rarity = section.getString("rarity", "common");
+        Map<String, Double> effects = readDoubleMap(section.getConfigurationSection("effects"));
         return new CustomItem(id, name, desc, type, rarity, effects);
     }
 
     private static void loadMobs() {
-        File[] files = mobsDir.listFiles((d, n) -> n.endsWith(".json"));
-        if (files == null) return;
-        for (File file : files) {
-            try (FileReader reader = new FileReader(file)) {
-                JsonObject root = GSON.fromJson(reader, JsonObject.class);
-                if (root.has("default_exp")) {
-                    MobExperienceConfig.setDefaultExp(root.get("default_exp").getAsInt());
-                }
-                if (root.has("mobs")) {
-                    JsonObject map = root.getAsJsonObject("mobs");
-                    map.entrySet().forEach(e -> {
-                        if (e.getValue().isJsonPrimitive()) {
-                            MobExperienceConfig.setMobExp(e.getKey(), e.getValue().getAsInt());
-                        }
-                    });
-                }
-                if (root.has("modifiers")) {
-                    JsonObject mods = root.getAsJsonObject("modifiers");
-                    mods.entrySet().forEach(e -> {
-                        if (e.getValue().isJsonObject()) {
-                            mobs.put(e.getKey().toLowerCase(), parseMobConfig(e.getValue().getAsJsonObject()));
-                        }
-                    });
-                }
-            } catch (IOException e) {
-                plugin.getLogger().warning("无法加载怪物文件: " + file.getName());
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(mobsFile);
+        internalMonsterSystemEnabled = config.getBoolean("internal.enabled", internalMonsterSystemEnabled);
+        skeletonEliteSpawnChance = clampChance(config.getDouble("internal.skeleton-elite.spawn-chance", skeletonEliteSpawnChance));
+        MobExperienceConfig.setDefaultExp(config.getInt("default-experience", MobExperienceConfig.getDefaultExp()));
+        ConfigurationSection experience = config.getConfigurationSection("experience");
+        if (experience != null) {
+            for (String id : experience.getKeys(false)) {
+                MobExperienceConfig.setMobExp(id, experience.getInt(id));
+            }
+        }
+
+        ConfigurationSection modifiers = config.getConfigurationSection("modifiers");
+        if (modifiers != null) {
+            for (String id : modifiers.getKeys(false)) {
+                mobs.put(id.toLowerCase(), parseMobConfig(modifiers.getConfigurationSection(id)));
             }
         }
     }
 
-    private static MobConfig parseMobConfig(JsonObject json) {
-        double health = json.has("health_multiplier") ? json.get("health_multiplier").getAsDouble() : 1.0;
-        double damage = json.has("damage_multiplier") ? json.get("damage_multiplier").getAsDouble() : 1.0;
-        double speed = json.has("speed_multiplier") ? json.get("speed_multiplier").getAsDouble() : 1.0;
-        String weapon = json.has("weapon_template") ? json.get("weapon_template").getAsString() : null;
+    private static MobConfig parseMobConfig(ConfigurationSection section) {
+        if (section == null) return new MobConfig(1.0, 1.0, 1.0, null);
+        double health = section.getDouble("health-multiplier", 1.0);
+        double damage = section.getDouble("damage-multiplier", 1.0);
+        double speed = section.getDouble("speed-multiplier", 1.0);
+        String weapon = section.getString("weapon-template", null);
         return new MobConfig(health, damage, speed, weapon);
+    }
+
+    private static Map<String, Double> readDoubleMap(ConfigurationSection section) {
+        Map<String, Double> values = new LinkedHashMap<>();
+        if (section == null) return values;
+        for (String key : section.getKeys(false)) {
+            values.put(key, section.getDouble(key));
+        }
+        return values;
+    }
+
+    private static double clampChance(double chance) {
+        return Math.max(0.0, Math.min(1.0, chance));
+    }
+
+    private static void exportYamlDefaults() {
+        try {
+            if (!weaponsFile.exists()) saveWeaponsYaml(weaponsFile, DefaultWeapons.create());
+            if (!itemsFile.exists()) saveItemsYaml(itemsFile, DefaultItems.create());
+            if (!mobsFile.exists()) saveMobsYaml(mobsFile);
+        } catch (IOException e) {
+            plugin.getLogger().warning("无法导出默认 YAML 配置: " + e.getMessage());
+        }
+    }
+
+    public static void exportEditableYaml() throws IOException {
+        saveWeaponsYaml(weaponsFile, weapons);
+        saveItemsYaml(itemsFile, items);
+        saveMobsYaml(mobsFile);
+    }
+
+    private static void saveWeaponsYaml(File file, Map<String, CustomWeapon> source) throws IOException {
+        YamlConfiguration config = new YamlConfiguration();
+        config.options().header("Roguelike 武器配置。修改后使用 /rw reload 重载。");
+        for (CustomWeapon weapon : source.values()) {
+            String path = "weapons." + weapon.getId() + ".";
+            config.set(path + "item", weapon.getItem());
+            config.set(path + "name", weapon.getName());
+            config.set(path + "description", weapon.getDescription());
+            config.set(path + "base-damage", weapon.getBaseDamage());
+            config.set(path + "attack-speed", weapon.getAttackSpeed());
+            config.set(path + "durability", weapon.getDurability());
+            config.set(path + "rarity", weapon.getRarity());
+            weapon.getEffects().forEach((key, value) -> config.set(path + "effects." + key, value));
+        }
+        saveYaml(config, file);
+    }
+
+    private static void saveItemsYaml(File file, Map<String, CustomItem> source) throws IOException {
+        YamlConfiguration config = new YamlConfiguration();
+        config.options().header("Roguelike 物品配置。修改后使用 /rw reload 重载。");
+        for (CustomItem item : source.values()) {
+            String path = "items." + item.getId() + ".";
+            config.set(path + "name", item.getName());
+            config.set(path + "description", item.getDescription());
+            config.set(path + "item-type", item.getItemType());
+            config.set(path + "rarity", item.getRarity());
+            item.getEffects().forEach((key, value) -> config.set(path + "effects." + key, value));
+        }
+        saveYaml(config, file);
+    }
+
+    private static void saveMobsYaml(File file) throws IOException {
+        YamlConfiguration config = new YamlConfiguration();
+        config.options().header("Roguelike 怪物配置。修改后使用 /rw reload 重载。");
+        config.set("internal.enabled", internalMonsterSystemEnabled);
+        config.set("internal.skeleton-elite.spawn-chance", skeletonEliteSpawnChance);
+        config.set("default-experience", MobExperienceConfig.getDefaultExp());
+        MobExperienceConfig.getAllMobExp().forEach((key, value) -> config.set("experience." + key, value));
+        mobs.forEach((key, value) -> {
+            String path = "modifiers." + key + ".";
+            config.set(path + "health-multiplier", value.healthMultiplier());
+            config.set(path + "damage-multiplier", value.damageMultiplier());
+            config.set(path + "speed-multiplier", value.speedMultiplier());
+            config.set(path + "weapon-template", value.weaponTemplate());
+        });
+        saveYaml(config, file);
+    }
+
+    private static void saveYaml(YamlConfiguration config, File file) throws IOException {
+        File parent = file.getParentFile();
+        if (parent != null && !parent.exists() && !parent.mkdirs()) {
+            throw new IOException("无法创建目录: " + parent.getAbsolutePath());
+        }
+        config.save(file);
     }
 
     public static List<CustomWeapon> getWeapons() {
@@ -266,14 +249,12 @@ public class ConfigManager {
     }
 
     public static boolean isInternalMonsterSystemEnabled() {
-        if (plugin == null) return false;
-        return plugin.getConfig().getBoolean("monsters.internal.enabled", true);
+        return plugin != null && internalMonsterSystemEnabled;
     }
 
     public static double getSkeletonEliteSpawnChance() {
         if (plugin == null) return 0.0;
-        double chance = plugin.getConfig().getDouble("monsters.internal.skeleton-elite.spawn-chance", 0.12);
-        return Math.max(0.0, Math.min(1.0, chance));
+        return skeletonEliteSpawnChance;
     }
 
     public static RoguelikePlugin getPlugin() {

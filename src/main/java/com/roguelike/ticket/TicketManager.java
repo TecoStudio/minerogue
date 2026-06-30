@@ -2,6 +2,7 @@ package com.roguelike.ticket;
 
 import com.roguelike.RoguelikePlugin;
 import com.roguelike.config.ConfigManager;
+import com.roguelike.data.PlayerDataManager;
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.item.WeaponInstanceData;
 import com.roguelike.util.DevLog;
@@ -133,13 +134,13 @@ public class TicketManager {
         TicketType type = getTicketType(ticketStack);
         if (type == null) return false;
         if (type == TicketType.WEAPON_DEVELOPMENT) {
-            return applyWeaponDevelopment(player, weaponStack);
+            return applyWeaponDevelopment(player, weaponStack, type);
         }
 
         CustomWeapon template = WeaponManager.getTemplate(weaponStack);
         WeaponInstanceData data = WeaponInstanceData.fromItemStack(weaponStack);
         if (type == TicketType.TICKET_B && (template == null || data == null)) {
-            return applyWeaponDevelopment(player, weaponStack);
+            return applyWeaponDevelopment(player, weaponStack, type);
         }
         if (template == null || data == null) {
             Message.send(player, "&c目标物品不是 Roguelike 武器！");
@@ -165,7 +166,7 @@ public class TicketManager {
         }
     }
 
-    private static boolean applyWeaponDevelopment(Player player, ItemStack targetStack) {
+    private static boolean applyWeaponDevelopment(Player player, ItemStack targetStack, TicketType ticketType) {
         if (targetStack == null || targetStack.getType().isAir()) {
             Message.send(player, "&c另一只手需要拿着要开发的物品。");
             return false;
@@ -187,6 +188,7 @@ public class TicketManager {
 
         WeaponManager.makeWeapon(targetStack, template);
         WeaponManager.refreshHeldWeapon(player);
+        recordTicketUse(player, ticketType);
         DevLog.debug(player.getName() + " developed item into weapon template " + template.getId());
         Message.send(player, "&d开发成功！目标物品已成为特殊品质武器，可继续使用开发券添加词条。");
         return true;
@@ -257,6 +259,7 @@ public class TicketManager {
             WeaponManager.updateLore(choice.weapon, choice.template, choice.data);
             WeaponManager.clearAttributes(player);
             consumeTicket(choice.ticket);
+            recordTicketUse(player, choice.guaranteed ? TicketType.SUPER_TICKET_A : TicketType.TICKET_A);
             DevLog.debug(player.getName() + " ticket_a failed on " + choice.template.getId() + ", stat=" + stat + ", useCount=" + choice.useCount);
             Message.send(player, "&c强化失败！");
             Message.send(player, "&7本次成功率: " + formatPercent(choice.successRate));
@@ -284,6 +287,7 @@ public class TicketManager {
         WeaponManager.updateLore(choice.weapon, choice.template, choice.data);
         WeaponManager.clearAttributes(player);
         consumeTicket(choice.ticket);
+        recordTicketUse(player, choice.guaranteed ? TicketType.SUPER_TICKET_A : TicketType.TICKET_A);
         DevLog.debug(player.getName() + " " + (choice.guaranteed ? "super_ticket_a" : "ticket_a") + " succeeded on " + choice.template.getId() + ", stat=" + stat + ", old=" + baseValue + ", new=" + newValue);
 
         Message.send(player, "&a强化成功！ &f" + statName(stat) + " &7" + format(baseValue, stat) + " &f-> &e" + format(newValue, stat));
@@ -358,6 +362,7 @@ public class TicketManager {
         data.saveToItemStack(weaponStack);
         WeaponManager.updateLore(weaponStack, template, data);
         WeaponManager.clearAttributes(player);
+        recordTicketUse(player, TicketType.TICKET_C);
         DevLog.debug(player.getName() + " used ticket_c on " + template.getId() + ", stat=" + stat + ", resetValue=" + baseValue);
 
         Message.send(player, "&9重置成功！ &f" + statName(stat) + " &7已重置为初始值 &e" + format(baseValue, stat));
@@ -492,6 +497,11 @@ public class TicketManager {
         ticketStack.setAmount(ticketStack.getAmount() - 1);
     }
 
+    private static void recordTicketUse(Player player, TicketType type) {
+        PlayerDataManager.get(player).addTicketUse(type.getId());
+        PlayerDataManager.save(player);
+    }
+
     private static class TicketBChoice {
         final ItemStack ticket;
         final ItemStack weapon;
@@ -597,6 +607,7 @@ public class TicketManager {
             WeaponManager.updateLore(choice.weapon, choice.template, choice.data);
             WeaponManager.clearAttributes(player);
             consumeTicket(choice.ticket);
+            recordTicketUse(player, TicketType.TICKET_B);
 
             pendingBChoices.remove(uuid);
             player.closeInventory();

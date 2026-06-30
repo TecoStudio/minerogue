@@ -12,30 +12,22 @@ debug:
 
 integrations:
   placeholderapi:
-    enabled: true
+    enabled: false
   tab:
     # 启用后建议关闭内置 scoreboard，并在 TAB 中使用 PlaceholderAPI 占位符
     enabled: false
   commandapi:
     # 当前为兼容检测；未安装时自动回退到 Bukkit 命令
-    enabled: true
+    enabled: false
   mythicmobs:
     # 启用后使用 MythicMobs 怪物系统；本插件内置怪物不会自然生成
     enabled: false
   nova:
     # 启用后武器 item 可填写 nova:<namespace>:<id>
-    enabled: true
+    enabled: false
 
 scoreboard:
   # 是否启用内置侧边栏与 Tab 列表；默认开启，不需要外部展示插件即可使用
   enabled: true
   # 更新间隔 (ticks)
   update-interval: 20
-
-monsters:
-  internal:
-    # MythicMobs 集成关闭时才会启用内置怪物系统
-    enabled: true
-    skeleton-elite:
-      # 自然生成的骷髅转化为骷髅精英的概率
-      spawn-chance: 0.12

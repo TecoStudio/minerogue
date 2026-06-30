@@ -47,12 +47,24 @@ public class PlayerDataManager {
             if (parent != null && !parent.exists()) parent.mkdirs();
             sqlite = DriverManager.getConnection("jdbc:sqlite:" + database.getAbsolutePath());
             try (Statement statement = sqlite.createStatement()) {
-                statement.executeUpdate("CREATE TABLE IF NOT EXISTS player_data (uuid TEXT PRIMARY KEY, kills INTEGER NOT NULL, deaths INTEGER NOT NULL, total_exp INTEGER NOT NULL)");
+                statement.executeUpdate("CREATE TABLE IF NOT EXISTS player_data (uuid TEXT PRIMARY KEY, kills INTEGER NOT NULL, deaths INTEGER NOT NULL, total_exp INTEGER NOT NULL, ticket_a_uses INTEGER NOT NULL DEFAULT 0, super_ticket_a_uses INTEGER NOT NULL DEFAULT 0, ticket_b_uses INTEGER NOT NULL DEFAULT 0, ticket_c_uses INTEGER NOT NULL DEFAULT 0, weapon_development_uses INTEGER NOT NULL DEFAULT 0)");
+                addColumnIfMissing(statement, "ticket_a_uses");
+                addColumnIfMissing(statement, "super_ticket_a_uses");
+                addColumnIfMissing(statement, "ticket_b_uses");
+                addColumnIfMissing(statement, "ticket_c_uses");
+                addColumnIfMissing(statement, "weapon_development_uses");
             }
             plugin.getLogger().info("SQLite storage enabled: " + database.getAbsolutePath());
         } catch (SQLException e) {
             sqliteEnabled = false;
             plugin.getLogger().warning("SQLite 初始化失败，已回退到 JSON 存储: " + e.getMessage());
+        }
+    }
+
+    private static void addColumnIfMissing(Statement statement, String column) {
+        try {
+            statement.executeUpdate("ALTER TABLE player_data ADD COLUMN " + column + " INTEGER NOT NULL DEFAULT 0");
+        } catch (SQLException ignored) {
         }
     }
 
@@ -80,7 +92,7 @@ public class PlayerDataManager {
     }
 
     private static PlayerData loadSqlite(UUID uuid) {
-        try (PreparedStatement statement = sqlite.prepareStatement("SELECT kills, deaths, total_exp FROM player_data WHERE uuid = ?")) {
+            try (PreparedStatement statement = sqlite.prepareStatement("SELECT kills, deaths, total_exp, ticket_a_uses, super_ticket_a_uses, ticket_b_uses, ticket_c_uses, weapon_development_uses FROM player_data WHERE uuid = ?")) {
             statement.setString(1, uuid.toString());
             try (ResultSet result = statement.executeQuery()) {
                 if (!result.next()) return new PlayerData();
@@ -88,6 +100,11 @@ public class PlayerDataManager {
                 data.setKills(result.getInt("kills"));
                 data.setDeaths(result.getInt("deaths"));
                 data.setTotalExp(result.getLong("total_exp"));
+                for (int i = 0; i < result.getInt("ticket_a_uses"); i++) data.addTicketUse("ticket_a");
+                for (int i = 0; i < result.getInt("super_ticket_a_uses"); i++) data.addTicketUse("super_ticket_a");
+                for (int i = 0; i < result.getInt("ticket_b_uses"); i++) data.addTicketUse("ticket_b");
+                for (int i = 0; i < result.getInt("ticket_c_uses"); i++) data.addTicketUse("ticket_c");
+                for (int i = 0; i < result.getInt("weapon_development_uses"); i++) data.addTicketUse("ticket_b");
                 return data;
             }
         } catch (SQLException e) {
@@ -120,11 +137,16 @@ public class PlayerDataManager {
     }
 
     private static void saveSqlite(UUID uuid, PlayerData data) {
-        try (PreparedStatement statement = sqlite.prepareStatement("INSERT INTO player_data(uuid, kills, deaths, total_exp) VALUES(?, ?, ?, ?) ON CONFLICT(uuid) DO UPDATE SET kills = excluded.kills, deaths = excluded.deaths, total_exp = excluded.total_exp")) {
+        try (PreparedStatement statement = sqlite.prepareStatement("INSERT INTO player_data(uuid, kills, deaths, total_exp, ticket_a_uses, super_ticket_a_uses, ticket_b_uses, ticket_c_uses, weapon_development_uses) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(uuid) DO UPDATE SET kills = excluded.kills, deaths = excluded.deaths, total_exp = excluded.total_exp, ticket_a_uses = excluded.ticket_a_uses, super_ticket_a_uses = excluded.super_ticket_a_uses, ticket_b_uses = excluded.ticket_b_uses, ticket_c_uses = excluded.ticket_c_uses, weapon_development_uses = excluded.weapon_development_uses")) {
             statement.setString(1, uuid.toString());
             statement.setInt(2, data.getKills());
             statement.setInt(3, data.getDeaths());
             statement.setLong(4, data.getTotalExp());
+            statement.setInt(5, data.getTicketAUses());
+            statement.setInt(6, data.getSuperTicketAUses());
+            statement.setInt(7, data.getTicketBUses());
+            statement.setInt(8, data.getTicketCUses());
+            statement.setInt(9, 0);
             statement.executeUpdate();
         } catch (SQLException e) {
             plugin.getLogger().warning("无法保存 SQLite 玩家数据: " + uuid + " - " + e.getMessage());
