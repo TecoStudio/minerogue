@@ -2,6 +2,7 @@ package com.roguelike.weapon;
 
 import com.roguelike.RoguelikePlugin;
 import com.roguelike.config.ConfigManager;
+import com.roguelike.equipment.EquipmentTypeResolver;
 import com.roguelike.equipment.affix.AffixManager;
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.item.WeaponInstanceData;
@@ -145,19 +146,23 @@ public class WeaponManager {
         lore.add(Message.toComponent("§7========== " + rarityColor + "品质: " + getRarityDisplayName(template.getRarity()) + " §7=========="));
 
         meta.lore(lore);
-        applyToolEnchantments(meta, template, data);
+        applyToolEnchantments(meta, stack.getType(), template, data);
         applyVanillaItemAttributes(meta, stack.getType(), totalDamage, totalSpeed);
         stack.setItemMeta(meta);
     }
 
-    private static void applyToolEnchantments(ItemMeta meta, CustomWeapon template, WeaponInstanceData data) {
-        meta.removeEnchant(Enchantment.EFFICIENCY);
-        meta.removeEnchant(Enchantment.FORTUNE);
+    private static void applyToolEnchantments(ItemMeta meta, Material material, CustomWeapon template, WeaponInstanceData data) {
+        if (!EquipmentTypeResolver.isTool(material)) return;
         int efficiency = (int) data.getTotalEffect(template, "efficiency", 0.0);
         int fortune = (int) data.getTotalEffect(template, "fortune", 0.0);
-        if (efficiency > 0) meta.addEnchant(Enchantment.EFFICIENCY, Math.min(5, efficiency), true);
-        if (fortune > 0) meta.addEnchant(Enchantment.FORTUNE, Math.min(5, fortune), true);
-        if (efficiency > 0 || fortune > 0) meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+        if (efficiency > 0) {
+            int current = meta.getEnchantLevel(Enchantment.EFFICIENCY);
+            meta.addEnchant(Enchantment.EFFICIENCY, Math.max(current, Math.min(5, efficiency)), true);
+        }
+        if (fortune > 0) {
+            int current = meta.getEnchantLevel(Enchantment.FORTUNE);
+            meta.addEnchant(Enchantment.FORTUNE, Math.max(current, Math.min(5, fortune)), true);
+        }
     }
 
     private static void applyVanillaItemAttributes(ItemMeta meta, Material material, double damage, double speed) {

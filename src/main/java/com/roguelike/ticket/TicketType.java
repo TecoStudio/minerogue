@@ -27,7 +27,6 @@ public enum TicketType {
     public Material getMaterial() { return material; }
 
     public static TicketType fromId(String id) {
-        if ("weapon_development".equalsIgnoreCase(id)) return TICKET_B;
         for (TicketType type : values()) {
             if (type.id.equalsIgnoreCase(id)) return type;
         }

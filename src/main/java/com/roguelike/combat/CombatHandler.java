@@ -107,7 +107,7 @@ public class CombatHandler {
         if (fireDuration > 0) {
             target.setFireTicks((int) (fireDuration * 20));
             if (fireDamage > 0) {
-                target.damage(fireDamage);
+                target.damage(fireDamage, player);
             }
         }
 

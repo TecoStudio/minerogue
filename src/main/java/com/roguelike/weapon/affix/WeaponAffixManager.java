@@ -168,6 +168,8 @@ public class WeaponAffixManager {
 
     public static boolean isApplicable(String id, EquipmentKind kind) {
         Target target = TARGETS.getOrDefault(id, Target.WEAPON);
+        // Pickaxes and axes are intentionally both tools and weapons in this plugin.
+        // Target.WEAPON therefore applies to tools too; Target.TOOL only gates mining-only affixes.
         return target == Target.ALL || target == Target.WEAPON || kind == EquipmentKind.TOOL;
     }
 

@@ -132,13 +132,13 @@ public class TicketManager {
         TicketType type = getTicketType(ticketStack);
         if (type == null) return false;
         if (type == TicketType.WEAPON_DEVELOPMENT) {
-            return applyWeaponDevelopment(player, weaponStack, type);
+            return applyWeaponDevelopment(player, ticketStack, weaponStack, type);
         }
 
         CustomWeapon template = WeaponManager.getTemplate(weaponStack);
         WeaponInstanceData data = WeaponInstanceData.fromItemStack(weaponStack);
         if (type == TicketType.TICKET_B && (template == null || data == null)) {
-            return applyWeaponDevelopment(player, weaponStack, type);
+            return applyWeaponDevelopment(player, ticketStack, weaponStack, type);
         }
         if (template == null || data == null) {
             Message.send(player, "&c目标物品不是 Roguelike 武器！");
@@ -164,7 +164,7 @@ public class TicketManager {
         }
     }
 
-    private static boolean applyWeaponDevelopment(Player player, ItemStack targetStack, TicketType ticketType) {
+    private static boolean applyWeaponDevelopment(Player player, ItemStack ticketStack, ItemStack targetStack, TicketType ticketType) {
         if (targetStack == null || targetStack.getType().isAir()) {
             Message.send(player, "&c另一只手需要拿着要开发的物品。");
             return false;
@@ -194,6 +194,7 @@ public class TicketManager {
         targetStack.setAmount(targetStack.getAmount() - 1);
         giveOrDrop(player, developed);
         WeaponManager.refreshHeldWeapon(player);
+        consumeTicket(ticketStack);
         recordTicketUse(player, ticketType);
         DevLog.debug(player.getName() + " developed item into weapon template " + template.getId());
         Message.send(player, "&d开发成功！已获得一个特殊品质武器，可继续使用开发券添加词条。");
@@ -224,7 +225,8 @@ public class TicketManager {
         double baseSuccessRate = calculateSuccessRate(useCount);
         double failBonus = data.getTicketAFailBonus();
         double successRate = guaranteed ? 1.0 : calculateSuccessRate(useCount, failBonus);
-        TicketAChoice choice = new TicketAChoice(ticketStack, weaponStack, template, data, availableStats, useCount, successRate, guaranteed);
+        TicketType ticketType = guaranteed ? TicketType.SUPER_TICKET_A : TicketType.TICKET_A;
+        TicketAChoice choice = new TicketAChoice(ticketStack, weaponStack, template, data, availableStats, useCount, successRate, guaranteed, ticketType);
         pendingAChoices.put(player.getUniqueId(), choice);
         DevLog.debug(player.getName() + " opened " + (guaranteed ? "super_ticket_a" : "ticket_a") + " GUI for " + template.getId() + ", baseSuccessRate=" + formatPercent(baseSuccessRate) + ", failStreak=" + failStreak + ", failBonus=" + formatPercent(failBonus) + ", successRate=" + formatPercent(successRate));
         openTicketAChoiceGui(player, choice);
@@ -252,7 +254,7 @@ public class TicketManager {
         )));
         for (int i = 0; i < choice.availableStats.size() && i < STRENGTHEN_SLOTS.length; i++) {
             String stat = choice.availableStats.get(i);
-            double value = getStatBaseValue(choice.template, choice.data, stat);
+            double value = getStatBaseValue(choice.template, choice.initialData, stat);
             inventory.setItem(STRENGTHEN_SLOTS[i], createGuiItem(strengthenMaterial(stat, i), "&a" + statName(stat), List.of(
                     "&7当前值: &e" + format(value, stat),
                     "&7成功率: &f" + formatPercent(choice.successRate),
@@ -267,50 +269,55 @@ public class TicketManager {
     }
 
     private static void confirmTicketA(Player player, TicketAChoice choice, String stat) {
-        if (choice.ticket.getAmount() <= 0) {
-            Message.send(player, "&c强化券已不存在。");
+        ActiveTicketUse active = resolveActiveTicketUse(player, choice.ticketType, choice.weaponInstanceId);
+        if (active == null) {
+            Message.send(player, "&c强化目标已变化，请重新使用强化券。");
             return;
         }
+        CustomWeapon template = active.template;
+        WeaponInstanceData data = active.data;
+        ItemStack weapon = active.weapon;
+        List<String> currentStats = getStrengthenableStats(template, data, weapon.getType());
         if (choice.availableStats.isEmpty()) {
             Message.send(player, "&c武器没有可强化的词条！");
             return;
         }
-        if (!choice.availableStats.contains(stat)) {
+        if (!currentStats.contains(stat)) {
             Message.send(player, "&c该词条当前不可强化。");
             return;
         }
 
         if (!choice.guaranteed && RANDOM.nextDouble() > choice.successRate) {
             double bonus = 0.03 + RANDOM.nextDouble() * 0.10;
-            choice.data.incrementTicketAUses();
-            choice.data.incrementTicketAFailStreak();
-            choice.data.addTicketAFailBonus(bonus);
-            choice.data.saveToItemStack(choice.weapon);
-            WeaponManager.updateLore(choice.weapon, choice.template, choice.data);
+            data.incrementTicketAUses();
+            data.incrementTicketAFailStreak();
+            data.addTicketAFailBonus(bonus);
+            data.saveToItemStack(weapon);
+            WeaponManager.updateLore(weapon, template, data);
             WeaponManager.clearAttributes(player);
-            consumeTicket(choice.ticket);
-            recordTicketUse(player, choice.guaranteed ? TicketType.SUPER_TICKET_A : TicketType.TICKET_A);
-            DevLog.debug(player.getName() + " ticket_a failed on " + choice.template.getId() + ", stat=" + stat + ", useCount=" + choice.useCount);
+            consumeTicket(active.ticket);
+            recordTicketUse(player, choice.ticketType);
+            DevLog.debug(player.getName() + " ticket_a failed on " + template.getId() + ", stat=" + stat + ", useCount=" + choice.useCount);
             Message.send(player, "&c强化失败！");
             Message.send(player, "&7本次成功率: " + formatPercent(choice.successRate));
             Message.send(player, "&7下次成功率加成: &a+" + formatPercent(bonus));
             return;
         }
 
-        double baseValue = getStatBaseValue(choice.template, choice.data, stat);
+        double baseValue = getStatBaseValue(template, data, stat);
         double newValue = strengthenStat(stat, baseValue, choice.useCount);
 
-        setStatValue(choice.template, choice.data, stat, newValue);
+        setStatValue(template, data, stat, newValue);
         if (!choice.guaranteed) {
-            choice.data.incrementTicketAUses();
+            data.incrementTicketAUses();
         }
-        choice.data.resetTicketAFailStreak();
-        choice.data.saveToItemStack(choice.weapon);
-        WeaponManager.updateLore(choice.weapon, choice.template, choice.data);
+        data.resetTicketAFailStreak();
+        data.saveToItemStack(weapon);
+        WeaponManager.updateLore(weapon, template, data);
         WeaponManager.clearAttributes(player);
-        consumeTicket(choice.ticket);
-        recordTicketUse(player, choice.guaranteed ? TicketType.SUPER_TICKET_A : TicketType.TICKET_A);
-        DevLog.debug(player.getName() + " " + (choice.guaranteed ? "super_ticket_a" : "ticket_a") + " succeeded on " + choice.template.getId() + ", stat=" + stat + ", old=" + baseValue + ", new=" + newValue);
+        consumeTicket(active.ticket);
+        recordTicketUse(player, choice.ticketType);
+        DevLog.debug(player.getName() + " " + choice.ticketType.getId() + " succeeded on " + template.getId() + ", stat=" + stat + ", old=" + baseValue + ", new=" + newValue);
 
         Message.send(player, "&a强化成功！ &f" + statName(stat) + " &7" + format(baseValue, stat) + " &f-> &e" + format(newValue, stat));
         Message.send(player, "&7本次成功率: " + formatPercent(choice.successRate));
@@ -384,6 +391,7 @@ public class TicketManager {
         data.saveToItemStack(weaponStack);
         WeaponManager.updateLore(weaponStack, template, data);
         WeaponManager.clearAttributes(player);
+        consumeTicket(ticketStack);
         recordTicketUse(player, TicketType.TICKET_C);
         DevLog.debug(player.getName() + " used ticket_c on " + template.getId() + ", stat=" + stat + ", resetValue=" + baseValue);
 
@@ -521,50 +529,47 @@ public class TicketManager {
     }
 
     private static class TicketBChoice {
-        final ItemStack ticket;
-        final ItemStack weapon;
         final CustomWeapon template;
-        final WeaponInstanceData data;
         final List<String> choices;
         final Map<String, Double> previewValues = new HashMap<>();
+        final String weaponInstanceId;
 
         TicketBChoice(ItemStack ticket, ItemStack weapon, CustomWeapon template, WeaponInstanceData data, List<String> choices) {
-            this.ticket = ticket;
-            this.weapon = weapon;
             this.template = template;
-            this.data = data;
             this.choices = choices;
+            this.weaponInstanceId = data.getInstanceId();
         }
 
         boolean matches(ItemStack ticket, ItemStack weapon) {
-            return this.ticket == ticket && this.weapon == weapon;
+            WeaponInstanceData current = WeaponManager.getData(weapon);
+            return getTicketType(ticket) == TicketType.TICKET_B && current != null && weaponInstanceId.equals(current.getInstanceId());
         }
     }
 
     private static class TicketAChoice {
-        final ItemStack ticket;
-        final ItemStack weapon;
         final CustomWeapon template;
-        final WeaponInstanceData data;
+        final WeaponInstanceData initialData;
         final List<String> availableStats;
         final int useCount;
         final int failStreak;
         final double failBonus;
         final double successRate;
         final boolean guaranteed;
+        final TicketType ticketType;
+        final String weaponInstanceId;
 
         TicketAChoice(ItemStack ticket, ItemStack weapon, CustomWeapon template, WeaponInstanceData data,
-                      List<String> availableStats, int useCount, double successRate, boolean guaranteed) {
-            this.ticket = ticket;
-            this.weapon = weapon;
+                      List<String> availableStats, int useCount, double successRate, boolean guaranteed, TicketType ticketType) {
             this.template = template;
-            this.data = data;
+            this.initialData = data;
             this.availableStats = availableStats;
             this.useCount = useCount;
             this.failStreak = data.getTicketAFailStreak();
             this.failBonus = data.getTicketAFailBonus();
             this.successRate = successRate;
             this.guaranteed = guaranteed;
+            this.ticketType = ticketType;
+            this.weaponInstanceId = data.getInstanceId();
         }
     }
 
@@ -621,17 +626,31 @@ public class TicketManager {
             String selectedStat = choice.choices.get(index);
             double baseValue = choice.previewValues.getOrDefault(selectedStat, generateBaseValue(selectedStat));
 
-            choice.data.setEffectBonus(selectedStat, baseValue);
-            choice.data.incrementTicketBUses();
-            choice.data.saveToItemStack(choice.weapon);
-            WeaponManager.updateLore(choice.weapon, choice.template, choice.data);
+            ActiveTicketUse active = resolveActiveTicketUse(player, TicketType.TICKET_B, choice.weaponInstanceId);
+            if (active == null) {
+                pendingBChoices.remove(uuid);
+                player.closeInventory();
+                Message.send(player, "&c开发目标已变化，请重新使用开发券。");
+                return;
+            }
+            if (!getAvailableEffects(active.template, active.data, active.weapon.getType()).contains(selectedStat)) {
+                pendingBChoices.remove(uuid);
+                player.closeInventory();
+                Message.send(player, "&c该词条当前不可添加，请重新使用开发券。");
+                return;
+            }
+
+            active.data.setEffectBonus(selectedStat, baseValue);
+            active.data.incrementTicketBUses();
+            active.data.saveToItemStack(active.weapon);
+            WeaponManager.updateLore(active.weapon, active.template, active.data);
             WeaponManager.clearAttributes(player);
-            consumeTicket(choice.ticket);
+            consumeTicket(active.ticket);
             recordTicketUse(player, TicketType.TICKET_B);
 
             pendingBChoices.remove(uuid);
             player.closeInventory();
-            DevLog.debug(player.getName() + " selected ticket_b stat " + selectedStat + "=" + baseValue + " for " + choice.template.getId());
+            DevLog.debug(player.getName() + " selected ticket_b stat " + selectedStat + "=" + baseValue + " for " + active.template.getId());
             Message.send(player, "&a已添加词条: &f" + statName(selectedStat) + " &e" + format(baseValue, selectedStat));
         }
 
@@ -670,5 +689,22 @@ public class TicketManager {
         return switch (stat) {
             default -> AffixManager.generateWeaponBaseValue(stat, RANDOM);
         };
+    }
+
+    private static ActiveTicketUse resolveActiveTicketUse(Player player, TicketType ticketType, String weaponInstanceId) {
+        ActiveTicketUse mainTicket = resolveActiveTicketUse(player.getInventory().getItemInMainHand(), player.getInventory().getItemInOffHand(), ticketType, weaponInstanceId);
+        if (mainTicket != null) return mainTicket;
+        return resolveActiveTicketUse(player.getInventory().getItemInOffHand(), player.getInventory().getItemInMainHand(), ticketType, weaponInstanceId);
+    }
+
+    private static ActiveTicketUse resolveActiveTicketUse(ItemStack ticket, ItemStack weapon, TicketType ticketType, String weaponInstanceId) {
+        if (getTicketType(ticket) != ticketType) return null;
+        CustomWeapon template = WeaponManager.getTemplate(weapon);
+        WeaponInstanceData data = WeaponManager.getData(weapon);
+        if (template == null || data == null || !data.getInstanceId().equals(weaponInstanceId)) return null;
+        return new ActiveTicketUse(ticket, weapon, template, data);
+    }
+
+    private record ActiveTicketUse(ItemStack ticket, ItemStack weapon, CustomWeapon template, WeaponInstanceData data) {
     }
 }

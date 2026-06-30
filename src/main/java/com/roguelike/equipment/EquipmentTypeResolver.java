@@ -12,6 +12,8 @@ public final class EquipmentTypeResolver {
     public static boolean isTool(Material material) {
         if (material == null) return false;
         String name = material.name();
+        // Gameplay definition: only pickaxes and axes are Roguelike tools.
+        // They still participate in weapon logic because they can be used as melee weapons.
         return name.endsWith("_PICKAXE") || name.endsWith("_AXE");
     }
 

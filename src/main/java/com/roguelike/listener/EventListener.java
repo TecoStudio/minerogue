@@ -11,6 +11,7 @@ import com.roguelike.scoreboard.RoguelikeScoreboard;
 import com.roguelike.ticket.TicketManager;
 import com.roguelike.ticket.TicketType;
 import com.roguelike.util.Message;
+import com.roguelike.equipment.EquipmentTypeResolver;
 import com.roguelike.weapon.ToolAbilityManager;
 import com.roguelike.weapon.WeaponAbilityManager;
 import com.roguelike.weapon.WeaponManager;
@@ -77,18 +78,14 @@ public class EventListener implements Listener {
         if (mainTicket != null) {
             if (canTargetAnyItem(mainTicket) || WeaponManager.getTemplate(off) != null) {
                 event.setCancelled(true);
-                if (TicketManager.applyTicket(player, main, off)) {
-                    main.setAmount(main.getAmount() - 1);
-                }
+                TicketManager.applyTicket(player, main, off);
             }
         }
         // 副手持券，主手持目标物品。开发券允许目标是任意非空气物品。
         else if (offTicket != null) {
             if (canTargetAnyItem(offTicket) || WeaponManager.getTemplate(main) != null) {
                 event.setCancelled(true);
-                if (TicketManager.applyTicket(player, off, main)) {
-                    off.setAmount(off.getAmount() - 1);
-                }
+                TicketManager.applyTicket(player, off, main);
             }
         }
     }
@@ -100,6 +97,7 @@ public class EventListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onPrepareItemEnchant(PrepareItemEnchantEvent event) {
         if (WeaponManager.getTemplate(event.getItem()) == null) return;
+        if (isRoguelikeTool(event.getItem())) return;
         event.setCancelled(true);
         Message.send(event.getEnchanter(), "&cRoguelike 武器不能使用附魔台附魔。");
     }
@@ -107,6 +105,7 @@ public class EventListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onEnchantItem(EnchantItemEvent event) {
         if (WeaponManager.getTemplate(event.getItem()) == null) return;
+        if (isRoguelikeTool(event.getItem())) return;
         event.setCancelled(true);
         Message.send(event.getEnchanter(), "&cRoguelike 武器不能使用附魔台附魔。");
     }
@@ -116,8 +115,13 @@ public class EventListener implements Listener {
         ItemStack first = event.getInventory().getFirstItem();
         ItemStack second = event.getInventory().getSecondItem();
         if (WeaponManager.getTemplate(first) == null) return;
+        if (isRoguelikeTool(first)) return;
         if (!hasAnyEnchant(second) && !hasAnyEnchant(event.getResult())) return;
         event.setResult(null);
+    }
+
+    private boolean isRoguelikeTool(ItemStack stack) {
+        return WeaponManager.getTemplate(stack) != null && EquipmentTypeResolver.isTool(stack.getType());
     }
 
     private boolean hasAnyEnchant(ItemStack stack) {

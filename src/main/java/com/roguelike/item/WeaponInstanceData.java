@@ -13,11 +13,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public class WeaponInstanceData {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static NamespacedKey KEY;
 
+    private String instanceId;
     private String baseWeaponId;
     private String customName;
     private double damageBonus;
@@ -33,6 +35,7 @@ public class WeaponInstanceData {
     private int ticketCUses;
 
     public WeaponInstanceData(String baseWeaponId) {
+        this.instanceId = UUID.randomUUID().toString();
         this.baseWeaponId = baseWeaponId;
         this.customName = null;
         this.damageBonus = 0;
@@ -50,6 +53,13 @@ public class WeaponInstanceData {
 
     public static void init(RoguelikePlugin plugin) {
         KEY = new NamespacedKey(plugin, "roguelike_weapon");
+    }
+
+    public String getInstanceId() {
+        if (instanceId == null || instanceId.isBlank()) {
+            instanceId = UUID.randomUUID().toString();
+        }
+        return instanceId;
     }
 
     public String getBaseWeaponId() { return baseWeaponId; }
@@ -155,7 +165,14 @@ public class WeaponInstanceData {
         String json = pdc.get(KEY, PersistentDataType.STRING);
         if (json == null || json.isEmpty()) return null;
         try {
-            return GSON.fromJson(json, WeaponInstanceData.class);
+            WeaponInstanceData data = GSON.fromJson(json, WeaponInstanceData.class);
+            if (data != null && (data.instanceId == null || data.instanceId.isBlank())) {
+                // Older items did not store an instance id. Assign one lazily so GUI
+                // confirmations can verify the exact item instead of only its template.
+                data.instanceId = UUID.randomUUID().toString();
+                data.saveToItemStack(stack);
+            }
+            return data;
         } catch (Exception e) {
             return null;
         }
