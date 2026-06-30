@@ -7,6 +7,7 @@ import com.roguelike.item.CustomWeapon;
 import com.roguelike.item.WeaponInstanceData;
 import com.roguelike.util.DevLog;
 import com.roguelike.util.Message;
+import com.roguelike.weapon.affix.WeaponAffixManager;
 import com.roguelike.weapon.WeaponManager;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
@@ -33,20 +34,16 @@ public class TicketManager {
     private static NamespacedKey KEY;
     private static final Random RANDOM = ThreadLocalRandom.current();
     private static final int[] CHOICE_SLOTS = {11, 13, 15};
-    private static final int CONFIRM_SLOT = 11;
-    private static final int INFO_SLOT = 13;
-    private static final int CANCEL_SLOT = 15;
+    private static final int INFO_SLOT = 4;
+    private static final int CANCEL_SLOT = 49;
+    private static final int[] STRENGTHEN_SLOTS = {
+            10, 11, 12, 13, 14, 15, 16,
+            19, 20, 21, 22, 23, 24, 25,
+            28, 29, 30, 31, 32, 33, 34,
+            37, 38, 39, 40, 41, 42, 43
+    };
     private static final Map<UUID, TicketAChoice> pendingAChoices = new HashMap<>();
     private static final Map<UUID, TicketBChoice> pendingBChoices = new HashMap<>();
-
-    private static final String[] ALL_EFFECT_KEYS = {
-            "lifesteal_percent", "chain_targets", "chain_range", "chain_damage_percent",
-            "crit_chance", "crit_damage", "fire_damage", "fire_duration", "lightning_chance",
-            "slow_duration", "slow_level", "damage_store_percent", "damage_store_hit_reduction",
-            "burning_target_damage_percent", "poisoned_target_damage_percent", "poison_chance", "explosion_chance", "big_explosion_chance",
-            "smash", "bomb", "hyper", "gift", "dash"
-    };
-    private static final Set<String> NON_STRENGTHENABLE_EFFECTS = Set.of("smash", "bomb", "gift", "dash");
 
     public static void init(RoguelikePlugin plugin) {
         TicketManager.plugin = plugin;
@@ -113,7 +110,7 @@ public class TicketManager {
     }
 
     public static List<String> getEffectStatKeys() {
-        return List.of(ALL_EFFECT_KEYS);
+        return WeaponAffixManager.effectIds();
     }
 
     public static List<String> getAllStatKeys() {
@@ -208,39 +205,46 @@ public class TicketManager {
         TicketAChoice choice = new TicketAChoice(ticketStack, weaponStack, template, data, availableStats, useCount, successRate, guaranteed);
         pendingAChoices.put(player.getUniqueId(), choice);
         DevLog.debug(player.getName() + " opened " + (guaranteed ? "super_ticket_a" : "ticket_a") + " GUI for " + template.getId() + ", baseSuccessRate=" + formatPercent(baseSuccessRate) + ", failStreak=" + failStreak + ", successRate=" + formatPercent(successRate));
-        openTicketAConfirmGui(player, choice);
+        openTicketAChoiceGui(player, choice);
         return false;
     }
 
-    private static void openTicketAConfirmGui(Player player, TicketAChoice choice) {
-        Inventory inventory = Bukkit.createInventory(new TicketChoiceHolder(player.getUniqueId(), TicketGuiType.TICKET_A), 27, Message.toComponent(choice.guaranteed ? "&f确认超级强化" : "&c确认强化武器"));
+    private static void openTicketAChoiceGui(Player player, TicketAChoice choice) {
+        Inventory inventory = Bukkit.createInventory(new TicketChoiceHolder(player.getUniqueId(), TicketGuiType.TICKET_A), 54, Message.toComponent(choice.guaranteed ? "&f选择超级强化词条" : "&c选择强化词条"));
         ItemStack filler = createGuiItem(Material.BLACK_STAINED_GLASS_PANE, " ", List.of());
         for (int i = 0; i < inventory.getSize(); i++) {
             inventory.setItem(i, filler);
         }
 
-        inventory.setItem(CONFIRM_SLOT, createGuiItem(Material.LIME_CONCRETE, choice.guaranteed ? "&a确认超级强化" : "&a确认强化", List.of(
-                "&7随机强化一个可强化词条",
-                choice.guaranteed ? "&7本次强化必定成功" : "&7成功或失败都会消耗强化券",
-                "&e点击确认"
-        )));
         inventory.setItem(INFO_SLOT, createGuiItem(Material.PAPER, "&e强化说明", List.of(
                 "&7成功率: &f" + formatPercent(choice.successRate),
                 "&7已使用强化券: &f" + choice.useCount + " 次",
                 "&7连续失败: &f" + choice.failStreak + " 次",
                 "&7失败加成: &f+" + formatPercent(choice.failStreak * 0.25),
                 "&7可强化词条: &f" + choice.availableStats.size() + " 个",
-                "&7成功后随机提升一个词条",
+                "&7羊毛: 基础属性",
+                "&7陶瓦: 效果词条",
+                "&7点击词条后立即尝试强化",
                 choice.guaranteed ? "&7超级强化不会失败" : "&7失败后下次成功率 +25%",
                 "&7成功后清空失败加成"
         )));
+        for (int i = 0; i < choice.availableStats.size() && i < STRENGTHEN_SLOTS.length; i++) {
+            String stat = choice.availableStats.get(i);
+            double value = getStatBaseValue(choice.template, choice.data, stat);
+            inventory.setItem(STRENGTHEN_SLOTS[i], createGuiItem(strengthenMaterial(stat, i), "&a" + statName(stat), List.of(
+                    "&7当前值: &e" + format(value, stat),
+                    "&7成功率: &f" + formatPercent(choice.successRate),
+                    choice.guaranteed ? "&7本次必定成功" : "&7失败也会消耗强化券",
+                    "&e点击强化此词条"
+            )));
+        }
         inventory.setItem(CANCEL_SLOT, createGuiItem(Material.RED_CONCRETE, "&c取消", List.of(
                 "&7关闭界面，不消耗强化券"
         )));
         player.openInventory(inventory);
     }
 
-    private static void confirmTicketA(Player player, TicketAChoice choice) {
+    private static void confirmTicketA(Player player, TicketAChoice choice, String stat) {
         if (choice.ticket.getAmount() <= 0) {
             Message.send(player, "&c强化券已不存在。");
             return;
@@ -249,8 +253,10 @@ public class TicketManager {
             Message.send(player, "&c武器没有可强化的词条！");
             return;
         }
-
-        String stat = choice.availableStats.get(RANDOM.nextInt(choice.availableStats.size()));
+        if (!choice.availableStats.contains(stat)) {
+            Message.send(player, "&c该词条当前不可强化。");
+            return;
+        }
 
         if (!choice.guaranteed && RANDOM.nextDouble() > choice.successRate) {
             choice.data.incrementTicketAUses();
@@ -267,16 +273,7 @@ public class TicketManager {
         }
 
         double baseValue = getStatBaseValue(choice.template, choice.data, stat);
-        double newValue;
-        if (stat.equals("damage_store_hit_reduction")) {
-            newValue = Math.min(15, baseValue + 1);
-        } else if (stat.equals("hyper")) {
-            newValue = Math.min(3, baseValue + 1);
-        } else {
-            double multiplierRange = 0.35 / Math.pow(2, choice.useCount);
-            double multiplier = 0.35 + RANDOM.nextDouble() * multiplierRange;
-            newValue = baseValue * (1 + multiplier);
-        }
+        double newValue = strengthenStat(stat, baseValue, choice.useCount);
 
         setStatValue(choice.template, choice.data, stat, newValue);
         if (!choice.guaranteed) {
@@ -388,7 +385,7 @@ public class TicketManager {
         if (data.getTotalDamage(template) != template.getBaseDamage()) stats.add("damage");
         if (data.getTotalAttackSpeed(template) != template.getAttackSpeed()) stats.add("attack_speed");
         if (data.getTotalEffect(template, "attack_range", 3.0) != template.getEffect("attack_range", 3.0)) stats.add("attack_range");
-        for (String key : ALL_EFFECT_KEYS) {
+        for (String key : WeaponAffixManager.effectIds()) {
             if (data.getTotalEffect(template, key, 0.0) != template.getEffect(key, 0.0)) {
                 stats.add(key);
             }
@@ -401,18 +398,8 @@ public class TicketManager {
         stats.add("damage");
         stats.add("attack_speed");
         stats.add("attack_range");
-        for (String key : ALL_EFFECT_KEYS) {
-            if (NON_STRENGTHENABLE_EFFECTS.contains(key)) continue;
-            if (key.equals("damage_store_hit_reduction")) {
-                if (data.getTotalEffect(template, "damage_store_percent", 0.0) > 0.0
-                        && data.getTotalEffect(template, key, 0.0) < 15.0) {
-                    stats.add(key);
-                }
-            } else if (key.equals("hyper")) {
-                if (data.getTotalEffect(template, key, 0.0) > 0.0 && data.getTotalEffect(template, key, 0.0) < 3.0) {
-                    stats.add(key);
-                }
-            } else if (data.getTotalEffect(template, key, 0.0) != 0.0) {
+        for (String key : WeaponAffixManager.effectIds()) {
+            if (WeaponAffixManager.isStrengthenable(template, data, key)) {
                 stats.add(key);
             }
         }
@@ -421,8 +408,8 @@ public class TicketManager {
 
     private static List<String> getAvailableEffects(CustomWeapon template, WeaponInstanceData data) {
         List<String> available = new ArrayList<>();
-        for (String key : ALL_EFFECT_KEYS) {
-            if (template.getEffect(key, 0.0) == 0 && data.getEffectBonus(key) == 0) {
+        for (String key : WeaponAffixManager.effectIds()) {
+            if (WeaponAffixManager.isAvailable(template, data, key)) {
                 available.add(key);
             }
         }
@@ -447,46 +434,46 @@ public class TicketManager {
         }
     }
 
+    private static double strengthenStat(String stat, double currentValue, int useCount) {
+        if (stat.equals("damage") || stat.equals("attack_speed") || stat.equals("attack_range")) {
+            double multiplierRange = 0.35 / Math.pow(2, useCount);
+            double multiplier = 0.35 + RANDOM.nextDouble() * multiplierRange;
+            return currentValue * (1 + multiplier);
+        }
+        return WeaponAffixManager.strengthen(stat, currentValue, useCount, RANDOM);
+    }
+
     private static String statName(String stat) {
         return switch (stat) {
             case "damage" -> "基础伤害";
             case "attack_speed" -> "攻击速度";
             case "attack_range" -> "攻击距离";
-            case "lifesteal_percent" -> "吸血百分比";
-            case "lifesteal_flat" -> "吸血固定值";
-            case "slow_duration" -> "减速时长";
-            case "slow_level" -> "减速等级";
-            case "chain_targets" -> "连锁目标";
-            case "chain_range" -> "连锁范围";
-            case "chain_damage_percent" -> "连锁伤害";
-            case "damage_store_percent" -> "伤害存储率";
-            case "damage_store_hit_reduction" -> "伤害储存次数减少";
-            case "crit_chance" -> "暴击率";
-            case "crit_damage" -> "暴击倍率";
-            case "fire_damage" -> "火焰伤害";
-            case "fire_duration" -> "燃烧时长";
-            case "lightning_chance" -> "雷电概率";
-            case "burning_target_damage_percent" -> "燃烧目标增伤";
-            case "poisoned_target_damage_percent" -> "中毒目标增伤";
-            case "poison_chance" -> "中毒概率";
-            case "explosion_chance" -> "爆炸概率";
-            case "big_explosion_chance" -> "大爆炸概率";
-            case "smash" -> "猛击";
-            case "bomb" -> "小心炸弹！";
-            case "hyper" -> "亢奋";
-            case "gift" -> "馈赠";
-            case "dash" -> "Dash！";
-            default -> stat;
+            default -> WeaponAffixManager.displayName(stat);
         };
     }
 
     private static String format(double value, String stat) {
-        if (stat.contains("chance") || stat.endsWith("_percent")) {
-            return WeaponManager.format(value * 100, 1) + "%";
+        if (!stat.equals("damage") && !stat.equals("attack_speed") && !stat.equals("attack_range")) {
+            return WeaponAffixManager.format(stat, value);
         }
-        if (stat.equals("chain_targets") || stat.equals("slow_level") || stat.equals("damage_store_hit_reduction") || stat.equals("hyper")) return String.valueOf((int) value);
-        if (stat.equals("smash") || stat.equals("bomb") || stat.equals("gift") || stat.equals("dash")) return value > 0 ? "已启用" : "未启用";
         return WeaponManager.format(value, 2);
+    }
+
+    private static Material strengthenMaterial(String stat, int index) {
+        Material[] wool = {
+                Material.WHITE_WOOL, Material.ORANGE_WOOL, Material.MAGENTA_WOOL, Material.LIGHT_BLUE_WOOL,
+                Material.YELLOW_WOOL, Material.LIME_WOOL, Material.PINK_WOOL, Material.GRAY_WOOL,
+                Material.LIGHT_GRAY_WOOL, Material.CYAN_WOOL, Material.PURPLE_WOOL, Material.BLUE_WOOL,
+                Material.BROWN_WOOL, Material.GREEN_WOOL, Material.RED_WOOL, Material.BLACK_WOOL
+        };
+        Material[] terracotta = {
+                Material.WHITE_TERRACOTTA, Material.ORANGE_TERRACOTTA, Material.MAGENTA_TERRACOTTA, Material.LIGHT_BLUE_TERRACOTTA,
+                Material.YELLOW_TERRACOTTA, Material.LIME_TERRACOTTA, Material.PINK_TERRACOTTA, Material.GRAY_TERRACOTTA,
+                Material.LIGHT_GRAY_TERRACOTTA, Material.CYAN_TERRACOTTA, Material.PURPLE_TERRACOTTA, Material.BLUE_TERRACOTTA,
+                Material.BROWN_TERRACOTTA, Material.GREEN_TERRACOTTA, Material.RED_TERRACOTTA, Material.BLACK_TERRACOTTA
+        };
+        boolean base = stat.equals("damage") || stat.equals("attack_speed") || stat.equals("attack_range");
+        return base ? wool[index % wool.length] : terracotta[index % terracotta.length];
     }
 
     private static String formatPercent(double value) {
@@ -619,14 +606,20 @@ public class TicketManager {
             TicketAChoice choice = pendingAChoices.get(uuid);
             if (choice == null) return;
 
-            if (event.getSlot() == CONFIRM_SLOT) {
-                pendingAChoices.remove(uuid);
-                player.closeInventory();
-                confirmTicketA(player, choice);
-            } else if (event.getSlot() == CANCEL_SLOT) {
+            if (event.getSlot() == CANCEL_SLOT) {
                 pendingAChoices.remove(uuid);
                 player.closeInventory();
                 Message.send(player, "&7已取消强化，未消耗强化券。");
+                return;
+            }
+            for (int i = 0; i < STRENGTHEN_SLOTS.length && i < choice.availableStats.size(); i++) {
+                if (event.getSlot() == STRENGTHEN_SLOTS[i]) {
+                    String stat = choice.availableStats.get(i);
+                    pendingAChoices.remove(uuid);
+                    player.closeInventory();
+                    confirmTicketA(player, choice, stat);
+                    return;
+                }
             }
         }
 
@@ -642,25 +635,7 @@ public class TicketManager {
 
     private static double generateBaseValue(String stat) {
         return switch (stat) {
-            case "lifesteal_percent" -> 0.10 + RANDOM.nextDouble() * 0.10;
-            case "crit_chance" -> 0.05 + RANDOM.nextDouble() * 0.10;
-            case "crit_damage" -> 1.5 + RANDOM.nextDouble() * 0.5;
-            case "chain_targets" -> RANDOM.nextInt(3) + 1;
-            case "chain_range" -> 2.0 + RANDOM.nextDouble() * 2.0;
-            case "chain_damage_percent" -> 0.30 + RANDOM.nextDouble() * 0.20;
-            case "fire_damage" -> 2.0 + RANDOM.nextDouble() * 3.0;
-            case "fire_duration" -> 2.0 + RANDOM.nextDouble() * 3.0;
-            case "lightning_chance" -> 0.05 + RANDOM.nextDouble() * 0.10;
-            case "slow_duration" -> 1.0 + RANDOM.nextDouble() * 2.0;
-            case "slow_level" -> RANDOM.nextInt(2) + 1;
-            case "damage_store_percent" -> 0.10 + RANDOM.nextDouble() * 0.15;
-            case "damage_store_hit_reduction" -> 1;
-            case "burning_target_damage_percent", "poisoned_target_damage_percent" -> 0.15 + RANDOM.nextDouble() * 0.25;
-            case "poison_chance" -> 0.10 + RANDOM.nextDouble() * 0.20;
-            case "explosion_chance" -> 0.05 + RANDOM.nextDouble() * 0.10;
-            case "big_explosion_chance" -> 0.02 + RANDOM.nextDouble() * 0.06;
-            case "smash", "bomb", "hyper", "gift", "dash" -> 1;
-            default -> RANDOM.nextDouble() * 0.2;
+            default -> WeaponAffixManager.generateBaseValue(stat, RANDOM);
         };
     }
 }

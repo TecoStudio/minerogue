@@ -7,6 +7,7 @@ import com.roguelike.item.CustomItem;
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.item.WeaponInstanceData;
 import com.roguelike.level.LevelManager;
+import com.roguelike.mob.MobManager;
 import com.roguelike.scoreboard.RoguelikeScoreboard;
 import com.roguelike.ticket.TicketManager;
 import com.roguelike.ticket.TicketType;
@@ -159,19 +160,13 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
                     return true;
                 }
                 if (args.length < 3 || !args[1].equalsIgnoreCase("spawn")) {
-                    Message.send(sender, "&c用法: /rw monster spawn <zombie|skeleton|creeper|...>");
+                    Message.send(sender, "&c用法: /rw monster spawn <" + String.join("|", MobManager.getSpawnableMobIds()) + ">");
                     return true;
                 }
-                org.bukkit.entity.EntityType entityType;
-                try {
-                    entityType = org.bukkit.entity.EntityType.valueOf(args[2].toUpperCase());
-                } catch (IllegalArgumentException e) {
-                    Message.send(sender, "&c无效的怪物类型。");
+                var entity = MobManager.spawnInternalMob(args[2], player.getLocation());
+                if (entity == null) {
+                    Message.send(sender, "&c无效的自定义怪物。可用: " + String.join(", ", MobManager.getSpawnableMobIds()));
                     return true;
-                }
-                var entity = player.getWorld().spawnEntity(player.getLocation(), entityType);
-                if (entity instanceof org.bukkit.entity.LivingEntity living) {
-                    com.roguelike.mob.MobManager.applyToMob(living);
                 }
                 Message.send(sender, "&a已生成 " + args[2] + "。");
             }
@@ -214,7 +209,19 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
                     "      fire_damage: 4.0\n" +
                     "      fire_duration: 3.0\n" +
                     "      crit_chance: 0.1\n" +
-                    "      crit_damage: 1.75\n");
+                    "      crit_damage: 1.75\n" +
+                    "  excited_stone_sword:\n" +
+                    "    item: minecraft:stone_sword\n" +
+                    "    name: 石剑\n" +
+                    "    description: 僵尸精英使用的亢奋石剑\n" +
+                    "    base-damage: 5\n" +
+                    "    attack-speed: 1.6\n" +
+                    "    durability: 131\n" +
+                    "    rarity: common\n" +
+                    "    effects:\n" +
+                    "      attack_range: 3.0\n" +
+                    "      crit_chance: 0.10\n" +
+                    "      hyper: 1.0\n");
             writeFile(examples.resolve("items.yml"), "items:\n" +
                     "  healing_potion:\n" +
                     "    name: 治疗药水\n" +
@@ -226,17 +233,19 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
             writeFile(examples.resolve("mobs.yml"), "internal:\n" +
                     "  enabled: true\n" +
                     "  skeleton-elite:\n" +
+                    "    enabled: true\n" +
                     "    spawn-chance: 0.12\n" +
+                    "    name: '&c骷髅精英'\n" +
+                    "  zombie-elite:\n" +
+                    "    enabled: true\n" +
+                    "    spawn-chance: 0.12\n" +
+                    "    name: '&2僵尸精英'\n" +
+                    "    weapon-template: excited_stone_sword\n" +
                     "default-experience: 10\n" +
                     "experience:\n" +
                     "  zombie: 15\n" +
                     "  skeleton: 15\n" +
-                    "modifiers:\n" +
-                    "  zombie:\n" +
-                    "    health-multiplier: 1.5\n" +
-                    "    damage-multiplier: 1.2\n" +
-                    "    speed-multiplier: 1.0\n" +
-                    "    weapon-template: wooden_sword\n");
+                    "modifiers: {}\n");
             writeFile(examples.resolve("tab-scoreboard.yml"), "scoreboards:\n" +
                     "  roguelike:\n" +
                     "    title: '&6&lRoguelike'\n" +
@@ -453,7 +462,7 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
         Message.send(sender, "&e/rw list <weapons|items> &7- 列出模板");
         Message.send(sender, "&e/rw stats [玩家] &7- 查看玩家状态");
         Message.send(sender, "&e/rw reset [玩家] &7- 重置玩家数据");
-        Message.send(sender, "&e/rw monster spawn <类型> &7- 生成自定义怪物");
+        Message.send(sender, "&e/rw monster spawn <自定义怪物> &7- 生成插件自定义怪物");
         Message.send(sender, "&e/rw fixhand &7- 刷新手持武器属性");
     }
 
@@ -481,7 +490,7 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
                     case "ticket" -> list.addAll(Arrays.asList("ticket_a", "super_ticket_a", "ticket_b", "ticket_c"));
                 }
             } else if (args.length == 3 && args[0].equalsIgnoreCase("monster") && args[1].equalsIgnoreCase("spawn")) {
-                list.addAll(Arrays.asList("zombie", "skeleton", "creeper", "spider", "enderman", "blaze"));
+                list.addAll(MobManager.getSpawnableMobIds());
             } else if ((args.length == 4 && args[0].equalsIgnoreCase("give")) ||
                        ((args.length == 2 && (args[0].equalsIgnoreCase("stats") || args[0].equalsIgnoreCase("reset"))))) {
                 Bukkit.getOnlinePlayers().forEach(p -> list.add(p.getName()));

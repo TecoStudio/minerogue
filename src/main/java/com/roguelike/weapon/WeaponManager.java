@@ -5,6 +5,7 @@ import com.roguelike.config.ConfigManager;
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.item.WeaponInstanceData;
 import com.roguelike.util.Message;
+import com.roguelike.weapon.affix.WeaponAffixManager;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -24,21 +25,13 @@ public class WeaponManager {
     private static final NamespacedKey ATTACK_SPEED_KEY = new NamespacedKey("roguelike", "attack_speed");
     private static final NamespacedKey ATTACK_RANGE_KEY = new NamespacedKey("roguelike", "attack_range");
 
-    private static final String[] EFFECT_KEYS = {
-            "attack_range", "lifesteal_percent", "lifesteal_flat", "slow_duration", "slow_level",
-            "chain_targets", "chain_range", "chain_damage_percent", "damage_store_percent", "damage_store_hit_reduction",
-            "crit_chance", "crit_damage", "fire_damage", "fire_duration", "lightning_chance",
-            "burning_target_damage_percent", "poisoned_target_damage_percent", "poison_chance", "explosion_chance", "big_explosion_chance",
-            "smash", "bomb", "hyper", "gift", "dash"
-    };
-
     public static void init(RoguelikePlugin plugin) {
         WeaponManager.plugin = plugin;
         WeaponInstanceData.init(plugin);
     }
 
     public static String[] getEffectKeys() {
-        return EFFECT_KEYS.clone();
+        return WeaponAffixManager.effectIds().toArray(String[]::new);
     }
 
     private static Material inferMaterial(CustomWeapon template) {
@@ -170,89 +163,7 @@ public class WeaponManager {
     }
 
     private static void appendEffectLore(List<Component> lore, CustomWeapon template, WeaponInstanceData data) {
-        double lifePercent = data.getTotalEffect(template, "lifesteal_percent", 0.0);
-        double lifeFlat = data.getTotalEffect(template, "lifesteal_flat", 0.0);
-        if (lifePercent > 0 || lifeFlat > 0) {
-            String text = "§c❤ 吸血: §f" + format(lifePercent * 100, 0) + "%";
-            if (lifeFlat > 0) text += " +" + format(lifeFlat, 1);
-            lore.add(Message.toComponent(text));
-        }
-
-        double slowDuration = data.getTotalEffect(template, "slow_duration", 0.0);
-        int slowLevel = (int) data.getTotalEffect(template, "slow_level", 0.0);
-        if (slowDuration > 0) {
-            lore.add(Message.toComponent("§9❄ 减速: §f" + (slowLevel + 1) + "级 (" + format(slowDuration, 1) + "s)"));
-        }
-
-        int chainTargets = (int) data.getTotalEffect(template, "chain_targets", 0.0);
-        double chainRange = data.getTotalEffect(template, "chain_range", 0.0);
-        if (chainTargets > 0) {
-            lore.add(Message.toComponent("§d🌀 连锁: §f" + chainTargets + "目标 (" + format(chainRange, 1) + "格)"));
-        }
-
-        double critChance = data.getTotalEffect(template, "crit_chance", 0.0);
-        double critDamage = data.getTotalEffect(template, "crit_damage", 1.5);
-        if (critChance > 0) {
-            lore.add(Message.toComponent("§c✦ 暴击: §f" + format(critChance * 100, 0) + "% (" + format(critDamage, 1) + "x)"));
-        }
-
-        double fireDamage = data.getTotalEffect(template, "fire_damage", 0.0);
-        double fireDuration = data.getTotalEffect(template, "fire_duration", 0.0);
-        if (fireDamage > 0) {
-            lore.add(Message.toComponent("§c🔥 火焰: §f" + format(fireDamage, 1) + "伤害 (" + format(fireDuration, 1) + "s)"));
-        }
-
-        double lightning = data.getTotalEffect(template, "lightning_chance", 0.0);
-        if (lightning > 0) {
-            lore.add(Message.toComponent("§9⚡ 雷电: §f" + format(lightning * 100, 0) + "%"));
-        }
-
-        double storePercent = data.getTotalEffect(template, "damage_store_percent", 0.0);
-        if (storePercent > 0) {
-            lore.add(Message.toComponent("§6⚡ 伤害储存: §f" + format(storePercent * 100, 0) + "% / " + getDamageStoreRequiredHits(template, data) + "次"));
-        }
-
-        double burningBonus = data.getTotalEffect(template, "burning_target_damage_percent", 0.0);
-        if (burningBonus > 0) {
-            lore.add(Message.toComponent("§c🔥 燃烧增伤: §f" + format(burningBonus * 100, 0) + "%"));
-        }
-
-        double poisonedBonus = data.getTotalEffect(template, "poisoned_target_damage_percent", 0.0);
-        if (poisonedBonus > 0) {
-            lore.add(Message.toComponent("§2☠ 中毒增伤: §f" + format(poisonedBonus * 100, 0) + "%"));
-        }
-
-        double poisonChance = data.getTotalEffect(template, "poison_chance", 0.0);
-        if (poisonChance > 0) {
-            lore.add(Message.toComponent("§2☠ 中毒概率: §f" + format(poisonChance * 100, 0) + "%"));
-        }
-
-        double explosionChance = data.getTotalEffect(template, "explosion_chance", 0.0);
-        if (explosionChance > 0) {
-            lore.add(Message.toComponent("§6✹ 爆炸概率: §f" + format(explosionChance * 100, 0) + "%"));
-        }
-
-        double bigExplosionChance = data.getTotalEffect(template, "big_explosion_chance", 0.0);
-        if (bigExplosionChance > 0) {
-            lore.add(Message.toComponent("§4✹ 大爆炸概率: §f" + format(bigExplosionChance * 100, 0) + "%"));
-        }
-
-        if (data.getTotalEffect(template, "smash", 0.0) > 0) {
-            lore.add(Message.toComponent("§6✦ 猛击: §f3倍伤害，力量效果翻倍，使用后冷却7秒"));
-        }
-        if (data.getTotalEffect(template, "bomb", 0.0) > 0) {
-            lore.add(Message.toComponent("§6☄ 小心炸弹！: §f潜行投掷常规大爆炸TNT，20格或3秒后爆炸，30秒冷却"));
-        }
-        int hyper = (int) data.getTotalEffect(template, "hyper", 0.0);
-        if (hyper > 0) {
-            lore.add(Message.toComponent("§b✦ 亢奋: §f暴击后速度" + hyper + "、急迫" + hyper + " 3秒"));
-        }
-        if (data.getTotalEffect(template, "gift", 0.0) > 0) {
-            lore.add(Message.toComponent("§d❤ 馈赠: §f击杀后7秒回复50%生命并获得抗性提升"));
-        }
-        if (data.getTotalEffect(template, "dash", 0.0) > 0) {
-            lore.add(Message.toComponent("§b➤ Dash！: §f空中潜行按移动方向冲刺，5秒冷却，2次充能"));
-        }
+        WeaponAffixManager.appendLore(lore, template, data);
     }
 
     private static int getDamageStoreRequiredHits(CustomWeapon template, WeaponInstanceData data) {
@@ -410,7 +321,7 @@ public class WeaponManager {
         list.add("damage");
         list.add("attack_speed");
         list.add("attack_range");
-        for (String key : EFFECT_KEYS) {
+        for (String key : getEffectKeys()) {
             double total = data.getTotalEffect(template, key, 0.0);
             if (total != 0) list.add(key);
         }

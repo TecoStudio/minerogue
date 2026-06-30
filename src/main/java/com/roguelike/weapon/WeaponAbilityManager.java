@@ -146,7 +146,7 @@ public class WeaponAbilityManager {
         }
         state.charges--;
         if (state.charges < 2 && state.nextChargeAt <= now) state.nextChargeAt = now + 5_000L;
-        Vector velocity = dashDirection(player).multiply(1.15);
+        Vector velocity = player.getLocation().getDirection().normalize().multiply(1.15);
         velocity.setY(Math.max(velocity.getY(), 0.15));
         player.setVelocity(player.getVelocity().add(velocity));
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ENDER_DRAGON_FLAP, 0.7f, 1.8f);
@@ -197,17 +197,6 @@ public class WeaponAbilityManager {
             state.charges++;
             state.nextChargeAt = state.charges < 2 ? state.nextChargeAt + 5_000L : 0L;
         }
-    }
-
-    private static Vector dashDirection(Player player) {
-        Vector direction = player.getVelocity().clone();
-        direction.setY(0);
-        if (direction.lengthSquared() < 0.0001) {
-            direction = player.getLocation().getDirection().clone();
-            direction.setY(0);
-        }
-        if (direction.lengthSquared() < 0.0001) return new Vector(0, 0, 1);
-        return direction.normalize();
     }
 
     private static int secondsLeft(long until, long now) {

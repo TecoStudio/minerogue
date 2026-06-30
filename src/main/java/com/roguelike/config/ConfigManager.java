@@ -21,6 +21,8 @@ public class ConfigManager {
     private static File mobsFile;
     private static boolean internalMonsterSystemEnabled = true;
     private static double skeletonEliteSpawnChance = 0.12;
+    private static SkeletonEliteConfig skeletonEliteConfig = DefaultMobs.skeletonElite();
+    private static ZombieEliteConfig zombieEliteConfig = DefaultMobs.zombieElite();
 
     private static final Map<String, CustomWeapon> weapons = new LinkedHashMap<>();
     private static final Map<String, CustomItem> items = new LinkedHashMap<>();
@@ -51,7 +53,9 @@ public class ConfigManager {
         weapons.putAll(DefaultWeapons.create());
         items.putAll(DefaultItems.create());
         internalMonsterSystemEnabled = DefaultMobs.internalSystemEnabled();
-        skeletonEliteSpawnChance = DefaultMobs.skeletonEliteSpawnChance();
+        skeletonEliteConfig = DefaultMobs.skeletonElite();
+        zombieEliteConfig = DefaultMobs.zombieElite();
+        skeletonEliteSpawnChance = skeletonEliteConfig.spawnChance();
         MobExperienceConfig.setDefaultExp(DefaultMobs.defaultExperience());
         DefaultMobs.experience().forEach(MobExperienceConfig::setMobExp);
         mobs.putAll(DefaultMobs.modifiers());
@@ -109,7 +113,9 @@ public class ConfigManager {
     private static void loadMobs() {
         YamlConfiguration config = YamlConfiguration.loadConfiguration(mobsFile);
         internalMonsterSystemEnabled = config.getBoolean("internal.enabled", internalMonsterSystemEnabled);
-        skeletonEliteSpawnChance = clampChance(config.getDouble("internal.skeleton-elite.spawn-chance", skeletonEliteSpawnChance));
+        skeletonEliteConfig = parseSkeletonEliteConfig(config.getConfigurationSection("internal.skeleton-elite"));
+        zombieEliteConfig = parseZombieEliteConfig(config.getConfigurationSection("internal.zombie-elite"));
+        skeletonEliteSpawnChance = skeletonEliteConfig.spawnChance();
         MobExperienceConfig.setDefaultExp(config.getInt("default-experience", MobExperienceConfig.getDefaultExp()));
         ConfigurationSection experience = config.getConfigurationSection("experience");
         if (experience != null) {
@@ -133,6 +139,44 @@ public class ConfigManager {
         double speed = section.getDouble("speed-multiplier", 1.0);
         String weapon = section.getString("weapon-template", null);
         return new MobConfig(health, damage, speed, weapon);
+    }
+
+    private static SkeletonEliteConfig parseSkeletonEliteConfig(ConfigurationSection section) {
+        SkeletonEliteConfig defaults = skeletonEliteConfig;
+        if (section == null) return defaults;
+        return new SkeletonEliteConfig(
+                section.getBoolean("enabled", defaults.enabled()),
+                clampChance(section.getDouble("spawn-chance", defaults.spawnChance())),
+                section.getString("name", defaults.name()),
+                section.getDouble("health", defaults.health()),
+                section.getDouble("damage", defaults.damage()),
+                clampChance(section.getDouble("poison-chance", defaults.poisonChance())),
+                Math.max(0.0, section.getDouble("poisoned-damage-bonus", defaults.poisonedDamageBonus())),
+                Math.max(0.0, section.getDouble("poison-duration-seconds", defaults.poisonDurationSeconds())),
+                section.getString("weapon-template", defaults.weaponTemplate()),
+                Math.max(0.0, section.getDouble("behavior.detect-range", defaults.detectRange())),
+                Math.max(0.0, section.getDouble("behavior.keep-distance", defaults.keepDistance())),
+                Math.max(0.0, section.getDouble("behavior.melee-range", defaults.meleeRange())),
+                Math.max(1L, section.getLong("behavior.shot-cooldown-ticks", defaults.shotCooldownTicks())),
+                Math.max(1L, section.getLong("behavior.burst-cooldown-ticks", defaults.burstCooldownTicks())),
+                Math.max(0.1, section.getDouble("behavior.arrow-speed", defaults.arrowSpeed())),
+                Math.max(0.0, section.getDouble("behavior.retreat-speed", defaults.retreatSpeed())),
+                Math.max(0.0, section.getDouble("behavior.lunge-speed", defaults.lungeSpeed())),
+                Math.max(0.0, section.getDouble("behavior.post-burst-retreat-speed", defaults.postBurstRetreatSpeed()))
+        );
+    }
+
+    private static ZombieEliteConfig parseZombieEliteConfig(ConfigurationSection section) {
+        ZombieEliteConfig defaults = zombieEliteConfig;
+        if (section == null) return defaults;
+        return new ZombieEliteConfig(
+                section.getBoolean("enabled", defaults.enabled()),
+                clampChance(section.getDouble("spawn-chance", defaults.spawnChance())),
+                section.getString("name", defaults.name()),
+                section.getDouble("health", defaults.health()),
+                section.getDouble("damage", defaults.damage()),
+                section.getString("weapon-template", defaults.weaponTemplate())
+        );
     }
 
     private static Map<String, Double> readDoubleMap(ConfigurationSection section) {
@@ -199,7 +243,8 @@ public class ConfigManager {
         YamlConfiguration config = new YamlConfiguration();
         config.options().header("Roguelike 怪物配置。修改后使用 /rw reload 重载。");
         config.set("internal.enabled", internalMonsterSystemEnabled);
-        config.set("internal.skeleton-elite.spawn-chance", skeletonEliteSpawnChance);
+        saveSkeletonEliteConfig(config, "internal.skeleton-elite", skeletonEliteConfig);
+        saveZombieEliteConfig(config, "internal.zombie-elite", zombieEliteConfig);
         config.set("default-experience", MobExperienceConfig.getDefaultExp());
         MobExperienceConfig.getAllMobExp().forEach((key, value) -> config.set("experience." + key, value));
         mobs.forEach((key, value) -> {
@@ -210,6 +255,36 @@ public class ConfigManager {
             config.set(path + "weapon-template", value.weaponTemplate());
         });
         saveYaml(config, file);
+    }
+
+    private static void saveSkeletonEliteConfig(YamlConfiguration config, String path, SkeletonEliteConfig value) {
+        config.set(path + ".enabled", value.enabled());
+        config.set(path + ".spawn-chance", value.spawnChance());
+        config.set(path + ".name", value.name());
+        config.set(path + ".health", value.health());
+        config.set(path + ".damage", value.damage());
+        config.set(path + ".poison-chance", value.poisonChance());
+        config.set(path + ".poisoned-damage-bonus", value.poisonedDamageBonus());
+        config.set(path + ".poison-duration-seconds", value.poisonDurationSeconds());
+        config.set(path + ".weapon-template", value.weaponTemplate());
+        config.set(path + ".behavior.detect-range", value.detectRange());
+        config.set(path + ".behavior.keep-distance", value.keepDistance());
+        config.set(path + ".behavior.melee-range", value.meleeRange());
+        config.set(path + ".behavior.shot-cooldown-ticks", value.shotCooldownTicks());
+        config.set(path + ".behavior.burst-cooldown-ticks", value.burstCooldownTicks());
+        config.set(path + ".behavior.arrow-speed", value.arrowSpeed());
+        config.set(path + ".behavior.retreat-speed", value.retreatSpeed());
+        config.set(path + ".behavior.lunge-speed", value.lungeSpeed());
+        config.set(path + ".behavior.post-burst-retreat-speed", value.postBurstRetreatSpeed());
+    }
+
+    private static void saveZombieEliteConfig(YamlConfiguration config, String path, ZombieEliteConfig value) {
+        config.set(path + ".enabled", value.enabled());
+        config.set(path + ".spawn-chance", value.spawnChance());
+        config.set(path + ".name", value.name());
+        config.set(path + ".health", value.health());
+        config.set(path + ".damage", value.damage());
+        config.set(path + ".weapon-template", value.weaponTemplate());
     }
 
     private static void saveYaml(YamlConfiguration config, File file) throws IOException {
@@ -257,10 +332,29 @@ public class ConfigManager {
         return skeletonEliteSpawnChance;
     }
 
+    public static SkeletonEliteConfig getSkeletonEliteConfig() {
+        return skeletonEliteConfig;
+    }
+
+    public static ZombieEliteConfig getZombieEliteConfig() {
+        return zombieEliteConfig;
+    }
+
     public static RoguelikePlugin getPlugin() {
         return plugin;
     }
 
     public record MobConfig(double healthMultiplier, double damageMultiplier, double speedMultiplier, String weaponTemplate) {
+    }
+
+    public record SkeletonEliteConfig(boolean enabled, double spawnChance, String name, double health, double damage,
+                                      double poisonChance, double poisonedDamageBonus, double poisonDurationSeconds,
+                                      String weaponTemplate, double detectRange, double keepDistance, double meleeRange,
+                                      long shotCooldownTicks, long burstCooldownTicks, double arrowSpeed,
+                                      double retreatSpeed, double lungeSpeed, double postBurstRetreatSpeed) {
+    }
+
+    public record ZombieEliteConfig(boolean enabled, double spawnChance, String name, double health, double damage,
+                                    String weaponTemplate) {
     }
 }

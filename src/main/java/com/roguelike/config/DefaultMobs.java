@@ -19,6 +19,40 @@ public final class DefaultMobs {
         return 0.12;
     }
 
+    public static ConfigManager.SkeletonEliteConfig skeletonElite() {
+        return new ConfigManager.SkeletonEliteConfig(
+                true,
+                0.12,
+                "&c骷髅精英",
+                30.0,
+                5.0,
+                0.30,
+                0.10,
+                5.0,
+                "rusty_iron_sword",
+                18.0,
+                8.0,
+                3.2,
+                35L,
+                100L,
+                1.9,
+                0.22,
+                0.75,
+                0.65
+        );
+    }
+
+    public static ConfigManager.ZombieEliteConfig zombieElite() {
+        return new ConfigManager.ZombieEliteConfig(
+                true,
+                0.12,
+                "&2僵尸精英",
+                35.0,
+                5.0,
+                "excited_stone_sword"
+        );
+    }
+
     public static Map<String, Integer> experience() {
         Map<String, Integer> experience = new LinkedHashMap<>();
         experience.put("zombie", 15);
@@ -34,8 +68,6 @@ public final class DefaultMobs {
     }
 
     public static Map<String, ConfigManager.MobConfig> modifiers() {
-        Map<String, ConfigManager.MobConfig> modifiers = new LinkedHashMap<>();
-        modifiers.put("zombie", new ConfigManager.MobConfig(1.5, 1.2, 1.0, "wooden_sword"));
-        return modifiers;
+        return new LinkedHashMap<>();
     }
 }
