@@ -11,6 +11,7 @@ import com.roguelike.mob.MobManager;
 import com.roguelike.scoreboard.RoguelikeScoreboard;
 import com.roguelike.ticket.TicketManager;
 import com.roguelike.util.DevLog;
+import com.roguelike.weapon.ToolAbilityManager;
 import com.roguelike.weapon.WeaponAbilityManager;
 import com.roguelike.weapon.WeaponManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -33,6 +34,7 @@ public class RoguelikePlugin extends JavaPlugin {
         LevelManager.init(this);
         CombatHandler.init(this);
         WeaponAbilityManager.init(this);
+        ToolAbilityManager.init(this);
         RoguelikeScoreboard.init(this);
 
         getServer().getPluginManager().registerEvents(new EventListener(), this);

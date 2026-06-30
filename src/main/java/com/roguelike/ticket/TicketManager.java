@@ -23,6 +23,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
@@ -176,6 +177,10 @@ public class TicketManager {
             Message.send(player, "&c不能将强化券开发为武器。");
             return false;
         }
+        if (hasAnyEnchant(targetStack)) {
+            Message.send(player, "&c已附魔的物品不能使用开发券开发。");
+            return false;
+        }
 
         CustomWeapon template = ConfigManager.getWeapon("special_weapon");
         if (template == null) {
@@ -183,16 +188,32 @@ public class TicketManager {
             return false;
         }
 
-        WeaponManager.makeWeapon(targetStack, template);
+        ItemStack developed = targetStack.clone();
+        developed.setAmount(1);
+        WeaponManager.makeWeapon(developed, template);
+        targetStack.setAmount(targetStack.getAmount() - 1);
+        giveOrDrop(player, developed);
         WeaponManager.refreshHeldWeapon(player);
         recordTicketUse(player, ticketType);
         DevLog.debug(player.getName() + " developed item into weapon template " + template.getId());
-        Message.send(player, "&d开发成功！目标物品已成为特殊品质武器，可继续使用开发券添加词条。");
+        Message.send(player, "&d开发成功！已获得一个特殊品质武器，可继续使用开发券添加词条。");
         return true;
     }
 
+    private static boolean hasAnyEnchant(ItemStack stack) {
+        if (stack == null || stack.getType().isAir()) return false;
+        if (!stack.getEnchantments().isEmpty()) return true;
+        ItemMeta meta = stack.getItemMeta();
+        return meta instanceof EnchantmentStorageMeta storageMeta && storageMeta.hasStoredEnchants();
+    }
+
+    private static void giveOrDrop(Player player, ItemStack stack) {
+        Map<Integer, ItemStack> leftovers = player.getInventory().addItem(stack);
+        leftovers.values().forEach(item -> player.getWorld().dropItemNaturally(player.getLocation(), item));
+    }
+
     private static boolean applyTicketA(Player player, ItemStack ticketStack, CustomWeapon template, WeaponInstanceData data, ItemStack weaponStack, boolean guaranteed) {
-        List<String> availableStats = getStrengthenableStats(template, data);
+        List<String> availableStats = getStrengthenableStats(template, data, weaponStack.getType());
         if (availableStats.isEmpty()) {
             Message.send(player, "&c武器没有可强化的词条！");
             return false;
@@ -292,7 +313,7 @@ public class TicketManager {
     }
 
     private static boolean applyTicketB(Player player, ItemStack ticketStack, CustomWeapon template, WeaponInstanceData data, ItemStack weaponStack) {
-        List<String> availableEffects = getAvailableEffects(template, data);
+        List<String> availableEffects = getAvailableEffects(template, data, weaponStack.getType());
         if (availableEffects.isEmpty()) {
             Message.send(player, "&c武器已经拥有所有可能的词条！");
             return false;
@@ -394,12 +415,16 @@ public class TicketManager {
     }
 
     private static List<String> getStrengthenableStats(CustomWeapon template, WeaponInstanceData data) {
+        return getStrengthenableStats(template, data, null);
+    }
+
+    private static List<String> getStrengthenableStats(CustomWeapon template, WeaponInstanceData data, Material material) {
         List<String> stats = new ArrayList<>();
         stats.add("damage");
         stats.add("attack_speed");
         stats.add("attack_range");
         for (String key : WeaponAffixManager.effectIds()) {
-            if (WeaponAffixManager.isStrengthenable(template, data, key)) {
+            if (WeaponAffixManager.isStrengthenable(template, data, key, material)) {
                 stats.add(key);
             }
         }
@@ -407,9 +432,13 @@ public class TicketManager {
     }
 
     private static List<String> getAvailableEffects(CustomWeapon template, WeaponInstanceData data) {
+        return getAvailableEffects(template, data, null);
+    }
+
+    private static List<String> getAvailableEffects(CustomWeapon template, WeaponInstanceData data, Material material) {
         List<String> available = new ArrayList<>();
         for (String key : WeaponAffixManager.effectIds()) {
-            if (WeaponAffixManager.isAvailable(template, data, key)) {
+            if (WeaponAffixManager.isAvailable(template, data, key, material)) {
                 available.add(key);
             }
         }

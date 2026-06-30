@@ -5,6 +5,7 @@ import com.roguelike.config.ConfigManager;
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.integration.IntegrationManager;
 import com.roguelike.mob.internal.SkeletonEliteMob;
+import com.roguelike.mob.internal.SpiderEliteMob;
 import com.roguelike.mob.internal.ZombieEliteMob;
 import com.roguelike.weapon.WeaponManager;
 import org.bukkit.Location;
@@ -31,6 +32,7 @@ public class MobManager {
         internalMobs.clear();
         internalMobs.add(new SkeletonEliteMob(plugin));
         internalMobs.add(new ZombieEliteMob(plugin));
+        internalMobs.add(new SpiderEliteMob(plugin));
         behaviorTask = plugin.getServer().getScheduler().runTaskTimer(plugin, MobManager::tickInternalMobs, 20L, 10L);
     }
 

@@ -11,6 +11,7 @@ import com.roguelike.scoreboard.RoguelikeScoreboard;
 import com.roguelike.ticket.TicketManager;
 import com.roguelike.ticket.TicketType;
 import com.roguelike.util.Message;
+import com.roguelike.weapon.ToolAbilityManager;
 import com.roguelike.weapon.WeaponAbilityManager;
 import com.roguelike.weapon.WeaponManager;
 import org.bukkit.entity.LivingEntity;
@@ -19,10 +20,16 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.enchantment.EnchantItemEvent;
+import org.bukkit.event.enchantment.PrepareItemEnchantEvent;
 import org.bukkit.event.entity.*;
+import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.EnchantmentStorageMeta;
+import org.bukkit.inventory.meta.ItemMeta;
 
 public class EventListener implements Listener {
 
@@ -88,6 +95,36 @@ public class EventListener implements Listener {
 
     private boolean canTargetAnyItem(TicketType ticket) {
         return ticket == TicketType.TICKET_B || ticket == TicketType.WEAPON_DEVELOPMENT;
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onPrepareItemEnchant(PrepareItemEnchantEvent event) {
+        if (WeaponManager.getTemplate(event.getItem()) == null) return;
+        event.setCancelled(true);
+        Message.send(event.getEnchanter(), "&cRoguelike 武器不能使用附魔台附魔。");
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onEnchantItem(EnchantItemEvent event) {
+        if (WeaponManager.getTemplate(event.getItem()) == null) return;
+        event.setCancelled(true);
+        Message.send(event.getEnchanter(), "&cRoguelike 武器不能使用附魔台附魔。");
+    }
+
+    @EventHandler
+    public void onPrepareAnvil(PrepareAnvilEvent event) {
+        ItemStack first = event.getInventory().getFirstItem();
+        ItemStack second = event.getInventory().getSecondItem();
+        if (WeaponManager.getTemplate(first) == null) return;
+        if (!hasAnyEnchant(second) && !hasAnyEnchant(event.getResult())) return;
+        event.setResult(null);
+    }
+
+    private boolean hasAnyEnchant(ItemStack stack) {
+        if (stack == null || stack.getType().isAir()) return false;
+        if (!stack.getEnchantments().isEmpty()) return true;
+        ItemMeta meta = stack.getItemMeta();
+        return meta instanceof EnchantmentStorageMeta storageMeta && storageMeta.hasStoredEnchants();
     }
 
     @EventHandler
@@ -158,5 +195,15 @@ public class EventListener implements Listener {
     public void onItemDrop(PlayerDropItemEvent event) {
         // 切出手持时更新属性
         WeaponManager.clearAttributes(event.getPlayer());
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onItemDamage(PlayerItemDamageEvent event) {
+        ToolAbilityManager.handleItemDamage(event);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onBlockBreak(BlockBreakEvent event) {
+        ToolAbilityManager.handleBlockBreak(event);
     }
 }

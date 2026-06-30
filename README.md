@@ -109,7 +109,12 @@ plugins/Roguelike/roguelike.db
 ```text
 uuid
 kills
+deaths
+total_exp
+ticket_a_uses
 super_ticket_a_uses
+ticket_b_uses
+ticket_c_uses
 weapon_development_uses
 ```
 
@@ -220,6 +225,7 @@ base-damage
 attack-speed
 durability
 rarity
+effects
 ```
 
 内置武器模板包括：

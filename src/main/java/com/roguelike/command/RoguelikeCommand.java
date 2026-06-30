@@ -121,7 +121,8 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
                 if (args[1].equalsIgnoreCase("weapons")) {
                     Message.send(sender, "&6可用武器:");
                     for (CustomWeapon w : ConfigManager.getWeapons()) {
-                        sender.sendMessage("§7- " + WeaponManager.getRarityColor(w.getRarity()) + w.getName() + " §7(" + w.getId() + ")");
+                        sender.sendMessage("§7- " + WeaponManager.getRarityColor(w.getRarity()) + w.getName()
+                                + " §7[" + WeaponManager.getRarityColor(w.getRarity()) + WeaponManager.getRarityDisplayName(w.getRarity()) + "§7] (" + w.getId() + ")");
                     }
                 } else if (args[1].equalsIgnoreCase("items")) {
                     Message.send(sender, "&6可用物品:");
@@ -241,6 +242,20 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
                     "    spawn-chance: 0.12\n" +
                     "    name: '&2僵尸精英'\n" +
                     "    weapon-template: excited_stone_sword\n" +
+                    "  # 精英蜘蛛：隐身，35血，1.2倍移速，攻击概率附加缓慢。\n" +
+                    "  spider-elite:\n" +
+                    "    enabled: true\n" +
+                    "    # 自然蜘蛛转化概率，0.12 = 12%。\n" +
+                    "    spawn-chance: 0.12\n" +
+                    "    name: '&5精英蜘蛛'\n" +
+                    "    health: 35.0\n" +
+                    "    # 1.2 = 原版移速的 1.2 倍。\n" +
+                    "    speed-multiplier: 1.2\n" +
+                    "    # 0.35 = 35% 概率。\n" +
+                    "    slow-chance: 0.35\n" +
+                    "    slow-duration-seconds: 8.0\n" +
+                    "    # 药水等级按游戏内显示填写：1 = 缓慢 I，2 = 缓慢 II。\n" +
+                    "    slow-level: 1\n" +
                     "default-experience: 10\n" +
                     "experience:\n" +
                     "  zombie: 15\n" +

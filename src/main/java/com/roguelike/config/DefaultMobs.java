@@ -53,6 +53,19 @@ public final class DefaultMobs {
         );
     }
 
+    public static ConfigManager.SpiderEliteConfig spiderElite() {
+        return new ConfigManager.SpiderEliteConfig(
+                true,
+                0.12,
+                "&5精英蜘蛛",
+                35.0,
+                1.2,
+                0.35,
+                8.0,
+                1
+        );
+    }
+
     public static Map<String, Integer> experience() {
         Map<String, Integer> experience = new LinkedHashMap<>();
         experience.put("zombie", 15);

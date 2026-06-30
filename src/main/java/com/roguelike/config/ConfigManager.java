@@ -23,6 +23,7 @@ public class ConfigManager {
     private static double skeletonEliteSpawnChance = 0.12;
     private static SkeletonEliteConfig skeletonEliteConfig = DefaultMobs.skeletonElite();
     private static ZombieEliteConfig zombieEliteConfig = DefaultMobs.zombieElite();
+    private static SpiderEliteConfig spiderEliteConfig = DefaultMobs.spiderElite();
 
     private static final Map<String, CustomWeapon> weapons = new LinkedHashMap<>();
     private static final Map<String, CustomItem> items = new LinkedHashMap<>();
@@ -55,6 +56,7 @@ public class ConfigManager {
         internalMonsterSystemEnabled = DefaultMobs.internalSystemEnabled();
         skeletonEliteConfig = DefaultMobs.skeletonElite();
         zombieEliteConfig = DefaultMobs.zombieElite();
+        spiderEliteConfig = DefaultMobs.spiderElite();
         skeletonEliteSpawnChance = skeletonEliteConfig.spawnChance();
         MobExperienceConfig.setDefaultExp(DefaultMobs.defaultExperience());
         DefaultMobs.experience().forEach(MobExperienceConfig::setMobExp);
@@ -115,6 +117,7 @@ public class ConfigManager {
         internalMonsterSystemEnabled = config.getBoolean("internal.enabled", internalMonsterSystemEnabled);
         skeletonEliteConfig = parseSkeletonEliteConfig(config.getConfigurationSection("internal.skeleton-elite"));
         zombieEliteConfig = parseZombieEliteConfig(config.getConfigurationSection("internal.zombie-elite"));
+        spiderEliteConfig = parseSpiderEliteConfig(config.getConfigurationSection("internal.spider-elite"));
         skeletonEliteSpawnChance = skeletonEliteConfig.spawnChance();
         MobExperienceConfig.setDefaultExp(config.getInt("default-experience", MobExperienceConfig.getDefaultExp()));
         ConfigurationSection experience = config.getConfigurationSection("experience");
@@ -176,6 +179,21 @@ public class ConfigManager {
                 section.getDouble("health", defaults.health()),
                 section.getDouble("damage", defaults.damage()),
                 section.getString("weapon-template", defaults.weaponTemplate())
+        );
+    }
+
+    private static SpiderEliteConfig parseSpiderEliteConfig(ConfigurationSection section) {
+        SpiderEliteConfig defaults = spiderEliteConfig;
+        if (section == null) return defaults;
+        return new SpiderEliteConfig(
+                section.getBoolean("enabled", defaults.enabled()),
+                clampChance(section.getDouble("spawn-chance", defaults.spawnChance())),
+                section.getString("name", defaults.name()),
+                section.getDouble("health", defaults.health()),
+                Math.max(0.0, section.getDouble("speed-multiplier", defaults.speedMultiplier())),
+                clampChance(section.getDouble("slow-chance", defaults.slowChance())),
+                Math.max(0.0, section.getDouble("slow-duration-seconds", defaults.slowDurationSeconds())),
+                Math.max(1, section.getInt("slow-level", section.getInt("slow-amplifier", defaults.slowLevel())))
         );
     }
 
@@ -241,10 +259,19 @@ public class ConfigManager {
 
     private static void saveMobsYaml(File file) throws IOException {
         YamlConfiguration config = new YamlConfiguration();
-        config.options().header("Roguelike 怪物配置。修改后使用 /rw reload 重载。");
+        config.options().header("""
+                Roguelike 怪物配置。修改后使用 /rw reload 重载。
+
+                概率字段使用 0.0 - 1.0：0.12 = 12%，0.35 = 35%。
+                药水等级字段使用游戏内显示等级：1 = I，2 = II，3 = III。
+                MythicMobs 集成开启时，本插件内置怪物不会自然生成。
+                /rw monster spawn 只生成插件自定义怪物，例如 skeleton_elite、zombie_elite、spider_elite。
+                """);
+        config.setComments("internal", List.of("是否启用本插件内置怪物系统。"));
         config.set("internal.enabled", internalMonsterSystemEnabled);
         saveSkeletonEliteConfig(config, "internal.skeleton-elite", skeletonEliteConfig);
         saveZombieEliteConfig(config, "internal.zombie-elite", zombieEliteConfig);
+        saveSpiderEliteConfig(config, "internal.spider-elite", spiderEliteConfig);
         config.set("default-experience", MobExperienceConfig.getDefaultExp());
         MobExperienceConfig.getAllMobExp().forEach((key, value) -> config.set("experience." + key, value));
         mobs.forEach((key, value) -> {
@@ -258,15 +285,26 @@ public class ConfigManager {
     }
 
     private static void saveSkeletonEliteConfig(YamlConfiguration config, String path, SkeletonEliteConfig value) {
+        config.setComments(path, List.of("骷髅精英：自然骷髅按概率转化，远程射箭，近身突进三连击。"));
+        config.setComments(path + ".enabled", List.of("是否启用该怪物。"));
         config.set(path + ".enabled", value.enabled());
+        config.setComments(path + ".spawn-chance", List.of("自然生成骷髅转化为骷髅精英的概率，0.12 = 12%。"));
         config.set(path + ".spawn-chance", value.spawnChance());
+        config.setComments(path + ".name", List.of("怪物显示名，支持 & 颜色代码。"));
         config.set(path + ".name", value.name());
+        config.setComments(path + ".health", List.of("最大生命值。"));
         config.set(path + ".health", value.health());
+        config.setComments(path + ".damage", List.of("攻击和箭矢基础伤害。"));
         config.set(path + ".damage", value.damage());
+        config.setComments(path + ".poison-chance", List.of("攻击使目标中毒的概率，0.30 = 30%。"));
         config.set(path + ".poison-chance", value.poisonChance());
+        config.setComments(path + ".poisoned-damage-bonus", List.of("目标已中毒时的额外伤害比例，0.10 = +10%。"));
         config.set(path + ".poisoned-damage-bonus", value.poisonedDamageBonus());
+        config.setComments(path + ".poison-duration-seconds", List.of("中毒持续秒数。"));
         config.set(path + ".poison-duration-seconds", value.poisonDurationSeconds());
+        config.setComments(path + ".weapon-template", List.of("主手武器模板 ID，配置在 weapons.yml。"));
         config.set(path + ".weapon-template", value.weaponTemplate());
+        config.setComments(path + ".behavior", List.of("战斗行为参数。距离单位为格，冷却单位为 tick，20 tick = 1 秒。"));
         config.set(path + ".behavior.detect-range", value.detectRange());
         config.set(path + ".behavior.keep-distance", value.keepDistance());
         config.set(path + ".behavior.melee-range", value.meleeRange());
@@ -279,12 +317,39 @@ public class ConfigManager {
     }
 
     private static void saveZombieEliteConfig(YamlConfiguration config, String path, ZombieEliteConfig value) {
+        config.setComments(path, List.of("僵尸精英：自然僵尸按概率转化，佩戴铁头盔，使用带锋利 I 的亢奋石剑。"));
+        config.setComments(path + ".enabled", List.of("是否启用该怪物。"));
         config.set(path + ".enabled", value.enabled());
+        config.setComments(path + ".spawn-chance", List.of("自然生成僵尸转化为僵尸精英的概率，0.12 = 12%。"));
         config.set(path + ".spawn-chance", value.spawnChance());
+        config.setComments(path + ".name", List.of("怪物显示名，支持 & 颜色代码。"));
         config.set(path + ".name", value.name());
+        config.setComments(path + ".health", List.of("最大生命值。"));
         config.set(path + ".health", value.health());
+        config.setComments(path + ".damage", List.of("近战基础伤害。"));
         config.set(path + ".damage", value.damage());
+        config.setComments(path + ".weapon-template", List.of("主手武器模板 ID，配置在 weapons.yml。"));
         config.set(path + ".weapon-template", value.weaponTemplate());
+    }
+
+    private static void saveSpiderEliteConfig(YamlConfiguration config, String path, SpiderEliteConfig value) {
+        config.setComments(path, List.of("精英蜘蛛：自然蜘蛛按概率转化，常驻隐身，攻击时概率附加缓慢。"));
+        config.setComments(path + ".enabled", List.of("是否启用该怪物。"));
+        config.set(path + ".enabled", value.enabled());
+        config.setComments(path + ".spawn-chance", List.of("自然生成蜘蛛转化为精英蜘蛛的概率，0.12 = 12%。"));
+        config.set(path + ".spawn-chance", value.spawnChance());
+        config.setComments(path + ".name", List.of("怪物显示名，支持 & 颜色代码。"));
+        config.set(path + ".name", value.name());
+        config.setComments(path + ".health", List.of("最大生命值。"));
+        config.set(path + ".health", value.health());
+        config.setComments(path + ".speed-multiplier", List.of("移动速度倍率。1.2 = 原版移速的 1.2 倍。"));
+        config.set(path + ".speed-multiplier", value.speedMultiplier());
+        config.setComments(path + ".slow-chance", List.of("攻击使目标获得缓慢的概率，0.35 = 35%。"));
+        config.set(path + ".slow-chance", value.slowChance());
+        config.setComments(path + ".slow-duration-seconds", List.of("缓慢持续秒数。"));
+        config.set(path + ".slow-duration-seconds", value.slowDurationSeconds());
+        config.setComments(path + ".slow-level", List.of("缓慢等级，按游戏内显示填写：1 = 缓慢 I，2 = 缓慢 II。"));
+        config.set(path + ".slow-level", value.slowLevel());
     }
 
     private static void saveYaml(YamlConfiguration config, File file) throws IOException {
@@ -340,6 +405,10 @@ public class ConfigManager {
         return zombieEliteConfig;
     }
 
+    public static SpiderEliteConfig getSpiderEliteConfig() {
+        return spiderEliteConfig;
+    }
+
     public static RoguelikePlugin getPlugin() {
         return plugin;
     }
@@ -356,5 +425,10 @@ public class ConfigManager {
 
     public record ZombieEliteConfig(boolean enabled, double spawnChance, String name, double health, double damage,
                                     String weaponTemplate) {
+    }
+
+    public record SpiderEliteConfig(boolean enabled, double spawnChance, String name, double health,
+                                    double speedMultiplier, double slowChance, double slowDurationSeconds,
+                                    int slowLevel) {
     }
 }

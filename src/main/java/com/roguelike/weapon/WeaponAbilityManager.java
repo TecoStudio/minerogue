@@ -186,7 +186,7 @@ public class WeaponAbilityManager {
                 Location location = tnt.getLocation();
                 tnt.remove();
                 Player source = Bukkit.getPlayer(tracked.ownerId);
-                location.getWorld().createExplosion(location, 4.0f, false, false, source);
+                location.getWorld().createExplosion(location, 4.0f, true, true, source);
                 iterator.remove();
             }
         }

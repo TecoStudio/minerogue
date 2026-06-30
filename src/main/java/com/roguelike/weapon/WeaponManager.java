@@ -11,8 +11,10 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlotGroup;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
@@ -140,11 +142,22 @@ public class WeaponManager {
             lore.add(Message.toComponent(sb.toString()));
         }
 
-        lore.add(Message.toComponent("§7========== " + rarityColor + "品质: " + template.getRarity().toUpperCase() + " §7=========="));
+        lore.add(Message.toComponent("§7========== " + rarityColor + "品质: " + getRarityDisplayName(template.getRarity()) + " §7=========="));
 
         meta.lore(lore);
+        applyToolEnchantments(meta, template, data);
         applyVanillaItemAttributes(meta, stack.getType(), totalDamage, totalSpeed);
         stack.setItemMeta(meta);
+    }
+
+    private static void applyToolEnchantments(ItemMeta meta, CustomWeapon template, WeaponInstanceData data) {
+        meta.removeEnchant(Enchantment.EFFICIENCY);
+        meta.removeEnchant(Enchantment.FORTUNE);
+        int efficiency = (int) data.getTotalEffect(template, "efficiency", 0.0);
+        int fortune = (int) data.getTotalEffect(template, "fortune", 0.0);
+        if (efficiency > 0) meta.addEnchant(Enchantment.EFFICIENCY, Math.min(5, efficiency), true);
+        if (fortune > 0) meta.addEnchant(Enchantment.FORTUNE, Math.min(5, fortune), true);
+        if (efficiency > 0 || fortune > 0) meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
     }
 
     private static void applyVanillaItemAttributes(ItemMeta meta, Material material, double damage, double speed) {
@@ -306,9 +319,18 @@ public class WeaponManager {
             case "legendary" -> "§6";
             case "epic" -> "§5";
             case "rare" -> "§9";
-            case "uncommon" -> "§a";
-            case "special" -> "§d";
+            case "special", "uncommon" -> "§a";
             default -> "§7";
+        };
+    }
+
+    public static String getRarityDisplayName(String rarity) {
+        return switch (rarity.toLowerCase()) {
+            case "special" -> "特殊";
+            case "rare" -> "稀有";
+            case "epic" -> "史诗";
+            case "legendary" -> "传奇";
+            default -> "常见";
         };
     }
 

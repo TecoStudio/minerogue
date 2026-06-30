@@ -5,6 +5,7 @@ import com.roguelike.item.WeaponInstanceData;
 import com.roguelike.util.Message;
 import com.roguelike.weapon.WeaponManager;
 import net.kyori.adventure.text.Component;
+import org.bukkit.Material;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -14,6 +15,9 @@ import java.util.Random;
 
 public class WeaponAffixManager {
     private static final Map<String, WeaponAffix> AFFIXES = new LinkedHashMap<>();
+    private static final Map<String, Target> TARGETS = new LinkedHashMap<>();
+
+    private enum Target { WEAPON, TOOL, ALL }
 
     static {
         register(percent("lifesteal_percent", "吸血百分比", 0.10, 0.20, (lore, template, data) -> {
@@ -108,7 +112,21 @@ public class WeaponAffixManager {
             }
         });
         register(toggle("gift", "馈赠", "§d❤ 馈赠: §f击杀后7秒回复50%生命并获得抗性提升", false));
-        register(toggle("dash", "Dash！", "§b➤ Dash！: §f空中潜行按移动方向冲刺，5秒冷却，2次充能", false));
+        register(toggle("dash", "Dash！", "§b➤ Dash！: §f向面朝方向突进，5秒冷却，2次充能", false));
+        register(level("durability_restore", "用不坏", 1, 5, (lore, template, data) -> {
+            int level = (int) total(template, data, "durability_restore", 0.0);
+            if (level > 0) lore.add(Message.toComponent("§a✦ 用不坏: §f" + level + "级 (" + WeaponManager.format(durabilityRestoreChance(level) * 100, 0) + "%返还3耐久)"));
+        }), Target.ALL);
+        register(toggle("area_mining", "范围挖掘", "§6⬚ 范围挖掘: §f按面朝方向挖掘3x3方块", false), Target.TOOL);
+        register(toggle("ore_highlight", "高亮矿物", "§e✦ 高亮矿物: §f挖掘时10%概率高亮附近矿物1秒", false), Target.TOOL);
+        register(level("efficiency", "效率", 1, 5, (lore, template, data) -> {
+            int level = (int) total(template, data, "efficiency", 0.0);
+            if (level > 0) lore.add(Message.toComponent("§b⛏ 效率: §f" + level + "级"));
+        }), Target.TOOL);
+        register(level("fortune", "时运", 1, 5, (lore, template, data) -> {
+            int level = (int) total(template, data, "fortune", 0.0);
+            if (level > 0) lore.add(Message.toComponent("§e✦ 时运: §f" + level + "级"));
+        }), Target.TOOL);
     }
 
     public static List<String> effectIds() {
@@ -138,9 +156,22 @@ public class WeaponAffixManager {
         return template.getEffect(id, 0.0) == 0.0 && data.getEffectBonus(id) == 0.0;
     }
 
+    public static boolean isAvailable(CustomWeapon template, WeaponInstanceData data, String id, Material material) {
+        return isApplicable(id, material) && isAvailable(template, data, id);
+    }
+
+    public static boolean isApplicable(String id, Material material) {
+        Target target = TARGETS.getOrDefault(id, Target.WEAPON);
+        return target == Target.ALL || target == Target.WEAPON || isPickaxeOrAxe(material);
+    }
+
     public static boolean isStrengthenable(CustomWeapon template, WeaponInstanceData data, String id) {
         WeaponAffix affix = get(id);
         return affix != null && affix.isStrengthenable(template, data);
+    }
+
+    public static boolean isStrengthenable(CustomWeapon template, WeaponInstanceData data, String id, Material material) {
+        return isApplicable(id, material) && isStrengthenable(template, data, id);
     }
 
     public static double strengthen(String id, double currentValue, int useCount, Random random) {
@@ -156,7 +187,12 @@ public class WeaponAffixManager {
     }
 
     private static void register(WeaponAffix affix) {
+        register(affix, Target.WEAPON);
+    }
+
+    private static void register(WeaponAffix affix, Target target) {
         AFFIXES.put(affix.id(), affix);
+        TARGETS.put(affix.id(), target);
     }
 
     private static SimpleAffix percent(String id, String displayName, double min, double max, LoreAppender loreAppender) {
@@ -174,6 +210,26 @@ public class WeaponAffixManager {
 
     private static SimpleAffix number(String id, String displayName, double min, double max, LoreAppender loreAppender, boolean integer) {
         return new SimpleAffix(id, displayName, true, min, max, integer, loreAppender);
+    }
+
+    private static SimpleAffix level(String id, String displayName, int min, int max, LoreAppender loreAppender) {
+        return new SimpleAffix(id, displayName, true, min, max, true, loreAppender) {
+            @Override
+            public boolean isStrengthenable(CustomWeapon template, WeaponInstanceData data) {
+                double value = total(template, data, id, 0.0);
+                return value > 0 && value < max;
+            }
+
+            @Override
+            public double strengthen(double currentValue, int useCount, Random random) {
+                return Math.min(max, currentValue + 1);
+            }
+
+            @Override
+            public String format(double value) {
+                return (int) value + "级";
+            }
+        };
     }
 
     private static SimpleAffix toggle(String id, String displayName, String loreLine, boolean strengthenable) {
@@ -194,6 +250,21 @@ public class WeaponAffixManager {
     private static int damageStoreRequiredHits(CustomWeapon template, WeaponInstanceData data) {
         int reduction = (int) data.getTotalEffect(template, "damage_store_hit_reduction", 0.0);
         return Math.max(5, 20 - reduction);
+    }
+
+    public static double durabilityRestoreChance(int level) {
+        return switch (Math.max(1, Math.min(5, level))) {
+            case 1 -> 0.25;
+            case 2 -> 0.30;
+            case 3 -> 0.40;
+            case 4 -> 0.45;
+            default -> 0.50;
+        };
+    }
+
+    private static boolean isPickaxeOrAxe(Material material) {
+        String name = material == null ? "" : material.name();
+        return name.endsWith("_PICKAXE") || name.endsWith("_AXE");
     }
 
     private static double strengthenNumber(double currentValue, int useCount, Random random) {
