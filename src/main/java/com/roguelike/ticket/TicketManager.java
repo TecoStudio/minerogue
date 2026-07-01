@@ -1,8 +1,11 @@
 package com.roguelike.ticket;
 
 import com.roguelike.RoguelikePlugin;
+import com.roguelike.armor.affix.ArmorAffix;
+import com.roguelike.armor.affix.ArmorAffixManager;
 import com.roguelike.config.ConfigManager;
 import com.roguelike.data.PlayerDataManager;
+import com.roguelike.equipment.EquipmentTypeResolver;
 import com.roguelike.equipment.affix.AffixManager;
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.item.WeaponInstanceData;
@@ -135,6 +138,10 @@ public class TicketManager {
             return applyWeaponDevelopment(player, ticketStack, weaponStack, type);
         }
 
+        if (weaponStack != null && EquipmentTypeResolver.isWearable(weaponStack.getType())) {
+            return applyArmorTicket(player, ticketStack, weaponStack, type);
+        }
+
         CustomWeapon template = WeaponManager.getTemplate(weaponStack);
         WeaponInstanceData data = WeaponInstanceData.fromItemStack(weaponStack);
         if (type == TicketType.TICKET_B && (template == null || data == null)) {
@@ -162,6 +169,91 @@ public class TicketManager {
                 return false;
             }
         }
+    }
+
+    private static boolean applyArmorTicket(Player player, ItemStack ticketStack, ItemStack armorStack, TicketType type) {
+        return switch (type) {
+            case TICKET_A, SUPER_TICKET_A -> strengthenArmorAffix(player, ticketStack, armorStack, type);
+            case TICKET_B -> addArmorAffix(player, ticketStack, armorStack);
+            case TICKET_C -> resetArmorAffix(player, ticketStack, armorStack);
+            default -> false;
+        };
+    }
+
+    private static boolean addArmorAffix(Player player, ItemStack ticketStack, ItemStack armorStack) {
+        List<String> available = availableArmorAffixes(armorStack);
+        if (available.isEmpty()) {
+            Message.send(player, "&c该防具已经拥有所有可用防具词条。");
+            return false;
+        }
+        String id = available.get(RANDOM.nextInt(available.size()));
+        int level = AffixManager.generateArmorBaseLevel(id, RANDOM);
+        AffixManager.applyArmorEnchant(armorStack, id, level);
+        consumeTicket(ticketStack);
+        recordTicketUse(player, TicketType.TICKET_B);
+        Message.send(player, "&a已添加防具词条: &f" + AffixManager.displayName(com.roguelike.equipment.EquipmentKind.ARMOR, id) + " &e" + AffixManager.formatArmor(id, level));
+        return true;
+    }
+
+    private static boolean strengthenArmorAffix(Player player, ItemStack ticketStack, ItemStack armorStack, TicketType type) {
+        List<String> strengthenable = strengthenableArmorAffixes(armorStack);
+        if (strengthenable.isEmpty()) {
+            Message.send(player, "&c该防具没有可强化的防具词条。");
+            return false;
+        }
+        String id = strengthenable.get(RANDOM.nextInt(strengthenable.size()));
+        ArmorAffix affix = ArmorAffixManager.get(id);
+        int current = armorStack.getEnchantmentLevel(affix.enchantment());
+        int next = AffixManager.strengthenArmor(id, current);
+        AffixManager.applyArmorEnchant(armorStack, id, next);
+        consumeTicket(ticketStack);
+        recordTicketUse(player, type);
+        Message.send(player, "&a防具词条强化成功: &f" + affix.displayName() + " &7" + AffixManager.formatArmor(id, current) + " &f-> &e" + AffixManager.formatArmor(id, next));
+        return true;
+    }
+
+    private static boolean resetArmorAffix(Player player, ItemStack ticketStack, ItemStack armorStack) {
+        List<String> current = currentArmorAffixes(armorStack);
+        if (current.isEmpty()) {
+            Message.send(player, "&c该防具没有可重置的防具词条。");
+            return false;
+        }
+        String id = current.get(RANDOM.nextInt(current.size()));
+        ArmorAffix affix = ArmorAffixManager.get(id);
+        armorStack.removeEnchantment(affix.enchantment());
+        consumeTicket(ticketStack);
+        recordTicketUse(player, TicketType.TICKET_C);
+        Message.send(player, "&9已重置防具词条: &f" + affix.displayName());
+        return true;
+    }
+
+    private static List<String> availableArmorAffixes(ItemStack armorStack) {
+        List<String> available = new ArrayList<>();
+        for (String id : AffixManager.armorEffectIds()) {
+            ArmorAffix affix = ArmorAffixManager.get(id);
+            if (affix != null && ArmorAffixManager.isApplicable(id, armorStack.getType()) && armorStack.getEnchantmentLevel(affix.enchantment()) <= 0) {
+                available.add(id);
+            }
+        }
+        return available;
+    }
+
+    private static List<String> currentArmorAffixes(ItemStack armorStack) {
+        List<String> current = new ArrayList<>();
+        for (String id : AffixManager.armorEffectIds()) {
+            ArmorAffix affix = ArmorAffixManager.get(id);
+            if (affix != null && armorStack.getEnchantmentLevel(affix.enchantment()) > 0) current.add(id);
+        }
+        return current;
+    }
+
+    private static List<String> strengthenableArmorAffixes(ItemStack armorStack) {
+        List<String> strengthenable = new ArrayList<>();
+        for (String id : currentArmorAffixes(armorStack)) {
+            ArmorAffix affix = ArmorAffixManager.get(id);
+            if (affix != null && armorStack.getEnchantmentLevel(affix.enchantment()) < affix.maxLevel()) strengthenable.add(id);
+        }
+        return strengthenable;
     }
 
     private static boolean applyWeaponDevelopment(Player player, ItemStack ticketStack, ItemStack targetStack, TicketType ticketType) {

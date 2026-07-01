@@ -21,8 +21,12 @@ public final class EquipmentTypeResolver {
         return armorSlot(material) != null;
     }
 
+    public static boolean isWearable(Material material) {
+        return isArmor(material) || material == Material.ELYTRA;
+    }
+
     public static EquipmentKind resolve(Material material) {
-        if (isArmor(material)) return EquipmentKind.ARMOR;
+        if (isWearable(material)) return EquipmentKind.ARMOR;
         if (isTool(material)) return EquipmentKind.TOOL;
         return EquipmentKind.WEAPON;
     }

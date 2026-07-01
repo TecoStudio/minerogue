@@ -119,7 +119,7 @@ public class WeaponAffixManager {
             int level = (int) total(template, data, "durability_restore", 0.0);
             if (level > 0) lore.add(Message.toComponent("§a✦ 用不坏: §f" + level + "级 (" + WeaponManager.format(durabilityRestoreChance(level) * 100, 0) + "%返还3耐久)"));
         }), Target.ALL);
-        register(toggle("area_mining", "范围挖掘", "§6⬚ 范围挖掘: §f按面朝方向挖掘3x3方块", false), Target.TOOL);
+        register(toggle("mending", "经验修补", "§a✦ 经验修补: §f已启用", false), Target.ALL);
         register(toggle("ore_highlight", "高亮矿物", "§e✦ 高亮矿物: §f挖掘时10%概率高亮附近矿物1秒", false), Target.TOOL);
         register(level("efficiency", "效率", 1, 5, (lore, template, data) -> {
             int level = (int) total(template, data, "efficiency", 0.0);

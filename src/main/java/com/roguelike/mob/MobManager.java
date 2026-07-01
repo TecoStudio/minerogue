@@ -79,7 +79,7 @@ public class MobManager {
             }
         }
 
-        if (config.weaponTemplate() != null && entity.getEquipment() != null) {
+        if (!"zombie".equals(type) && config.weaponTemplate() != null && entity.getEquipment() != null) {
             CustomWeapon template = ConfigManager.getWeapon(config.weaponTemplate());
             if (template != null) {
                 ItemStack weapon = WeaponManager.createWeaponStack(template, org.bukkit.Material.IRON_SWORD);

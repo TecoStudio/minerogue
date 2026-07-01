@@ -1,6 +1,7 @@
 package com.roguelike.weapon;
 
 import com.roguelike.RoguelikePlugin;
+import com.roguelike.armor.ArmorSetManager;
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.item.WeaponInstanceData;
 import com.roguelike.util.Message;
@@ -107,9 +108,10 @@ public class WeaponAbilityManager {
             lines.add("§6炸弹: §f" + secondsLeft(bombUntil, now) + "s");
         }
         DashState dash = dashStates.computeIfAbsent(player.getUniqueId(), id -> new DashState());
-        refillDash(dash, now);
-        if (dash.charges < 2) {
-            lines.add(dash.charges > 0 ? "§bDash: §f" + dash.charges + "/2" : "§bDash: §f" + secondsLeft(dash.nextChargeAt, now) + "s");
+        int maxCharges = maxDashCharges(player);
+        refillDash(dash, now, maxCharges, dashCooldownMillis(player));
+        if (dash.charges < maxCharges) {
+            lines.add(dash.charges > 0 ? "§bDash: §f" + dash.charges + "/" + maxCharges : "§bDash: §f" + secondsLeft(dash.nextChargeAt, now) + "s");
         }
         return lines;
     }
@@ -139,13 +141,15 @@ public class WeaponAbilityManager {
         if (player.isOnGround() || player.getGameMode() == GameMode.SPECTATOR) return;
         long now = System.currentTimeMillis();
         DashState state = dashStates.computeIfAbsent(player.getUniqueId(), id -> new DashState());
-        refillDash(state, now);
+        int maxCharges = maxDashCharges(player);
+        long cooldown = dashCooldownMillis(player);
+        refillDash(state, now, maxCharges, cooldown);
         if (state.charges <= 0) {
             Message.send(player, "&cDash 冷却中: &f" + secondsLeft(state.nextChargeAt, now) + "秒");
             return;
         }
         state.charges--;
-        if (state.charges < 2 && state.nextChargeAt <= now) state.nextChargeAt = now + 5_000L;
+        if (state.charges < maxCharges && state.nextChargeAt <= now) state.nextChargeAt = now + cooldown;
         Vector velocity = player.getLocation().getDirection().normalize().multiply(1.15);
         velocity.setY(Math.max(velocity.getY(), 0.15));
         player.setVelocity(player.getVelocity().add(velocity));
@@ -192,11 +196,20 @@ public class WeaponAbilityManager {
         }
     }
 
-    private static void refillDash(DashState state, long now) {
-        while (state.charges < 2 && state.nextChargeAt > 0 && state.nextChargeAt <= now) {
+    private static void refillDash(DashState state, long now, int maxCharges, long cooldown) {
+        state.charges = Math.min(state.charges, maxCharges);
+        while (state.charges < maxCharges && state.nextChargeAt > 0 && state.nextChargeAt <= now) {
             state.charges++;
-            state.nextChargeAt = state.charges < 2 ? state.nextChargeAt + 5_000L : 0L;
+            state.nextChargeAt = state.charges < maxCharges ? state.nextChargeAt + cooldown : 0L;
         }
+    }
+
+    private static int maxDashCharges(Player player) {
+        return ArmorSetManager.swiftPieces(player) >= 4 ? 3 : 2;
+    }
+
+    private static long dashCooldownMillis(Player player) {
+        return ArmorSetManager.swiftPieces(player) >= 4 ? 4_000L : 5_000L;
     }
 
     private static int secondsLeft(long until, long now) {

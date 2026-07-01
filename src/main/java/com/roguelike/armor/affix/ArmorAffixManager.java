@@ -16,19 +16,9 @@ public class ArmorAffixManager {
     private static final Map<String, ArmorAffix> AFFIXES = new LinkedHashMap<>();
 
     static {
-        register(enchantment("protection", "保护", Enchantment.PROTECTION, 4, ArmorSlot.ARMOR));
-        register(enchantment("fire_protection", "火焰保护", Enchantment.FIRE_PROTECTION, 4, ArmorSlot.ARMOR));
-        register(enchantment("feather_falling", "摔落保护", Enchantment.FEATHER_FALLING, 4, ArmorSlot.BOOTS));
-        register(enchantment("blast_protection", "爆炸保护", Enchantment.BLAST_PROTECTION, 4, ArmorSlot.ARMOR));
-        register(enchantment("projectile_protection", "弹射物保护", Enchantment.PROJECTILE_PROTECTION, 4, ArmorSlot.ARMOR));
-        register(enchantment("respiration", "水下呼吸", Enchantment.RESPIRATION, 3, ArmorSlot.HELMET));
-        register(enchantment("aqua_affinity", "水下速掘", Enchantment.AQUA_AFFINITY, 1, ArmorSlot.HELMET));
         register(enchantment("thorns", "荆棘", Enchantment.THORNS, 3, ArmorSlot.ARMOR));
-        register(enchantment("depth_strider", "深海探索者", Enchantment.DEPTH_STRIDER, 3, ArmorSlot.BOOTS));
-        register(enchantment("frost_walker", "冰霜行者", Enchantment.FROST_WALKER, 2, ArmorSlot.BOOTS));
-        register(enchantment("soul_speed", "灵魂疾行", Enchantment.SOUL_SPEED, 3, ArmorSlot.BOOTS));
-        register(enchantment("swift_sneak", "迅捷潜行", Enchantment.SWIFT_SNEAK, 3, ArmorSlot.LEGGINGS));
-        register(enchantment("unbreaking", "耐久", Enchantment.UNBREAKING, 3, ArmorSlot.ARMOR));
+        register(enchantment("swift", "疾步", Enchantment.SWIFT_SNEAK, 3, ArmorSlot.ARMOR));
+        register(enchantment("self_explosion", "自爆", Enchantment.BLAST_PROTECTION, 4, ArmorSlot.ARMOR));
         register(enchantment("mending", "经验修补", Enchantment.MENDING, 1, ArmorSlot.ARMOR));
     }
 
@@ -74,7 +64,7 @@ public class ArmorAffixManager {
     }
 
     public static boolean isArmor(Material material) {
-        return EquipmentTypeResolver.isArmor(material);
+        return EquipmentTypeResolver.isWearable(material);
     }
 
     public static void applyEnchant(ItemStack stack, String id, int level) {
@@ -115,7 +105,7 @@ public class ArmorAffixManager {
 
         boolean matches(Material material) {
             EquipmentTypeResolver.ArmorSlot actual = EquipmentTypeResolver.armorSlot(material);
-            return this == ARMOR ? actual != null : slot == actual;
+            return this == ARMOR ? EquipmentTypeResolver.isWearable(material) : slot == actual;
         }
     }
 

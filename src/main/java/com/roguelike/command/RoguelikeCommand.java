@@ -6,6 +6,7 @@ import com.roguelike.data.PlayerDataManager;
 import com.roguelike.equipment.EquipmentKind;
 import com.roguelike.equipment.affix.AffixManager;
 import com.roguelike.item.CustomItem;
+import com.roguelike.armor.ArmorSetManager;
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.item.WeaponInstanceData;
 import com.roguelike.level.LevelManager;
@@ -117,7 +118,7 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
             }
             case "list" -> {
                 if (args.length < 2) {
-                    Message.send(sender, "&c用法: /rw list <weapons|items>");
+                    Message.send(sender, "&c用法: /rw list <weapons|items|armor>");
                     return true;
                 }
                 if (args[1].equalsIgnoreCase("weapons")) {
@@ -131,6 +132,10 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
                     for (CustomItem i : ConfigManager.getItems()) {
                         sender.sendMessage("§7- " + i.getName() + " (" + i.getId() + ")");
                     }
+                } else if (args[1].equalsIgnoreCase("armor")) {
+                    Message.send(sender, "&6可用防具:");
+                    ArmorSetManager.armorDefinitions().forEach((armorId, armor) ->
+                            sender.sendMessage("§7- " + armor.name() + " §7[" + armor.rarity() + "§7] (" + armorId + ")"));
                 }
             }
             case "stats" -> {
@@ -327,7 +332,6 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
                     Message.send(sender, "&c找不到物品: " + id);
                     return true;
                 }
-                // 简化为给予一个带名称的纸
                 ItemStack stack = new ItemStack(Material.PAPER);
                 var meta = stack.getItemMeta();
                 if (meta != null) {
@@ -337,6 +341,19 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
                 stack.setAmount(amount);
                 target.getInventory().addItem(stack);
                 Message.send(sender, "&a已给予 " + target.getName() + " " + amount + " 个 " + item.getName());
+            }
+            case "armor" -> {
+                ItemStack stack = ArmorSetManager.createSetItem(id);
+                if (stack == null) {
+                    Message.send(sender, "&c找不到防具: " + id);
+                    return true;
+                }
+                String name = ArmorSetManager.armorDefinitions().get(id.toLowerCase()).name();
+                stack.setAmount(1);
+                for (int i = 0; i < amount; i++) {
+                    target.getInventory().addItem(stack.clone());
+                }
+                Message.send(sender, "&a已给予 " + target.getName() + " " + amount + " 个 " + name);
             }
             case "ticket" -> {
                 TicketType ticket = TicketType.fromId(id);
@@ -349,7 +366,7 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
                 target.getInventory().addItem(stack);
                 Message.send(sender, "&a已给予 " + target.getName() + " " + amount + " 张 " + ticket.getDisplayName());
             }
-            default -> Message.send(sender, "&c用法: /rw give <weapon|item|ticket> <id> [玩家] [数量]");
+            default -> Message.send(sender, "&c用法: /rw give <weapon|item|armor|ticket> <id> [玩家] [数量]");
         }
         return true;
     }
@@ -397,7 +414,7 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("§7- §f" + TicketManager.getStatDisplayName(stat) + " §8(" + stat + ")");
         }
         Message.send(sender, "&6&l═══ 可用防具词条 ═══");
-        Message.send(sender, "&e原版附魔:");
+        Message.send(sender, "&e防具专属词条:");
         for (String stat : AffixManager.armorEffectIds()) {
             sender.sendMessage("§7- §f" + AffixManager.displayName(EquipmentKind.ARMOR, stat) + " §8(" + stat + ")");
         }
@@ -480,8 +497,9 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
         Message.send(sender, "&e/rw affixes &7- 查看可用词条");
         Message.send(sender, "&e/rw reload &7- 重载配置");
         Message.send(sender, "&e/rw give weapon <id> [玩家] [数量] &7- 给予武器");
+        Message.send(sender, "&e/rw give armor <id> [玩家] [数量] &7- 给予防具");
         Message.send(sender, "&e/rw exp <数量> [玩家] &7- 给予经验");
-        Message.send(sender, "&e/rw list <weapons|items> &7- 列出模板");
+        Message.send(sender, "&e/rw list <weapons|items|armor> &7- 列出模板");
         Message.send(sender, "&e/rw stats [玩家] &7- 查看玩家状态");
         Message.send(sender, "&e/rw reset [玩家] &7- 重置玩家数据");
         Message.send(sender, "&e/rw monster spawn <自定义怪物> &7- 生成插件自定义怪物");
@@ -500,7 +518,7 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
             if (args.length == 1) {
                 list.addAll(Arrays.asList("export", "debug", "affixes", "reload", "give", "exp", "list", "stats", "reset", "monster", "fixhand", "help"));
             } else if (args.length == 2 && args[0].equalsIgnoreCase("give")) {
-                list.addAll(Arrays.asList("weapon", "item", "ticket"));
+                list.addAll(Arrays.asList("weapon", "item", "armor", "ticket"));
             } else if (args.length == 2 && args[0].equalsIgnoreCase("debug")) {
                 list.addAll(Arrays.asList("on", "off", "status"));
             } else if (args.length == 2 && args[0].equalsIgnoreCase("monster")) {
@@ -509,6 +527,7 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
                 switch (args[1].toLowerCase()) {
                     case "weapon" -> ConfigManager.getWeapons().forEach(w -> list.add(w.getId()));
                     case "item" -> ConfigManager.getItems().forEach(i -> list.add(i.getId()));
+                    case "armor" -> list.addAll(ArmorSetManager.armorDefinitions().keySet());
                     case "ticket" -> list.addAll(Arrays.asList("ticket_a", "super_ticket_a", "ticket_b", "ticket_c"));
                 }
             } else if (args.length == 3 && args[0].equalsIgnoreCase("monster") && args[1].equalsIgnoreCase("spawn")) {
@@ -517,7 +536,7 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
                        ((args.length == 2 && (args[0].equalsIgnoreCase("stats") || args[0].equalsIgnoreCase("reset"))))) {
                 Bukkit.getOnlinePlayers().forEach(p -> list.add(p.getName()));
             } else if (args.length == 2 && args[0].equalsIgnoreCase("list")) {
-                list.addAll(Arrays.asList("weapons", "items"));
+                list.addAll(Arrays.asList("weapons", "items", "armor"));
             }
         }
         return list;

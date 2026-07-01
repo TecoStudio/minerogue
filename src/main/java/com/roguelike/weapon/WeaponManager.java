@@ -146,9 +146,16 @@ public class WeaponManager {
         lore.add(Message.toComponent("§7========== " + rarityColor + "品质: " + getRarityDisplayName(template.getRarity()) + " §7=========="));
 
         meta.lore(lore);
+        applyUniversalEnchantments(meta, template, data);
         applyToolEnchantments(meta, stack.getType(), template, data);
         applyVanillaItemAttributes(meta, stack.getType(), totalDamage, totalSpeed);
         stack.setItemMeta(meta);
+    }
+
+    private static void applyUniversalEnchantments(ItemMeta meta, CustomWeapon template, WeaponInstanceData data) {
+        if (data.getTotalEffect(template, "mending", 0.0) > 0) {
+            meta.addEnchant(Enchantment.MENDING, 1, true);
+        }
     }
 
     private static void applyToolEnchantments(ItemMeta meta, Material material, CustomWeapon template, WeaponInstanceData data) {

@@ -174,7 +174,7 @@ public class CombatHandler {
         }
     }
 
-    private static void applyInternalDamage(LivingEntity target, double damage, Player player) {
+    public static void applyInternalDamage(LivingEntity target, double damage, Player player) {
         internalDamage = true;
         try {
             target.damage(damage, player);

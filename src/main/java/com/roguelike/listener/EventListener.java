@@ -1,6 +1,7 @@
 package com.roguelike.listener;
 
 import com.roguelike.RoguelikePlugin;
+import com.roguelike.armor.ArmorSetManager;
 import com.roguelike.combat.CombatHandler;
 import com.roguelike.config.MobExperienceConfig;
 import com.roguelike.data.PlayerDataManager;
@@ -26,6 +27,7 @@ import org.bukkit.event.enchantment.EnchantItemEvent;
 import org.bukkit.event.enchantment.PrepareItemEnchantEvent;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
@@ -41,6 +43,7 @@ public class EventListener implements Listener {
         LevelManager.updateExpBar(player);
         player.getServer().getScheduler().runTaskLater(RoguelikePlugin.getInstance(), () -> {
             WeaponManager.refreshHeldWeapon(player);
+            ArmorSetManager.applyPassiveEffects(player);
             RoguelikeScoreboard.updatePlayer(player);
         }, 1L);
     }
@@ -76,18 +79,22 @@ public class EventListener implements Listener {
 
         // 主手持券，副手持目标物品。开发券允许目标是任意非空气物品。
         if (mainTicket != null) {
-            if (canTargetAnyItem(mainTicket) || WeaponManager.getTemplate(off) != null) {
+            if (canTargetAnyItem(mainTicket) || canTargetEquipment(off)) {
                 event.setCancelled(true);
                 TicketManager.applyTicket(player, main, off);
             }
         }
         // 副手持券，主手持目标物品。开发券允许目标是任意非空气物品。
         else if (offTicket != null) {
-            if (canTargetAnyItem(offTicket) || WeaponManager.getTemplate(main) != null) {
+            if (canTargetAnyItem(offTicket) || canTargetEquipment(main)) {
                 event.setCancelled(true);
                 TicketManager.applyTicket(player, off, main);
             }
         }
+    }
+
+    private boolean canTargetEquipment(ItemStack stack) {
+        return WeaponManager.getTemplate(stack) != null || (stack != null && EquipmentTypeResolver.isWearable(stack.getType()));
     }
 
     private boolean canTargetAnyItem(TicketType ticket) {
@@ -157,6 +164,23 @@ public class EventListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerDamaged(EntityDamageEvent event) {
         WeaponAbilityManager.cancelGiftHeal(event);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlayerDamagedByEntity(EntityDamageByEntityEvent event) {
+        ArmorSetManager.handlePlayerDamaged(event);
+    }
+
+    @EventHandler
+    public void onMove(PlayerMoveEvent event) {
+        ArmorSetManager.applyPassiveEffects(event.getPlayer());
+    }
+
+    @EventHandler
+    public void onInventoryClick(InventoryClickEvent event) {
+        if (event.getWhoClicked() instanceof Player player) {
+            player.getServer().getScheduler().runTaskLater(RoguelikePlugin.getInstance(), () -> ArmorSetManager.applyPassiveEffects(player), 1L);
+        }
     }
 
     @EventHandler

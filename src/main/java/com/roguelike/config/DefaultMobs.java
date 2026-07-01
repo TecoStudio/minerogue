@@ -72,9 +72,9 @@ public final class DefaultMobs {
         experience.put("skeleton", 15);
         experience.put("creeper", 20);
         experience.put("spider", 12);
-        experience.put("enderman", 25);
+        experience.put("enderman", 30);
         experience.put("blaze", 22);
-        experience.put("warden", 100);
+        experience.put("warden", 350);
         experience.put("ender_dragon", 500);
         experience.put("wither", 300);
         return experience;
