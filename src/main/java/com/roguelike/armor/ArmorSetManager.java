@@ -160,10 +160,15 @@ public final class ArmorSetManager {
 
     private static void applyBaseEnchantments(ItemMeta meta, ArmorSet set) {
         if (set == ArmorSet.SWIFT) {
-            meta.addEnchant(Enchantment.UNBREAKING, 4, true);
+            addEnchantIfHigher(meta, Enchantment.UNBREAKING, 4);
         } else if (set == ArmorSet.EXPLOSIVE) {
-            meta.addEnchant(Enchantment.BLAST_PROTECTION, 4, true);
+            addEnchantIfHigher(meta, Enchantment.BLAST_PROTECTION, 4);
         }
+    }
+
+    private static void addEnchantIfHigher(ItemMeta meta, Enchantment enchantment, int level) {
+        if (level <= meta.getEnchantLevel(enchantment)) return;
+        meta.addEnchant(enchantment, level, true);
     }
 
     public static Map<String, String> setItemDefinitions() {

@@ -104,6 +104,10 @@ public class WeaponInstanceData {
         effectBonuses.put(key, value);
     }
 
+    public void removeEffectBonus(String key) {
+        effectBonuses.remove(key);
+    }
+
     public List<String> getAppliedModifiers() {
         return new ArrayList<>(appliedModifiers);
     }

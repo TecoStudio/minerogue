@@ -8,6 +8,7 @@ import com.roguelike.equipment.affix.AffixManager;
 import com.roguelike.item.CustomItem;
 import com.roguelike.armor.ArmorSetManager;
 import com.roguelike.item.CustomWeapon;
+import com.roguelike.forge.ForgeRecipeManager;
 import com.roguelike.item.WeaponInstanceData;
 import com.roguelike.level.LevelManager;
 import com.roguelike.mob.MobManager;
@@ -76,6 +77,7 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
         switch (args[0].toLowerCase()) {
             case "reload" -> {
                 ConfigManager.reload();
+                ForgeRecipeManager.reload();
                 RoguelikeScoreboard.restartTask();
                 RoguelikeScoreboard.updateAll();
                 Message.send(sender, "&a配置已重载。");
@@ -203,6 +205,7 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
 
         try {
             ConfigManager.exportEditableYaml();
+            ForgeRecipeManager.exportEditableYaml();
             writeFile(examples.resolve("weapons.yml"), "weapons:\n" +
                     "  flame_sword:\n" +
                     "    item: minecraft:diamond_sword\n" +
@@ -290,7 +293,7 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
         }
 
         Message.send(sender, "&a已导出 YAML 配置到 plugins/Roguelike，并导出示例到 plugins/Roguelike/examples。");
-        Message.send(sender, "&7修改 weapons.yml、items.yml、mobs.yml 后执行 /rw reload 生效。");
+        Message.send(sender, "&7修改 weapons.yml、items.yml、mobs.yml、forge-recipes.yml 后执行 /rw reload 生效。");
         return true;
     }
 
@@ -444,7 +447,7 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
             }
         }
         Message.send(player, "&7强化券使用次数: &f" + data.getTicketAUses() + " &7连续失败: &f" + data.getTicketAFailStreak());
-        Message.send(player, "&7开发券使用次数: &f" + data.getTicketBUses() + " &7重置券: &f" + data.getTicketCUses());
+        Message.send(player, "&7开发券使用次数: &f" + data.getTicketBUses() + " &7移除券: &f" + data.getTicketCUses());
     }
 
     private void sendAffixLine(CommandSender sender, String stat, double base, double total) {
@@ -473,7 +476,7 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
         Message.send(player, "&c强化券: &f" + data.getTicketAUses());
         Message.send(player, "&f超级强化券: &f" + data.getSuperTicketAUses());
         Message.send(player, "&a开发券: &f" + data.getTicketBUses());
-        Message.send(player, "&9重置券: &f" + data.getTicketCUses());
+        Message.send(player, "&9移除券: &f" + data.getTicketCUses());
     }
 
     private void showTrade(Player player) {

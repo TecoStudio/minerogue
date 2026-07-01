@@ -1,10 +1,14 @@
 package com.roguelike.armor.affix;
 
+import com.roguelike.RoguelikePlugin;
 import com.roguelike.equipment.EquipmentTypeResolver;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -14,12 +18,15 @@ import java.util.Random;
 
 public class ArmorAffixManager {
     private static final Map<String, ArmorAffix> AFFIXES = new LinkedHashMap<>();
+    private static NamespacedKey AFFIX_LEVELS_KEY;
+    private static NamespacedKey VANILLA_LEVELS_KEY;
 
     static {
-        register(enchantment("thorns", "荆棘", Enchantment.THORNS, 3, ArmorSlot.ARMOR));
-        register(enchantment("swift", "疾步", Enchantment.SWIFT_SNEAK, 3, ArmorSlot.ARMOR));
-        register(enchantment("self_explosion", "自爆", Enchantment.BLAST_PROTECTION, 4, ArmorSlot.ARMOR));
-        register(enchantment("mending", "经验修补", Enchantment.MENDING, 1, ArmorSlot.ARMOR));
+    }
+
+    public static void init(RoguelikePlugin plugin) {
+        AFFIX_LEVELS_KEY = new NamespacedKey(plugin, "armor_affix_levels");
+        VANILLA_LEVELS_KEY = new NamespacedKey(plugin, "armor_affix_vanilla_levels");
     }
 
     public static List<String> effectIds() {
@@ -74,8 +81,90 @@ public class ArmorAffixManager {
 
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) return;
-        meta.addEnchant(affix.enchantment(), Math.min(level, affix.maxLevel()), true);
+        Map<String, Integer> levels = readLevels(meta, AFFIX_LEVELS_KEY);
+        Map<String, Integer> vanillaLevels = readLevels(meta, VANILLA_LEVELS_KEY);
+        vanillaLevels.putIfAbsent(id, meta.getEnchantLevel(affix.enchantment()));
+
+        int affixLevel = Math.min(level, affix.maxLevel());
+        int visibleLevel = Math.max(vanillaLevels.getOrDefault(id, 0), affixLevel);
+        levels.put(id, affixLevel);
+        writeLevels(meta, AFFIX_LEVELS_KEY, levels);
+        writeLevels(meta, VANILLA_LEVELS_KEY, vanillaLevels);
+        if (visibleLevel > 0) {
+            meta.addEnchant(affix.enchantment(), visibleLevel, true);
+        }
         stack.setItemMeta(meta);
+    }
+
+    public static int getAppliedLevel(ItemStack stack, String id) {
+        if (stack == null || stack.getType().isAir()) return 0;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return 0;
+        return readLevels(meta, AFFIX_LEVELS_KEY).getOrDefault(id, 0);
+    }
+
+    public static boolean hasAppliedAffix(ItemStack stack, String id) {
+        return getAppliedLevel(stack, id) > 0;
+    }
+
+    public static void removeAppliedAffix(ItemStack stack, String id) {
+        if (stack == null || stack.getType().isAir()) return;
+        ArmorAffix affix = get(id);
+        if (affix == null) return;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return;
+
+        Map<String, Integer> levels = readLevels(meta, AFFIX_LEVELS_KEY);
+        if (levels.remove(id) == null) return;
+        Map<String, Integer> vanillaLevels = readLevels(meta, VANILLA_LEVELS_KEY);
+        int vanillaLevel = vanillaLevels.getOrDefault(id, 0);
+        vanillaLevels.remove(id);
+        writeLevels(meta, AFFIX_LEVELS_KEY, levels);
+        writeLevels(meta, VANILLA_LEVELS_KEY, vanillaLevels);
+
+        if (vanillaLevel > 0) {
+            meta.addEnchant(affix.enchantment(), vanillaLevel, true);
+        } else {
+            meta.removeEnchant(affix.enchantment());
+        }
+        stack.setItemMeta(meta);
+    }
+
+    private static Map<String, Integer> readLevels(ItemMeta meta, NamespacedKey key) {
+        Map<String, Integer> levels = new LinkedHashMap<>();
+        if (key == null) return levels;
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        String raw = pdc.get(key, PersistentDataType.STRING);
+        if (raw == null || raw.isBlank()) return levels;
+        for (String entry : raw.split(";")) {
+            String[] parts = entry.split(":", 2);
+            if (parts.length != 2 || parts[0].isBlank()) continue;
+            try {
+                levels.put(parts[0], Integer.parseInt(parts[1]));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return levels;
+    }
+
+    private static void writeLevels(ItemMeta meta, NamespacedKey key, Map<String, Integer> levels) {
+        if (key == null) return;
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        if (levels.isEmpty()) {
+            pdc.remove(key);
+            return;
+        }
+        StringBuilder builder = new StringBuilder();
+        levels.forEach((id, level) -> {
+            if (level <= 0) return;
+            if (!builder.isEmpty()) builder.append(';');
+            builder.append(id).append(':').append(level);
+        });
+        if (builder.isEmpty()) {
+            pdc.remove(key);
+        } else {
+            pdc.set(key, PersistentDataType.STRING, builder.toString());
+        }
     }
 
     private static void register(ArmorAffix affix) {

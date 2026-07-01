@@ -38,7 +38,9 @@ public class CombatHandler {
         WeaponInstanceData data = WeaponInstanceData.fromItemStack(player.getInventory().getItemInMainHand());
         if (template == null || data == null) return baseDamage;
 
-        double damage = data.getTotalDamage(template);
+        double weaponDamage = data.getTotalDamage(template);
+        double damage = weaponDamage + Math.max(0.0, baseDamage - weaponDamage);
+        damage = applyNeutralDamageAffixes(player, template, data, damage);
         damage = WeaponAbilityManager.applySmash(player, player.getInventory().getItemInMainHand(), template, data, damage);
 
         boolean wasBurning = target.getFireTicks() > 0;
@@ -53,8 +55,8 @@ public class CombatHandler {
         }
 
         // 暴击
-        double critChance = chance(data.getTotalEffect(template, "crit_chance", 0.0));
-        double critDamage = data.getTotalEffect(template, "crit_damage", 1.5);
+        double critChance = chance(data.getTotalEffect(template, "crit_chance", 0.0) + neutralBonus(template, data, "neutral_crit_chance_100", 1.0));
+        double critDamage = data.getTotalEffect(template, "crit_damage", 1.5) + neutralBonus(template, data, "neutral_crit_damage_300", 1.5);
         boolean crit = critChance > 0 && RANDOM.nextDouble() < critChance;
         if (crit) {
             damage *= critDamage;
@@ -84,7 +86,7 @@ public class CombatHandler {
         }
 
         // 吸血
-        double lifePercent = data.getTotalEffect(template, "lifesteal_percent", 0.0);
+        double lifePercent = data.getTotalEffect(template, "lifesteal_percent", 0.0) + neutralBonus(template, data, "neutral_lifesteal_100", 1.0);
         double lifeFlat = data.getTotalEffect(template, "lifesteal_flat", 0.0);
         double heal = damage * lifePercent + lifeFlat;
         if (heal > 0) {
@@ -118,13 +120,13 @@ public class CombatHandler {
         }
 
         // 雷电
-        double lightning = chance(data.getTotalEffect(template, "lightning_chance", 0.0));
+        double lightning = chance(data.getTotalEffect(template, "lightning_chance", 0.0) + neutralBonus(template, data, "neutral_thunder_100", 1.0));
         if (lightning > 0 && RANDOM.nextDouble() < lightning) {
             target.getWorld().strikeLightning(target.getLocation());
         }
 
         // 爆炸
-        double explosionChance = chance(data.getTotalEffect(template, "explosion_chance", 0.0));
+        double explosionChance = chance(data.getTotalEffect(template, "explosion_chance", 0.0) + neutralBonus(template, data, "neutral_explosion_100", 1.0));
         if (explosionChance > 0 && RANDOM.nextDouble() < explosionChance) {
             target.getWorld().createExplosion(target.getLocation(), 2.0f, false, false, player);
         }
@@ -148,6 +150,52 @@ public class CombatHandler {
         return damage;
     }
 
+    private static double applyNeutralDamageAffixes(Player player, CustomWeapon template, WeaponInstanceData data, double damage) {
+        if (data.getTotalEffect(template, "neutral_damage_200", 0.0) > 0) damage *= 2.0;
+        if (data.getTotalEffect(template, "neutral_berserk_self_harm", 0.0) > 0) {
+            damage *= 3.0;
+            double selfDamage = maxHealth(player) * 0.10;
+            if (selfDamage > 0) applyInternalDamage(player, selfDamage, player);
+        }
+        return damage;
+    }
+
+    private static double neutralBonus(CustomWeapon template, WeaponInstanceData data, String id, double value) {
+        return data.getTotalEffect(template, id, 0.0) > 0 ? value : 0.0;
+    }
+
+    public static double applyIncomingNeutralDamage(Player player, double damage) {
+        CustomWeapon template = WeaponManager.getTemplate(player.getInventory().getItemInMainHand());
+        WeaponInstanceData data = WeaponManager.getData(player.getInventory().getItemInMainHand());
+        if (template == null || data == null) return damage;
+        if (hasAnyIncomingDamageDouble(template, data)) return damage * 2.0;
+        return damage;
+    }
+
+    private static boolean hasAnyIncomingDamageDouble(CustomWeapon template, WeaponInstanceData data) {
+        return data.getTotalEffect(template, "neutral_damage_200", 0.0) > 0
+                || data.getTotalEffect(template, "chain_targets", 0.0) > 0
+                || data.getTotalEffect(template, "chain_damage_percent", 0.0) > 0
+                || data.getTotalEffect(template, "crit_chance", 0.0) > 0
+                || data.getTotalEffect(template, "crit_damage", 1.5) > 1.5
+                || data.getTotalEffect(template, "fire_damage", 0.0) > 0
+                || data.getTotalEffect(template, "lightning_chance", 0.0) > 0
+                || data.getTotalEffect(template, "damage_store_percent", 0.0) > 0
+                || data.getTotalEffect(template, "burning_target_damage_percent", 0.0) > 0
+                || data.getTotalEffect(template, "poisoned_target_damage_percent", 0.0) > 0
+                || data.getTotalEffect(template, "explosion_chance", 0.0) > 0
+                || data.getTotalEffect(template, "big_explosion_chance", 0.0) > 0
+                || data.getTotalEffect(template, "smash", 0.0) > 0
+                || data.getTotalEffect(template, "neutral_speed_200", 0.0) > 0
+                || data.getTotalEffect(template, "neutral_attack_speed_200", 0.0) > 0
+                || data.getTotalEffect(template, "neutral_range_200", 0.0) > 0
+                || data.getTotalEffect(template, "neutral_crit_chance_100", 0.0) > 0
+                || data.getTotalEffect(template, "neutral_crit_damage_300", 0.0) > 0
+                || data.getTotalEffect(template, "neutral_lifesteal_100", 0.0) > 0
+                || data.getTotalEffect(template, "neutral_thunder_100", 0.0) > 0
+                || data.getTotalEffect(template, "neutral_explosion_100", 0.0) > 0;
+    }
+
     private static void sendStoreProgress(Player player, int hits, int requiredHits) {
         int percent = requiredHits <= 0 ? 0 : (int) Math.min(100, Math.round(hits / (double) requiredHits * 100));
         int filled = Math.min(10, Math.max(0, percent / 10));
@@ -157,6 +205,11 @@ public class CombatHandler {
 
     private static double chance(double value) {
         return Math.max(0.0, Math.min(1.0, value));
+    }
+
+    private static double maxHealth(Player player) {
+        var maxHealthAttr = player.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+        return maxHealthAttr != null ? maxHealthAttr.getValue() : player.getHealth();
     }
 
     private static void applyChainDamage(Player player, LivingEntity primary, double baseDamage, int maxTargets, double range, double percent) {

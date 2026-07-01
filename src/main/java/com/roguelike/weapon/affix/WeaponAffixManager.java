@@ -35,25 +35,25 @@ public class WeaponAffixManager {
         register(number("chain_targets", "连锁目标", 1, 3, (lore, template, data) -> {
             int chainTargets = (int) total(template, data, "chain_targets", 0.0);
             double chainRange = total(template, data, "chain_range", 0.0);
-            if (chainTargets > 0) lore.add(Message.toComponent("§d🌀 连锁: §f" + chainTargets + "目标 (" + WeaponManager.format(chainRange, 1) + "格)"));
+            if (chainTargets > 0) lore.add(Message.toComponent("§6⚖ 连锁: §f" + chainTargets + "目标 (" + WeaponManager.format(chainRange, 1) + "格)，受到伤害 200%"));
         }, true));
         register(number("chain_range", "连锁范围", 2.0, 4.0, null));
         register(percent("chain_damage_percent", "连锁伤害", 0.30, 0.50, null));
         register(percent("crit_chance", "暴击率", 0.05, 0.15, (lore, template, data) -> {
             double critChance = chance(total(template, data, "crit_chance", 0.0));
             double critDamage = total(template, data, "crit_damage", 1.5);
-            if (critChance > 0) lore.add(Message.toComponent("§c✦ 暴击: §f" + WeaponManager.format(critChance * 100, 0) + "% (" + WeaponManager.format(critDamage, 1) + "x)"));
+            if (critChance > 0) lore.add(Message.toComponent("§6⚖ 暴击: §f" + WeaponManager.format(critChance * 100, 0) + "% (" + WeaponManager.format(critDamage, 1) + "x)，受到伤害 200%"));
         }));
         register(number("crit_damage", "暴击倍率", 1.5, 2.0, null));
         register(number("fire_damage", "火焰伤害", 2.0, 5.0, (lore, template, data) -> {
             double fireDamage = total(template, data, "fire_damage", 0.0);
             double fireDuration = total(template, data, "fire_duration", 0.0);
-            if (fireDamage > 0) lore.add(Message.toComponent("§c🔥 火焰: §f" + WeaponManager.format(fireDamage, 1) + "伤害 (" + WeaponManager.format(fireDuration, 1) + "s)"));
+            if (fireDamage > 0) lore.add(Message.toComponent("§6⚖ 火焰: §f" + WeaponManager.format(fireDamage, 1) + "伤害 (" + WeaponManager.format(fireDuration, 1) + "s)，受到伤害 200%"));
         }));
         register(number("fire_duration", "燃烧时长", 2.0, 5.0, null));
         register(percent("lightning_chance", "雷电概率", 0.05, 0.15, (lore, template, data) -> {
             double value = chance(total(template, data, "lightning_chance", 0.0));
-            if (value > 0) lore.add(Message.toComponent("§9⚡ 雷电: §f" + WeaponManager.format(value * 100, 0) + "%"));
+            if (value > 0) lore.add(Message.toComponent("§6⚖ 雷电: §f" + WeaponManager.format(value * 100, 0) + "%，受到伤害 200%"));
         }));
         register(number("slow_duration", "减速时长", 1.0, 3.0, (lore, template, data) -> {
             double slowDuration = total(template, data, "slow_duration", 0.0);
@@ -63,7 +63,7 @@ public class WeaponAffixManager {
         register(number("slow_level", "减速等级", 1, 2, null, true));
         register(percent("damage_store_percent", "伤害存储率", 0.10, 0.25, (lore, template, data) -> {
             double storePercent = total(template, data, "damage_store_percent", 0.0);
-            if (storePercent > 0) lore.add(Message.toComponent("§6⚡ 伤害储存: §f" + WeaponManager.format(storePercent * 100, 0) + "% / " + damageStoreRequiredHits(template, data) + "次"));
+            if (storePercent > 0) lore.add(Message.toComponent("§6⚖ 伤害储存: §f" + WeaponManager.format(storePercent * 100, 0) + "% / " + damageStoreRequiredHits(template, data) + "次，受到伤害 200%"));
         }));
         register(new SimpleAffix("damage_store_hit_reduction", "伤害储存次数减少", false, 1, 1, false, null) {
             @Override
@@ -78,11 +78,11 @@ public class WeaponAffixManager {
         });
         register(percent("burning_target_damage_percent", "燃烧目标增伤", 0.15, 0.40, (lore, template, data) -> {
             double value = total(template, data, "burning_target_damage_percent", 0.0);
-            if (value > 0) lore.add(Message.toComponent("§c🔥 燃烧增伤: §f" + WeaponManager.format(value * 100, 0) + "%"));
+            if (value > 0) lore.add(Message.toComponent("§6⚖ 燃烧增伤: §f" + WeaponManager.format(value * 100, 0) + "%，受到伤害 200%"));
         }));
         register(percent("poisoned_target_damage_percent", "中毒目标增伤", 0.15, 0.40, (lore, template, data) -> {
             double value = total(template, data, "poisoned_target_damage_percent", 0.0);
-            if (value > 0) lore.add(Message.toComponent("§2☠ 中毒增伤: §f" + WeaponManager.format(value * 100, 0) + "%"));
+            if (value > 0) lore.add(Message.toComponent("§6⚖ 中毒增伤: §f" + WeaponManager.format(value * 100, 0) + "%，受到伤害 200%"));
         }));
         register(percent("poison_chance", "中毒概率", 0.10, 0.30, (lore, template, data) -> {
             double value = chance(total(template, data, "poison_chance", 0.0));
@@ -90,13 +90,13 @@ public class WeaponAffixManager {
         }));
         register(percent("explosion_chance", "爆炸概率", 0.05, 0.15, (lore, template, data) -> {
             double value = chance(total(template, data, "explosion_chance", 0.0));
-            if (value > 0) lore.add(Message.toComponent("§6✹ 爆炸概率: §f" + WeaponManager.format(value * 100, 0) + "%"));
+            if (value > 0) lore.add(Message.toComponent("§6⚖ 爆炸概率: §f" + WeaponManager.format(value * 100, 0) + "%，受到伤害 200%"));
         }));
         register(percent("big_explosion_chance", "大爆炸概率", 0.02, 0.08, (lore, template, data) -> {
             double value = chance(total(template, data, "big_explosion_chance", 0.0));
-            if (value > 0) lore.add(Message.toComponent("§4✹ 大爆炸概率: §f" + WeaponManager.format(value * 100, 0) + "%"));
+            if (value > 0) lore.add(Message.toComponent("§6⚖ 大爆炸概率: §f" + WeaponManager.format(value * 100, 0) + "%，受到伤害 200%"));
         }));
-        register(toggle("smash", "猛击", "§6✦ 猛击: §f3倍伤害，力量效果翻倍，使用后冷却7秒", false));
+        register(toggle("smash", "猛击", "§6⚖ 猛击: §f3倍伤害，力量效果翻倍，使用后冷却7秒，受到伤害 200%", false));
         register(toggle("bomb", "小心炸弹！", "§6☄ 小心炸弹！: §f潜行投掷常规大爆炸TNT，20格或3秒后爆炸，30秒冷却", false));
         register(new SimpleAffix("hyper", "亢奋", true, 1, 1, true, (lore, template, data) -> {
             int hyper = (int) total(template, data, "hyper", 0.0);
@@ -119,16 +119,17 @@ public class WeaponAffixManager {
             int level = (int) total(template, data, "durability_restore", 0.0);
             if (level > 0) lore.add(Message.toComponent("§a✦ 用不坏: §f" + level + "级 (" + WeaponManager.format(durabilityRestoreChance(level) * 100, 0) + "%返还3耐久)"));
         }), Target.ALL);
-        register(toggle("mending", "经验修补", "§a✦ 经验修补: §f已启用", false), Target.ALL);
         register(toggle("ore_highlight", "高亮矿物", "§e✦ 高亮矿物: §f挖掘时10%概率高亮附近矿物1秒", false), Target.TOOL);
-        register(level("efficiency", "效率", 1, 5, (lore, template, data) -> {
-            int level = (int) total(template, data, "efficiency", 0.0);
-            if (level > 0) lore.add(Message.toComponent("§b⛏ 效率: §f" + level + "级"));
-        }), Target.TOOL);
-        register(level("fortune", "时运", 1, 5, (lore, template, data) -> {
-            int level = (int) total(template, data, "fortune", 0.0);
-            if (level > 0) lore.add(Message.toComponent("§e✦ 时运: §f" + level + "级"));
-        }), Target.TOOL);
+        register(neutral("neutral_damage_200", "狂战契约", "§6⚖ 狂战契约: §f对敌伤害 200%，受到伤害 200%"), Target.ALL);
+        register(neutral("neutral_speed_200", "疾行契约", "§6⚖ 疾行契约: §f移动速度 200%，受到伤害 200%"), Target.ALL);
+        register(neutral("neutral_attack_speed_200", "急速契约", "§6⚖ 急速契约: §f攻击速度 200%，受到伤害 200%"), Target.ALL);
+        register(neutral("neutral_range_200", "远击契约", "§6⚖ 远击契约: §f攻击距离 200%，受到伤害 200%"), Target.ALL);
+        register(neutral("neutral_crit_chance_100", "精准契约", "§6⚖ 精准契约: §f暴击率 +100%，受到伤害 200%"), Target.ALL);
+        register(neutral("neutral_crit_damage_300", "处刑契约", "§6⚖ 处刑契约: §f暴击伤害 300%，受到伤害 200%"), Target.ALL);
+        register(neutral("neutral_lifesteal_100", "鲜血契约", "§6⚖ 鲜血契约: §f吸血 +100%，受到伤害 200%"), Target.ALL);
+        register(neutral("neutral_thunder_100", "引雷契约", "§6⚖ 引雷契约: §f攻击必定雷击，受到伤害 200%"), Target.ALL);
+        register(neutral("neutral_explosion_100", "爆裂契约", "§6⚖ 爆裂契约: §f攻击必定爆炸，受到伤害 200%"), Target.ALL);
+        register(neutral("neutral_berserk_self_harm", "血怒契约", "§6⚖ 血怒契约: §f对敌伤害 300%，每次命中自损最大生命 10%"), Target.ALL);
     }
 
     public static List<String> effectIds() {
@@ -256,6 +257,10 @@ public class WeaponAffixManager {
                 return value > 0 ? "已启用" : "未启用";
             }
         };
+    }
+
+    private static SimpleAffix neutral(String id, String displayName, String loreLine) {
+        return toggle(id, displayName, loreLine, false);
     }
 
     private static double total(CustomWeapon template, WeaponInstanceData data, String id, double defaultValue) {

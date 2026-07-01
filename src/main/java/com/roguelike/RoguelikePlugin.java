@@ -2,9 +2,12 @@ package com.roguelike;
 
 import com.roguelike.command.RoguelikeCommand;
 import com.roguelike.armor.ArmorSetManager;
+import com.roguelike.armor.affix.ArmorAffixManager;
 import com.roguelike.combat.CombatHandler;
 import com.roguelike.config.ConfigManager;
 import com.roguelike.data.PlayerDataManager;
+import com.roguelike.forge.ForgeTableManager;
+import com.roguelike.forge.ForgeRecipeManager;
 import com.roguelike.integration.IntegrationManager;
 import com.roguelike.level.LevelManager;
 import com.roguelike.listener.EventListener;
@@ -37,6 +40,9 @@ public class RoguelikePlugin extends JavaPlugin {
         WeaponAbilityManager.init(this);
         ToolAbilityManager.init(this);
         ArmorSetManager.init(this);
+        ArmorAffixManager.init(this);
+        ForgeRecipeManager.init(this);
+        ForgeTableManager.init(this);
         RoguelikeScoreboard.init(this);
 
         getServer().getPluginManager().registerEvents(new EventListener(), this);

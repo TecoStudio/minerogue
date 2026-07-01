@@ -7,6 +7,7 @@ import com.roguelike.mob.InternalMob;
 import com.roguelike.util.Message;
 import com.roguelike.weapon.WeaponManager;
 import org.bukkit.Color;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -175,9 +176,10 @@ public class SkeletonEliteMob implements InternalMob {
             for (Skeleton skeleton : world.getEntitiesByClass(Skeleton.class)) {
                 if (!isMob(skeleton) || skeleton.isDead()) continue;
                 LivingEntity target = skeleton.getTarget();
-                if (!(target instanceof Player) || target.isDead()) {
-                    target = nearestPlayer(skeleton, config.detectRange());
-                    if (target != null) skeleton.setTarget(target);
+                if (!(target instanceof Player player) || target.isDead()) continue;
+                if (player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) {
+                    skeleton.setTarget(null);
+                    continue;
                 }
                 if (target == null) continue;
 
@@ -189,20 +191,6 @@ public class SkeletonEliteMob implements InternalMob {
                 }
             }
         }
-    }
-
-    private Player nearestPlayer(Skeleton skeleton, double range) {
-        Player nearest = null;
-        double nearestDistance = range * range;
-        for (Player player : skeleton.getWorld().getPlayers()) {
-            if (player.isDead() || !player.getLocation().getWorld().equals(skeleton.getWorld())) continue;
-            double distance = player.getLocation().distanceSquared(skeleton.getLocation());
-            if (distance < nearestDistance) {
-                nearestDistance = distance;
-                nearest = player;
-            }
-        }
-        return nearest;
     }
 
     private void keepRangeAndShoot(Skeleton skeleton, LivingEntity target, double distance, ConfigManager.SkeletonEliteConfig config) {

@@ -13,6 +13,7 @@ import com.roguelike.ticket.TicketManager;
 import com.roguelike.ticket.TicketType;
 import com.roguelike.util.Message;
 import com.roguelike.equipment.EquipmentTypeResolver;
+import com.roguelike.forge.ForgeTableManager;
 import com.roguelike.weapon.ToolAbilityManager;
 import com.roguelike.weapon.WeaponAbilityManager;
 import com.roguelike.weapon.WeaponManager;
@@ -23,16 +24,11 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.enchantment.EnchantItemEvent;
-import org.bukkit.event.enchantment.PrepareItemEnchantEvent;
 import org.bukkit.event.entity.*;
-import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.EnchantmentStorageMeta;
-import org.bukkit.inventory.meta.ItemMeta;
 
 public class EventListener implements Listener {
 
@@ -70,6 +66,11 @@ public class EventListener implements Listener {
         Player player = event.getPlayer();
         Action action = event.getAction();
         if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK) return;
+        if (action == Action.RIGHT_CLICK_BLOCK && ForgeTableManager.isForgeTable(event.getClickedBlock())) {
+            event.setCancelled(true);
+            ForgeTableManager.open(player);
+            return;
+        }
 
         ItemStack main = player.getInventory().getItemInMainHand();
         ItemStack off = player.getInventory().getItemInOffHand();
@@ -101,43 +102,6 @@ public class EventListener implements Listener {
         return ticket == TicketType.TICKET_B || ticket == TicketType.WEAPON_DEVELOPMENT;
     }
 
-    @EventHandler(ignoreCancelled = true)
-    public void onPrepareItemEnchant(PrepareItemEnchantEvent event) {
-        if (WeaponManager.getTemplate(event.getItem()) == null) return;
-        if (isRoguelikeTool(event.getItem())) return;
-        event.setCancelled(true);
-        Message.send(event.getEnchanter(), "&cRoguelike 武器不能使用附魔台附魔。");
-    }
-
-    @EventHandler(ignoreCancelled = true)
-    public void onEnchantItem(EnchantItemEvent event) {
-        if (WeaponManager.getTemplate(event.getItem()) == null) return;
-        if (isRoguelikeTool(event.getItem())) return;
-        event.setCancelled(true);
-        Message.send(event.getEnchanter(), "&cRoguelike 武器不能使用附魔台附魔。");
-    }
-
-    @EventHandler
-    public void onPrepareAnvil(PrepareAnvilEvent event) {
-        ItemStack first = event.getInventory().getFirstItem();
-        ItemStack second = event.getInventory().getSecondItem();
-        if (WeaponManager.getTemplate(first) == null) return;
-        if (isRoguelikeTool(first)) return;
-        if (!hasAnyEnchant(second) && !hasAnyEnchant(event.getResult())) return;
-        event.setResult(null);
-    }
-
-    private boolean isRoguelikeTool(ItemStack stack) {
-        return WeaponManager.getTemplate(stack) != null && EquipmentTypeResolver.isTool(stack.getType());
-    }
-
-    private boolean hasAnyEnchant(ItemStack stack) {
-        if (stack == null || stack.getType().isAir()) return false;
-        if (!stack.getEnchantments().isEmpty()) return true;
-        ItemMeta meta = stack.getItemMeta();
-        return meta instanceof EnchantmentStorageMeta storageMeta && storageMeta.hasStoredEnchants();
-    }
-
     @EventHandler
     public void onToggleSneak(PlayerToggleSneakEvent event) {
         WeaponAbilityManager.handleSneak(event);
@@ -161,8 +125,11 @@ public class EventListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPlayerDamaged(EntityDamageEvent event) {
+        if (event.getEntity() instanceof Player player && !CombatHandler.isInternalDamage()) {
+            event.setDamage(CombatHandler.applyIncomingNeutralDamage(player, event.getDamage()));
+        }
         WeaponAbilityManager.cancelGiftHeal(event);
     }
 

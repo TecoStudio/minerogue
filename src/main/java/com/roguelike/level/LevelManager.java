@@ -71,7 +71,7 @@ public class LevelManager {
             final int gained = newLevel - oldLevel;
             final int strengthenTickets = gained;
             final int developmentTickets = countDevelopmentTickets(oldLevel, newLevel);
-            final int resetTickets = countResetTickets(oldLevel, newLevel);
+            final int removeTickets = countRemoveTickets(oldLevel, newLevel);
             Message.send(player, "&6&l═══════ LEVEL UP! ═══════");
             Message.send(player, "  &e你升到了等级 " + newLevel + "!");
             if (gained > 1) {
@@ -80,7 +80,7 @@ public class LevelManager {
             Message.send(player, "  &7升级奖励:");
             Message.send(player, "    &c强化券 &fx" + strengthenTickets);
             if (developmentTickets > 0) Message.send(player, "    &a开发券 &fx" + developmentTickets);
-            if (resetTickets > 0) Message.send(player, "    &9重置券 &fx" + resetTickets);
+            if (removeTickets > 0) Message.send(player, "    &9移除券 &fx" + removeTickets);
 
             plugin.getServer().getScheduler().runTask(plugin, () -> TicketManager.giveLevelUpTickets(player, oldLevel, newLevel));
             PlayerDataManager.save(player);
@@ -112,7 +112,7 @@ public class LevelManager {
         return count;
     }
 
-    private static int countResetTickets(int oldLevel, int newLevel) {
+    private static int countRemoveTickets(int oldLevel, int newLevel) {
         int count = 0;
         for (int level = oldLevel + 1; level <= newLevel; level++) {
             if (level == 2 || level % 5 == 0) count++;

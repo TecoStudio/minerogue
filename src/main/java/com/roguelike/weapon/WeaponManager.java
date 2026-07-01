@@ -15,7 +15,6 @@ import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlotGroup;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
@@ -27,6 +26,7 @@ public class WeaponManager {
     private static final NamespacedKey ATTACK_DAMAGE_KEY = NamespacedKey.minecraft("attack_damage");
     private static final NamespacedKey ATTACK_SPEED_KEY = new NamespacedKey("roguelike", "attack_speed");
     private static final NamespacedKey ATTACK_RANGE_KEY = new NamespacedKey("roguelike", "attack_range");
+    private static final NamespacedKey MOVEMENT_SPEED_KEY = new NamespacedKey("roguelike", "movement_speed");
 
     public static void init(RoguelikePlugin plugin) {
         WeaponManager.plugin = plugin;
@@ -113,7 +113,9 @@ public class WeaponManager {
 
         double totalDamage = data.getTotalDamage(template);
         double totalSpeed = data.getTotalAttackSpeed(template);
+        if (data.getTotalEffect(template, "neutral_attack_speed_200", 0.0) > 0) totalSpeed *= 2.0;
         double totalRange = data.getTotalEffect(template, "attack_range", 3.0);
+        if (data.getTotalEffect(template, "neutral_range_200", 0.0) > 0) totalRange *= 2.0;
 
         lore.add(Message.toComponent("§a⚔ 基础伤害: §f" + format(totalDamage, 1)));
         lore.add(Message.toComponent("§b⚡ 攻击速度: §f" + format(totalSpeed, 2)));
@@ -121,6 +123,8 @@ public class WeaponManager {
         lore.add(Message.toComponent("§7─────────────────"));
 
         appendEffectLore(lore, template, data);
+
+        appendVanillaEnchantLore(lore, meta);
 
         if (data.getStoredDamage() > 0) {
             lore.add(Message.toComponent("§6⚡ 爆发存储: §f" + format(data.getStoredDamage(), 1) + "伤害 §7(" + data.getStoredDamageHits() + "/" + getDamageStoreRequiredHits(template, data) + ")"));
@@ -146,30 +150,8 @@ public class WeaponManager {
         lore.add(Message.toComponent("§7========== " + rarityColor + "品质: " + getRarityDisplayName(template.getRarity()) + " §7=========="));
 
         meta.lore(lore);
-        applyUniversalEnchantments(meta, template, data);
-        applyToolEnchantments(meta, stack.getType(), template, data);
         applyVanillaItemAttributes(meta, stack.getType(), totalDamage, totalSpeed);
         stack.setItemMeta(meta);
-    }
-
-    private static void applyUniversalEnchantments(ItemMeta meta, CustomWeapon template, WeaponInstanceData data) {
-        if (data.getTotalEffect(template, "mending", 0.0) > 0) {
-            meta.addEnchant(Enchantment.MENDING, 1, true);
-        }
-    }
-
-    private static void applyToolEnchantments(ItemMeta meta, Material material, CustomWeapon template, WeaponInstanceData data) {
-        if (!EquipmentTypeResolver.isTool(material)) return;
-        int efficiency = (int) data.getTotalEffect(template, "efficiency", 0.0);
-        int fortune = (int) data.getTotalEffect(template, "fortune", 0.0);
-        if (efficiency > 0) {
-            int current = meta.getEnchantLevel(Enchantment.EFFICIENCY);
-            meta.addEnchant(Enchantment.EFFICIENCY, Math.max(current, Math.min(5, efficiency)), true);
-        }
-        if (fortune > 0) {
-            int current = meta.getEnchantLevel(Enchantment.FORTUNE);
-            meta.addEnchant(Enchantment.FORTUNE, Math.max(current, Math.min(5, fortune)), true);
-        }
     }
 
     private static void applyVanillaItemAttributes(ItemMeta meta, Material material, double damage, double speed) {
@@ -191,6 +173,38 @@ public class WeaponManager {
         AffixManager.appendWeaponLore(lore, template, data);
     }
 
+    private static void appendVanillaEnchantLore(List<Component> lore, ItemMeta meta) {
+        if (!meta.hasEnchants()) return;
+        lore.add(Message.toComponent("§7─────────────────"));
+        lore.add(Message.toComponent("§d原版附魔:"));
+        meta.getEnchants().entrySet().stream()
+                .sorted(Comparator.comparing(entry -> entry.getKey().getKey().getKey()))
+                .forEach(entry -> lore.add(Message.toComponent("§7- §f" + formatEnchantName(entry.getKey()) + " " + toRoman(entry.getValue()))));
+    }
+
+    private static String formatEnchantName(Enchantment enchantment) {
+        String key = enchantment.getKey().getKey();
+        String[] parts = key.split("_");
+        StringBuilder builder = new StringBuilder();
+        for (String part : parts) {
+            if (part.isEmpty()) continue;
+            if (!builder.isEmpty()) builder.append(' ');
+            builder.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1));
+        }
+        return builder.isEmpty() ? key : builder.toString();
+    }
+
+    private static String toRoman(int value) {
+        return switch (value) {
+            case 1 -> "I";
+            case 2 -> "II";
+            case 3 -> "III";
+            case 4 -> "IV";
+            case 5 -> "V";
+            default -> String.valueOf(value);
+        };
+    }
+
     private static int getDamageStoreRequiredHits(CustomWeapon template, WeaponInstanceData data) {
         int reduction = (int) data.getTotalEffect(template, "damage_store_hit_reduction", 0.0);
         return Math.max(5, 20 - reduction);
@@ -204,8 +218,10 @@ public class WeaponManager {
         if (template == null || data == null) return;
 
         double totalRange = data.getTotalEffect(template, "attack_range", 3.0);
+        if (data.getTotalEffect(template, "neutral_range_200", 0.0) > 0) totalRange *= 2.0;
 
         applyRangeAttribute(player, totalRange);
+        applyMovementSpeedAttribute(player, data.getTotalEffect(template, "neutral_speed_200", 0.0) > 0 ? 1.0 : 0.0);
     }
 
     private static void applyRangeAttribute(Player player, double range) {
@@ -221,6 +237,14 @@ public class WeaponManager {
         }
     }
 
+    private static void applyMovementSpeedAttribute(Player player, double multiplierBonus) {
+        if (multiplierBonus == 0.0) return;
+        var attr = player.getAttribute(Attribute.MOVEMENT_SPEED);
+        if (attr == null) return;
+        attr.addModifier(new AttributeModifier(MOVEMENT_SPEED_KEY, multiplierBonus,
+                AttributeModifier.Operation.ADD_SCALAR, EquipmentSlotGroup.HAND));
+    }
+
     public static void clearAttributes(Player player) {
         var dmgAttr = player.getAttribute(Attribute.ATTACK_DAMAGE);
         if (dmgAttr != null) dmgAttr.removeModifier(ATTACK_DAMAGE_KEY);
@@ -233,6 +257,9 @@ public class WeaponManager {
             var rangeInst = player.getAttribute(rangeAttr);
             if (rangeInst != null) rangeInst.removeModifier(ATTACK_RANGE_KEY);
         }
+
+        var moveAttr = player.getAttribute(Attribute.MOVEMENT_SPEED);
+        if (moveAttr != null) moveAttr.removeModifier(MOVEMENT_SPEED_KEY);
     }
 
     private static Attribute getRangeAttribute() {
