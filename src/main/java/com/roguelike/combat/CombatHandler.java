@@ -6,6 +6,8 @@ import com.roguelike.item.WeaponInstanceData;
 import com.roguelike.util.Message;
 import com.roguelike.weapon.WeaponAbilityManager;
 import com.roguelike.weapon.WeaponManager;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.HoverEvent;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -39,19 +41,47 @@ public class CombatHandler {
         if (template == null || data == null) return baseDamage;
 
         double weaponDamage = data.getTotalDamage(template);
-        double damage = weaponDamage + Math.max(0.0, baseDamage - weaponDamage);
+        double vanillaBonus = Math.max(0.0, baseDamage - weaponDamage);
+        double damage = weaponDamage + vanillaBonus;
+        List<String> damageParts = new ArrayList<>();
+        List<FormulaPart> formulaParts = new ArrayList<>();
+        List<String> extraParts = new ArrayList<>();
+        damageParts.add("基础 " + WeaponManager.format(weaponDamage, 1));
+        formulaParts.add(new FormulaPart("§a", weaponDamage));
+        if (vanillaBonus > 0.05) {
+            damageParts.add("原版跳劈/附魔 +" + WeaponManager.format(vanillaBonus, 1));
+            formulaParts.add(new FormulaPart("§b", vanillaBonus));
+        }
+
+        double beforeNeutral = damage;
         damage = applyNeutralDamageAffixes(player, template, data, damage);
+        if (damage > beforeNeutral + 0.05) {
+            damageParts.add("契约增伤 +" + WeaponManager.format(damage - beforeNeutral, 1));
+            formulaParts.add(new FormulaPart("§6", damage - beforeNeutral));
+        }
+
+        double beforeSmash = damage;
         damage = WeaponAbilityManager.applySmash(player, player.getInventory().getItemInMainHand(), template, data, damage);
+        if (damage > beforeSmash + 0.05) {
+            damageParts.add("猛击 +" + WeaponManager.format(damage - beforeSmash, 1));
+            formulaParts.add(new FormulaPart("§c", damage - beforeSmash));
+        }
 
         boolean wasBurning = target.getFireTicks() > 0;
         boolean wasPoisoned = target.hasPotionEffect(PotionEffectType.POISON);
         double burningBonus = data.getTotalEffect(template, "burning_target_damage_percent", 0.0);
         double poisonedBonus = data.getTotalEffect(template, "poisoned_target_damage_percent", 0.0);
         if (wasBurning && burningBonus > 0) {
+            double before = damage;
             damage *= 1 + burningBonus;
+            damageParts.add("燃烧目标增伤 +" + WeaponManager.format(damage - before, 1));
+            formulaParts.add(new FormulaPart("§6", damage - before));
         }
         if (wasPoisoned && poisonedBonus > 0) {
+            double before = damage;
             damage *= 1 + poisonedBonus;
+            damageParts.add("中毒目标增伤 +" + WeaponManager.format(damage - before, 1));
+            formulaParts.add(new FormulaPart("§2", damage - before));
         }
 
         // 暴击
@@ -59,11 +89,13 @@ public class CombatHandler {
         double critDamage = data.getTotalEffect(template, "crit_damage", 1.5) + neutralBonus(template, data, "neutral_crit_damage_300", 1.5);
         boolean crit = critChance > 0 && RANDOM.nextDouble() < critChance;
         if (crit) {
+            double before = damage;
             damage *= critDamage;
             WeaponAbilityManager.applyHyper(player, template, data, true);
             player.getWorld().playSound(target.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 1f, 1f);
             player.getWorld().spawnParticle(Particle.CRIT, target.getEyeLocation(), 10, 0.3, 0.3, 0.3);
-            Message.send(player, "&c&l暴击！ &f" + WeaponManager.format(damage, 1) + " 伤害");
+            damageParts.add("插件暴击 x" + WeaponManager.format(critDamage, 1) + " (+" + WeaponManager.format(damage - before, 1) + ")");
+            formulaParts.add(new FormulaPart("§d", damage - before));
         }
 
         // 伤害存储爆发：按攻击次数触发，默认 20 下，最低 5 下。
@@ -78,6 +110,8 @@ public class CombatHandler {
                 damage += burst;
                 data.setStoredDamage(0);
                 data.setStoredDamageHits(0);
+                damageParts.add("爆发储存 +" + WeaponManager.format(burst, 1));
+                formulaParts.add(new FormulaPart("§e", burst));
                 Message.send(player, "&6&l爆发！ 额外 " + WeaponManager.format(burst, 1) + " 伤害");
                 player.getWorld().spawnParticle(Particle.EXPLOSION, target.getLocation(), 1);
             }
@@ -110,6 +144,9 @@ public class CombatHandler {
             target.setFireTicks((int) (fireDuration * 20));
             if (fireDamage > 0) {
                 applyInternalDamage(target, fireDamage, player);
+                if (fireDamage > 3.0) {
+                    extraParts.add("火焰 " + WeaponManager.format(fireDamage, 1));
+                }
             }
         }
 
@@ -117,24 +154,28 @@ public class CombatHandler {
         double poisonChance = chance(data.getTotalEffect(template, "poison_chance", 0.0));
         if (poisonChance > 0 && RANDOM.nextDouble() < poisonChance) {
             target.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 100, 0));
+            extraParts.add("中毒触发");
         }
 
         // 雷电
         double lightning = chance(data.getTotalEffect(template, "lightning_chance", 0.0) + neutralBonus(template, data, "neutral_thunder_100", 1.0));
         if (lightning > 0 && RANDOM.nextDouble() < lightning) {
             target.getWorld().strikeLightning(target.getLocation());
+            extraParts.add("雷击触发");
         }
 
         // 爆炸
         double explosionChance = chance(data.getTotalEffect(template, "explosion_chance", 0.0) + neutralBonus(template, data, "neutral_explosion_100", 1.0));
         if (explosionChance > 0 && RANDOM.nextDouble() < explosionChance) {
             target.getWorld().createExplosion(target.getLocation(), 2.0f, false, false, player);
+            extraParts.add("爆炸触发");
         }
 
         // 大爆炸：TNT 级别爆炸，会点火并破坏方块。
         double bigExplosionChance = chance(data.getTotalEffect(template, "big_explosion_chance", 0.0));
         if (bigExplosionChance > 0 && RANDOM.nextDouble() < bigExplosionChance) {
             target.getWorld().createExplosion(target.getLocation(), 4.0f, true, true, player);
+            extraParts.add("大爆炸触发");
         }
 
         // 连锁伤害
@@ -143,11 +184,34 @@ public class CombatHandler {
         double chainPercent = data.getTotalEffect(template, "chain_damage_percent", 0.0);
         if (chainTargets > 0 && chainRange > 0 && chainPercent > 0) {
             applyChainDamage(player, target, damage, chainTargets, chainRange, chainPercent);
+            double chainDamage = damage * chainPercent;
+            if (chainDamage > 3.0) {
+                extraParts.add("连锁每目标 " + WeaponManager.format(chainDamage, 1));
+            } else {
+                extraParts.add("连锁触发");
+            }
         }
 
         WeaponManager.updateLore(player.getInventory().getItemInMainHand(), template, data);
-        Message.send(player, "&7造成伤害: &f" + WeaponManager.format(damage, 1));
+        sendDamageFormula(player, damage, formulaParts, damageParts, extraParts);
         return damage;
+    }
+
+    private static void sendDamageFormula(Player player, double damage, List<FormulaPart> formulaParts, List<String> damageParts, List<String> extraParts) {
+        Component message = Message.toComponent("&7伤害: ");
+        for (int i = 0; i < formulaParts.size(); i++) {
+            if (i > 0) message = message.append(Message.toComponent(" &8+ "));
+            FormulaPart part = formulaParts.get(i);
+            message = message.append(Message.toComponent(part.color + WeaponManager.format(part.value, 1)));
+        }
+        message = message.append(Message.toComponent(" &8= &f" + WeaponManager.format(damage, 1)));
+
+        String hover = "§f" + WeaponManager.format(damage, 1) + " §7(" + String.join("§7, ", damageParts) + "§7)";
+        if (!extraParts.isEmpty()) {
+            hover += "\n§7额外: §e" + String.join("§7, §e", extraParts);
+        }
+        message = message.hoverEvent(HoverEvent.showText(Message.toComponent(hover)));
+        player.sendMessage(message);
     }
 
     private static double applyNeutralDamageAffixes(Player player, CustomWeapon template, WeaponInstanceData data, double damage) {
@@ -245,6 +309,9 @@ public class CombatHandler {
             Location point = from.clone().add(direction.clone().multiply(d));
             from.getWorld().spawnParticle(Particle.ENCHANTED_HIT, point, 1);
         }
+    }
+
+    private record FormulaPart(String color, double value) {
     }
 
 }

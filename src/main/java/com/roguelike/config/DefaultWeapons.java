@@ -27,7 +27,7 @@ public final class DefaultWeapons {
                 effects("attack_range", 3.5, "fire_damage", 6.0, "fire_duration", 4.0, "chain_targets", 4.0,
                         "chain_range", 4.0, "chain_damage_percent", 0.4, "crit_chance", 0.15, "crit_damage", 2.0)));
         add(weapons, weapon("phase_scythe", "minecraft:iron_hoe", "相位之镰", "撕裂相位的史诗镰刀", 7, 3.2, 250, "epic",
-                effects("attack_range", 3.0, "dash", 1.0, "hyper", 1.0)));
+                effects("attack_range", 3.0, "dash", 1.0, "hyper", 1.0, "crit_chance", 0.30)));
         add(weapons, weapon("special_weapon", "minecraft:wooden_sword", "特殊武器", "由武器开发券唤醒的武器胚子", 3, 1.6, 250, "special",
                 effects("attack_range", 3.0)));
         add(weapons, weapon("rusty_iron_sword", "minecraft:iron_sword", "生锈的铁剑", "骷髅精英使用的破旧铁剑", 5, 1.6, 250, "common",
