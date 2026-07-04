@@ -272,7 +272,7 @@ public class TicketManager {
 
         ItemStack developed = targetStack.clone();
         developed.setAmount(1);
-        WeaponManager.makeWeapon(developed, template);
+        WeaponManager.makeSpecialWeaponPreservingAttributes(developed, template);
         targetStack.setAmount(targetStack.getAmount() - 1);
         giveOrDrop(player, developed);
         WeaponManager.refreshHeldWeapon(player);
@@ -297,9 +297,9 @@ public class TicketManager {
 
         int useCount = data.getTicketAUses();
         int failStreak = data.getTicketAFailStreak();
-        double baseSuccessRate = calculateSuccessRate(useCount);
+        double baseSuccessRate = calculateSuccessRate(useCount, template.getRarity());
         double failBonus = data.getTicketAFailBonus();
-        double successRate = guaranteed ? 1.0 : calculateSuccessRate(useCount, failBonus);
+        double successRate = guaranteed ? 1.0 : calculateSuccessRate(useCount, failBonus, template.getRarity());
         TicketType ticketType = guaranteed ? TicketType.SUPER_TICKET_A : TicketType.TICKET_A;
         TicketAChoice choice = new TicketAChoice(ticketStack, weaponStack, template, data, availableStats, useCount, successRate, guaranteed, ticketType);
         pendingAChoices.put(player.getUniqueId(), choice);
@@ -316,7 +316,10 @@ public class TicketManager {
         }
 
         inventory.setItem(INFO_SLOT, createGuiItem(Material.PAPER, "&e强化说明", List.of(
+                "&7武器品质: &f" + WeaponManager.getRarityDisplayName(choice.template.getRarity()),
                 "&7成功率: &f" + formatPercent(choice.successRate),
+                "&7品质成功率倍率: &f" + WeaponManager.format(successRateMultiplier(choice.template.getRarity()), 2) + "x",
+                "&7品质强化倍率: &f" + formatStrengthenRange(choice.template.getRarity()),
                 "&7已使用强化券: &f" + choice.useCount + " 次",
                 "&7连续失败: &f" + choice.failStreak + " 次",
                 "&7失败加成: &f+" + formatPercent(choice.failBonus),
@@ -333,6 +336,7 @@ public class TicketManager {
             inventory.setItem(STRENGTHEN_SLOTS[i], createGuiItem(strengthenMaterial(stat, i), "&a" + statName(stat), List.of(
                     "&7当前值: &e" + format(value, stat),
                     "&7成功率: &f" + formatPercent(choice.successRate),
+                    "&7强化倍率: &f" + formatStrengthenRange(choice.template.getRarity()),
                     choice.guaranteed ? "&7本次必定成功" : "&7失败也会消耗强化券",
                     "&e点击强化此词条"
             )));
@@ -380,7 +384,7 @@ public class TicketManager {
         }
 
         double baseValue = getStatBaseValue(template, data, stat);
-        double newValue = strengthenStat(stat, baseValue, choice.useCount);
+        double newValue = strengthenStat(template, stat, baseValue, choice.useCount);
 
         setStatValue(template, data, stat, newValue);
         if (!choice.guaranteed) {
@@ -490,8 +494,21 @@ public class TicketManager {
         return Math.pow(0.5, useCount - 8);
     }
 
-    private static double calculateSuccessRate(int useCount, double failBonus) {
-        return Math.min(1.0, calculateSuccessRate(useCount) + Math.max(0, failBonus));
+    private static double calculateSuccessRate(int useCount, String rarity) {
+        return Math.min(1.0, calculateSuccessRate(useCount) * successRateMultiplier(rarity));
+    }
+
+    private static double calculateSuccessRate(int useCount, double failBonus, String rarity) {
+        return Math.min(1.0, calculateSuccessRate(useCount, rarity) + Math.max(0, failBonus));
+    }
+
+    private static double successRateMultiplier(String rarity) {
+        return switch (normalizeRarity(rarity)) {
+            case "common" -> 1.10;
+            case "epic" -> 0.90;
+            case "legendary" -> 0.75;
+            default -> 1.00;
+        };
     }
 
     private static List<String> getNonZeroStats(CustomWeapon template, WeaponInstanceData data) {
@@ -565,11 +582,40 @@ public class TicketManager {
         }
     }
 
-    private static double strengthenStat(String stat, double currentValue, int useCount) {
-        if (stat.equals("damage") || stat.equals("attack_speed") || stat.equals("attack_range")) {
-            return AffixManager.strengthenRawNumber(currentValue, RANDOM);
-        }
-        return AffixManager.strengthenWeapon(stat, currentValue, useCount, RANDOM);
+    private static double strengthenStat(CustomWeapon template, String stat, double currentValue, int useCount) {
+        return switch (stat) {
+            case "chain_targets", "slow_level" -> currentValue + 1;
+            case "damage_store_hit_reduction" -> Math.min(15, currentValue + 1);
+            case "hyper" -> Math.min(3, currentValue + 1);
+            case "durability_restore" -> Math.min(5, currentValue + 1);
+            default -> strengthenByRarity(currentValue, template.getRarity(), stat.endsWith("_chance"));
+        };
+    }
+
+    private static double strengthenByRarity(double currentValue, String rarity, boolean chance) {
+        double[] range = strengthenRange(rarity);
+        double multiplier = range[0] + (range[1] - range[0]) * Math.pow(RANDOM.nextDouble(), 2.0);
+        double value = currentValue * multiplier;
+        return chance ? Math.min(1.0, value) : value;
+    }
+
+    private static double[] strengthenRange(String rarity) {
+        return switch (normalizeRarity(rarity)) {
+            case "common" -> new double[]{1.20, 2.70};
+            case "rare" -> new double[]{1.15, 2.50};
+            case "epic" -> new double[]{1.10, 2.30};
+            case "legendary" -> new double[]{1.05, 2.10};
+            default -> new double[]{1.10, 2.50};
+        };
+    }
+
+    private static String formatStrengthenRange(String rarity) {
+        double[] range = strengthenRange(rarity);
+        return WeaponManager.format(range[0], 2) + "x - " + WeaponManager.format(range[1], 2) + "x";
+    }
+
+    private static String normalizeRarity(String rarity) {
+        return rarity == null ? "common" : rarity.toLowerCase(Locale.ROOT);
     }
 
     private static String statName(String stat) {

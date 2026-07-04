@@ -123,6 +123,7 @@ public class MobManager {
     }
 
     public static void handleDrop(LivingEntity entity) {
+        handleRandomWeaponDrop(entity);
         for (InternalMob mob : internalMobs) {
             if (mob.isMob(entity)) return;
         }
@@ -134,5 +135,30 @@ public class MobManager {
         if (template == null) return;
         ItemStack weapon = WeaponManager.createWeaponStack(template, org.bukkit.Material.IRON_SWORD);
         entity.getWorld().dropItemNaturally(entity.getLocation(), weapon);
+    }
+
+    private static void handleRandomWeaponDrop(LivingEntity entity) {
+        if (!(entity instanceof Monster)) return;
+        String rarity = rollWeaponRarity();
+        if (rarity == null) return;
+
+        List<CustomWeapon> candidates = new ArrayList<>();
+        for (CustomWeapon weapon : ConfigManager.getWeapons()) {
+            if ("special".equalsIgnoreCase(weapon.getRarity())) continue;
+            if (rarity.equalsIgnoreCase(weapon.getRarity())) candidates.add(weapon);
+        }
+        if (candidates.isEmpty()) return;
+
+        CustomWeapon template = candidates.get(RANDOM.nextInt(candidates.size()));
+        ItemStack weapon = WeaponManager.createWeaponStack(template, null);
+        entity.getWorld().dropItemNaturally(entity.getLocation(), weapon);
+    }
+
+    private static String rollWeaponRarity() {
+        if (RANDOM.nextDouble() < 0.002) return "legendary";
+        if (RANDOM.nextDouble() < 0.005) return "epic";
+        if (RANDOM.nextDouble() < 0.010) return "rare";
+        if (RANDOM.nextDouble() < 0.020) return "common";
+        return null;
     }
 }

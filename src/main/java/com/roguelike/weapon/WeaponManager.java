@@ -84,6 +84,46 @@ public class WeaponManager {
         updateLore(stack, template, data);
     }
 
+    public static void makeSpecialWeaponPreservingAttributes(ItemStack stack, CustomWeapon template) {
+        if (stack == null || stack.getType().isAir()) return;
+        WeaponInstanceData data = new WeaponInstanceData(template.getId());
+        data.setCustomName(getRarityColor(template.getRarity()) + "§l特殊 " + formatMaterialName(stack.getType()));
+
+        double sourceDamage = readItemAttributeValue(stack, Attribute.ATTACK_DAMAGE, getVanillaMainHandDamage(stack.getType()));
+        double sourceSpeed = readItemAttributeValue(stack, Attribute.ATTACK_SPEED, getVanillaMainHandAttackSpeed(stack.getType()));
+        double sourceRange = readItemAttributeValue(stack, getRangeAttribute(), template.getEffect("attack_range", 3.0));
+
+        data.setDamageBonus(sourceDamage - template.getBaseDamage());
+        data.setAttackSpeedBonus(sourceSpeed - template.getAttackSpeed());
+        data.setEffectBonus("attack_range", sourceRange - template.getEffect("attack_range", 3.0));
+        data.saveToItemStack(stack);
+        updateLore(stack, template, data);
+    }
+
+    private static double readItemAttributeValue(ItemStack stack, Attribute attribute, double defaultValue) {
+        if (attribute == null) return defaultValue;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null || !meta.hasAttributeModifiers()) return defaultValue;
+        var modifiers = meta.getAttributeModifiers(attribute);
+        if (modifiers == null || modifiers.isEmpty()) return defaultValue;
+
+        double value = defaultValue;
+        for (AttributeModifier modifier : modifiers) {
+            if (isRoguelikeModifier(modifier)) continue;
+            value = switch (modifier.getOperation()) {
+                case ADD_NUMBER -> value + modifier.getAmount();
+                case ADD_SCALAR -> value + defaultValue * modifier.getAmount();
+                case MULTIPLY_SCALAR_1 -> value * (1.0 + modifier.getAmount());
+            };
+        }
+        return value;
+    }
+
+    private static boolean isRoguelikeModifier(AttributeModifier modifier) {
+        NamespacedKey key = modifier.getKey();
+        return ATTACK_DAMAGE_KEY.equals(key) || ATTACK_SPEED_KEY.equals(key) || ATTACK_RANGE_KEY.equals(key) || MOVEMENT_SPEED_KEY.equals(key);
+    }
+
     private static String formatMaterialName(Material material) {
         String[] parts = material.name().toLowerCase(Locale.ROOT).split("_");
         StringBuilder builder = new StringBuilder();

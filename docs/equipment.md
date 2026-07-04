@@ -17,6 +17,10 @@
 | rusty_iron_sword    | 生锈的铁剑 | minecraft:iron_sword      |    5 |  1.6 |  250 | common    | 攻击距离 3.0，中毒概率 30%，中毒目标增伤 10%                                                       |
 | excited_stone_sword | 石剑       | minecraft:stone_sword     |    5 |  1.6 |  131 | common    | 攻击距离 3.0，暴击率 10%，亢奋 1                                                                   |
 
+怪物死亡时会按品质低概率掉落内置武器。掉落概率见 [怪物系统](mobs.md)。
+
+特殊武器由开发券生成时，会以 `special_weapon` 为模板，但会保留被开发物品原本的伤害、攻击速度和已有攻击距离属性。
+
 ## 内置物品
 
 | ID             | 名称     | 类型   | 品质   | 效果           |
