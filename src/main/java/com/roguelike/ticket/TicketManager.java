@@ -660,6 +660,7 @@ public class TicketManager {
     }
 
     private static void recordTicketUse(Player player, TicketType type) {
+        DevLog.debug(player.getName() + " 使用了 " + type.getPlainDisplayName());
         PlayerDataManager.get(player).addTicketUse(type.getId());
         PlayerDataManager.save(player);
     }

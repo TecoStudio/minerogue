@@ -1,5 +1,6 @@
 package com.roguelike.ticket;
 
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 
 public enum TicketType {
@@ -23,6 +24,7 @@ public enum TicketType {
 
     public String getId() { return id; }
     public String getDisplayName() { return displayName; }
+    public String getPlainDisplayName() { return ChatColor.stripColor(displayName); }
     public String getDescription() { return description; }
     public Material getMaterial() { return material; }
 

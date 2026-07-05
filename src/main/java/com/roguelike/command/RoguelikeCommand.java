@@ -273,13 +273,20 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
                     "modifiers: {}\n");
             writeFile(examples.resolve("tab-scoreboard.yml"), "scoreboards:\n" +
                     "  roguelike:\n" +
-                    "    title: '&6&lRoguelike'\n" +
+                    "    title: '&6统计信息'\n" +
                     "    lines:\n" +
-                    "      - '&7等级: &e%roguelike_level%'\n" +
+                    "      - '&7玩家: &e%player_name%'\n" +
                     "      - '&7经验: &e%roguelike_exp%/%roguelike_exp_next%'\n" +
                     "      - '&7击杀: &c%roguelike_kills%'\n" +
-                    "      - '&7死亡: &4%roguelike_deaths%'\n" +
-                    "      - '&7武器: &f%roguelike_weapon_name%'\n");
+                    "      - '&7死亡: &4%roguelike_deaths%'\n");
+            writeFile(examples.resolve("sidebar.yml"), "title: '&6统计信息'\n" +
+                    "lines:\n" +
+                    "  - '&f玩家: &e%player%'\n" +
+                    "  - '&f等级: &e%level%'\n" +
+                    "  - '&f经验: &a%exp%&7/&a%exp_next%'\n" +
+                    "  - '&f击杀: &c%kills%'\n" +
+                    "  - '&f死亡: &4%deaths%'\n" +
+                    "  - '%ability_cooldowns%'\n");
             writeFile(examples.resolve("mythicmobs.yml"), "RoguelikeSkeletonKnight:\n" +
                     "  Type: SKELETON\n" +
                     "  Display: '&6Skeletal Knight'\n" +
@@ -293,7 +300,7 @@ public class RoguelikeCommand implements CommandExecutor, TabCompleter {
         }
 
         Message.send(sender, "&a已导出 YAML 配置到 plugins/Roguelike，并导出示例到 plugins/Roguelike/examples。");
-        Message.send(sender, "&7修改 weapons.yml、items.yml、mobs.yml、forge-recipes.yml 后执行 /rw reload 生效。");
+        Message.send(sender, "&7修改 weapons.yml、items.yml、mobs.yml、forge-recipes.yml、sidebar.yml 后执行 /rw reload 生效。");
         return true;
     }
 

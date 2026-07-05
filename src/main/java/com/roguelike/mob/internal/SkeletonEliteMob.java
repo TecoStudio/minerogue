@@ -145,15 +145,15 @@ public class SkeletonEliteMob implements InternalMob {
 
     @Override
     public void onDamage(EntityDamageByEntityEvent event) {
-        LivingEntity attacker = null;
-        if (event.getDamager() instanceof LivingEntity living) {
-            attacker = living;
-        } else if (event.getDamager() instanceof Arrow arrow && arrow.getShooter() instanceof LivingEntity shooter) {
-            attacker = shooter;
+        if (!(event.getEntity() instanceof LivingEntity target)) return;
+
+        if (event.getDamager() instanceof Arrow arrow && arrow.getShooter() instanceof LivingEntity shooter) {
+            if (!isMob(shooter)) return;
+            event.setDamage(ConfigManager.getSkeletonEliteConfig().damage());
+            return;
         }
 
-        if (attacker == null || !isMob(attacker)) return;
-        if (!(event.getEntity() instanceof LivingEntity target)) return;
+        if (!(event.getDamager() instanceof LivingEntity attacker) || !isMob(attacker)) return;
 
         ConfigManager.SkeletonEliteConfig config = ConfigManager.getSkeletonEliteConfig();
         double damage = config.damage();

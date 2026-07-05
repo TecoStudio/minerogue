@@ -19,6 +19,9 @@ public class ConfigManager {
     private static File weaponsFile;
     private static File itemsFile;
     private static File mobsFile;
+    private static File sidebarFile;
+    private static String sidebarTitle = "&6统计信息";
+    private static List<String> sidebarLines = defaultSidebarLines();
     private static boolean internalMonsterSystemEnabled = true;
     private static double skeletonEliteSpawnChance = 0.12;
     private static SkeletonEliteConfig skeletonEliteConfig = DefaultMobs.skeletonElite();
@@ -35,12 +38,14 @@ public class ConfigManager {
         weaponsFile = new File(data, "weapons.yml");
         itemsFile = new File(data, "items.yml");
         mobsFile = new File(data, "mobs.yml");
+        sidebarFile = new File(data, "sidebar.yml");
 
         loadBuiltIns();
         exportYamlDefaults();
         loadWeapons();
         loadItems();
         loadMobs();
+        loadSidebar();
 
         plugin.getLogger().info("加载了 " + weapons.size() + " 个武器模板, " + items.size() + " 个物品, " + mobs.size() + " 个怪物配置。");
     }
@@ -215,6 +220,7 @@ public class ConfigManager {
             if (!weaponsFile.exists()) saveWeaponsYaml(weaponsFile, DefaultWeapons.create());
             if (!itemsFile.exists()) saveItemsYaml(itemsFile, DefaultItems.create());
             if (!mobsFile.exists()) saveMobsYaml(mobsFile);
+            if (!sidebarFile.exists()) saveSidebarYaml(sidebarFile);
         } catch (IOException e) {
             plugin.getLogger().warning("无法导出默认 YAML 配置: " + e.getMessage());
         }
@@ -224,6 +230,35 @@ public class ConfigManager {
         saveWeaponsYaml(weaponsFile, weapons);
         saveItemsYaml(itemsFile, items);
         saveMobsYaml(mobsFile);
+        saveSidebarYaml(sidebarFile);
+    }
+
+    private static void loadSidebar() {
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(sidebarFile);
+        sidebarTitle = config.getString("title", "&6统计信息");
+        List<String> lines = config.getStringList("lines");
+        sidebarLines = lines.isEmpty() ? defaultSidebarLines() : lines;
+    }
+
+    private static List<String> defaultSidebarLines() {
+        return List.of(
+                "&f玩家: &e%player%",
+                "&f等级: &e%level%",
+                "&f经验: &a%exp%&7/&a%exp_next%",
+                "&f击杀: &c%kills%",
+                "&f死亡: &4%deaths%",
+                "%ability_cooldowns%"
+        );
+    }
+
+    private static void saveSidebarYaml(File file) throws IOException {
+        YamlConfiguration config = new YamlConfiguration();
+        config.options().header("Roguelike 内置侧边栏配置。修改后使用 /rw reload 重载。可用占位符: %player%, %level%, %exp%, %exp_next%, %kills%, %deaths%, %ability_cooldowns%。");
+        config.setComments("title", List.of("侧边栏标题。"));
+        config.set("title", sidebarTitle);
+        config.setComments("lines", List.of("侧边栏内容。%ability_cooldowns% 会展开为当前冷却中的武器技能，例如 Dash。"));
+        config.set("lines", sidebarLines);
+        saveYaml(config, file);
     }
 
     private static void saveWeaponsYaml(File file, Map<String, CustomWeapon> source) throws IOException {
@@ -386,6 +421,14 @@ public class ConfigManager {
 
     public static FileConfiguration getPluginConfig() {
         return plugin.getConfig();
+    }
+
+    public static String getSidebarTitle() {
+        return sidebarTitle;
+    }
+
+    public static List<String> getSidebarLines() {
+        return sidebarLines;
     }
 
     public static boolean isInternalMonsterSystemEnabled() {

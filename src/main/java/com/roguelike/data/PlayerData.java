@@ -10,6 +10,8 @@ public class PlayerData {
     private int superTicketAUses;
     private int ticketBUses;
     private int ticketCUses;
+    private long minedBlocks;
+    private long eatenItems;
     private int cachedLevel;
 
     public PlayerData() {
@@ -20,6 +22,8 @@ public class PlayerData {
         this.superTicketAUses = 0;
         this.ticketBUses = 0;
         this.ticketCUses = 0;
+        this.minedBlocks = 0;
+        this.eatenItems = 0;
         recalculateLevel();
     }
 
@@ -103,5 +107,29 @@ public class PlayerData {
             default -> {
             }
         }
+    }
+
+    public long getMinedBlocks() {
+        return minedBlocks;
+    }
+
+    public void setMinedBlocks(long minedBlocks) {
+        this.minedBlocks = Math.max(0, minedBlocks);
+    }
+
+    public long incrementMinedBlocks() {
+        return ++minedBlocks;
+    }
+
+    public long getEatenItems() {
+        return eatenItems;
+    }
+
+    public void setEatenItems(long eatenItems) {
+        this.eatenItems = Math.max(0, eatenItems);
+    }
+
+    public long incrementEatenItems() {
+        return ++eatenItems;
     }
 }

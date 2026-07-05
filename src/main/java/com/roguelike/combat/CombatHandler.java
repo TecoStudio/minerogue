@@ -47,24 +47,40 @@ public class CombatHandler {
         List<FormulaPart> formulaParts = new ArrayList<>();
         List<String> extraParts = new ArrayList<>();
         damageParts.add("基础 " + WeaponManager.format(weaponDamage, 1));
-        formulaParts.add(new FormulaPart("§a", weaponDamage));
+        formulaParts.add(FormulaPart.add("§a", weaponDamage));
         if (vanillaBonus > 0.05) {
             damageParts.add("原版跳劈/附魔 +" + WeaponManager.format(vanillaBonus, 1));
-            formulaParts.add(new FormulaPart("§b", vanillaBonus));
+            formulaParts.add(FormulaPart.add("§b", vanillaBonus));
         }
 
-        double beforeNeutral = damage;
-        damage = applyNeutralDamageAffixes(player, template, data, damage);
-        if (damage > beforeNeutral + 0.05) {
-            damageParts.add("契约增伤 +" + WeaponManager.format(damage - beforeNeutral, 1));
-            formulaParts.add(new FormulaPart("§6", damage - beforeNeutral));
+        List<String> neutralSources = new ArrayList<>();
+        double neutralMultiplier = 1.0;
+        if (data.getTotalEffect(template, "neutral_damage_200", 0.0) > 0) {
+            neutralMultiplier *= 2.0;
+            neutralSources.add("狂战契约 x2.0");
+        }
+        if (data.getTotalEffect(template, "neutral_berserk_self_harm", 0.0) > 0) {
+            neutralMultiplier *= 3.0;
+            neutralSources.add("血怒契约 x3.0");
+            double selfDamage = maxHealth(player) * 0.10;
+            if (selfDamage > 0) applyInternalDamage(player, selfDamage, player);
+        }
+        if (neutralMultiplier > 1.0) {
+            double before = damage;
+            damage *= neutralMultiplier;
+            damageParts.add("契约增伤 x" + WeaponManager.format(neutralMultiplier, 1)
+                    + "：" + WeaponManager.format(before, 1) + " -> " + WeaponManager.format(damage, 1)
+                    + "，来源 " + String.join("、", neutralSources));
+            formulaParts.add(FormulaPart.multiply("§6", neutralMultiplier));
         }
 
         double beforeSmash = damage;
         damage = WeaponAbilityManager.applySmash(player, player.getInventory().getItemInMainHand(), template, data, damage);
         if (damage > beforeSmash + 0.05) {
-            damageParts.add("猛击 +" + WeaponManager.format(damage - beforeSmash, 1));
-            formulaParts.add(new FormulaPart("§c", damage - beforeSmash));
+            double multiplier = damage / beforeSmash;
+            damageParts.add("猛击 x" + WeaponManager.format(multiplier, 1)
+                    + "：" + WeaponManager.format(beforeSmash, 1) + " -> " + WeaponManager.format(damage, 1));
+            formulaParts.add(FormulaPart.multiply("§c", multiplier));
         }
 
         boolean wasBurning = target.getFireTicks() > 0;
@@ -74,14 +90,18 @@ public class CombatHandler {
         if (wasBurning && burningBonus > 0) {
             double before = damage;
             damage *= 1 + burningBonus;
-            damageParts.add("燃烧目标增伤 +" + WeaponManager.format(damage - before, 1));
-            formulaParts.add(new FormulaPart("§6", damage - before));
+            double multiplier = 1 + burningBonus;
+            damageParts.add("燃烧目标增伤 x" + WeaponManager.format(multiplier, 2)
+                    + "：" + WeaponManager.format(before, 1) + " -> " + WeaponManager.format(damage, 1));
+            formulaParts.add(FormulaPart.multiply("§6", multiplier));
         }
         if (wasPoisoned && poisonedBonus > 0) {
             double before = damage;
             damage *= 1 + poisonedBonus;
-            damageParts.add("中毒目标增伤 +" + WeaponManager.format(damage - before, 1));
-            formulaParts.add(new FormulaPart("§2", damage - before));
+            double multiplier = 1 + poisonedBonus;
+            damageParts.add("中毒目标增伤 x" + WeaponManager.format(multiplier, 2)
+                    + "：" + WeaponManager.format(before, 1) + " -> " + WeaponManager.format(damage, 1));
+            formulaParts.add(FormulaPart.multiply("§2", multiplier));
         }
 
         // 暴击
@@ -94,8 +114,9 @@ public class CombatHandler {
             WeaponAbilityManager.applyHyper(player, template, data, true);
             player.getWorld().playSound(target.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 1f, 1f);
             player.getWorld().spawnParticle(Particle.CRIT, target.getEyeLocation(), 10, 0.3, 0.3, 0.3);
-            damageParts.add("插件暴击 x" + WeaponManager.format(critDamage, 1) + " (+" + WeaponManager.format(damage - before, 1) + ")");
-            formulaParts.add(new FormulaPart("§d", damage - before));
+            damageParts.add("插件暴击 x" + WeaponManager.format(critDamage, 1)
+                    + "：" + WeaponManager.format(before, 1) + " -> " + WeaponManager.format(damage, 1));
+            formulaParts.add(FormulaPart.multiply("§d", critDamage));
         }
 
         // 伤害存储爆发：按攻击次数触发，默认 20 下，最低 5 下。
@@ -111,7 +132,7 @@ public class CombatHandler {
                 data.setStoredDamage(0);
                 data.setStoredDamageHits(0);
                 damageParts.add("爆发储存 +" + WeaponManager.format(burst, 1));
-                formulaParts.add(new FormulaPart("§e", burst));
+                formulaParts.add(FormulaPart.add("§e", burst));
                 Message.send(player, "&6&l爆发！ 额外 " + WeaponManager.format(burst, 1) + " 伤害");
                 player.getWorld().spawnParticle(Particle.EXPLOSION, target.getLocation(), 1);
             }
@@ -200,9 +221,9 @@ public class CombatHandler {
     private static void sendDamageFormula(Player player, double damage, List<FormulaPart> formulaParts, List<String> damageParts, List<String> extraParts) {
         Component message = Message.toComponent("&7伤害: ");
         for (int i = 0; i < formulaParts.size(); i++) {
-            if (i > 0) message = message.append(Message.toComponent(" &8+ "));
             FormulaPart part = formulaParts.get(i);
-            message = message.append(Message.toComponent(part.color + WeaponManager.format(part.value, 1)));
+            if (i > 0) message = message.append(Message.toComponent(part.operator));
+            message = message.append(Message.toComponent(part.color + WeaponManager.format(part.value, part.decimals)));
         }
         message = message.append(Message.toComponent(" &8= &f" + WeaponManager.format(damage, 1)));
 
@@ -212,16 +233,6 @@ public class CombatHandler {
         }
         message = message.hoverEvent(HoverEvent.showText(Message.toComponent(hover)));
         player.sendMessage(message);
-    }
-
-    private static double applyNeutralDamageAffixes(Player player, CustomWeapon template, WeaponInstanceData data, double damage) {
-        if (data.getTotalEffect(template, "neutral_damage_200", 0.0) > 0) damage *= 2.0;
-        if (data.getTotalEffect(template, "neutral_berserk_self_harm", 0.0) > 0) {
-            damage *= 3.0;
-            double selfDamage = maxHealth(player) * 0.10;
-            if (selfDamage > 0) applyInternalDamage(player, selfDamage, player);
-        }
-        return damage;
     }
 
     private static double neutralBonus(CustomWeapon template, WeaponInstanceData data, String id, double value) {
@@ -311,7 +322,14 @@ public class CombatHandler {
         }
     }
 
-    private record FormulaPart(String color, double value) {
+    private record FormulaPart(String operator, String color, double value, int decimals) {
+        private static FormulaPart add(String color, double value) {
+            return new FormulaPart(" &8+ ", color, value, 1);
+        }
+
+        private static FormulaPart multiply(String color, double value) {
+            return new FormulaPart(" &8x ", color, value, 2);
+        }
     }
 
 }

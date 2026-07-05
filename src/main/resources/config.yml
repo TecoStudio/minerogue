@@ -7,7 +7,7 @@ storage:
   sqlite-file: roguelike.db
 
 debug:
-  # 开启后会在控制台输出更多开发调试日志
+  # 开启后会在控制台输出更多开发调试日志，包括玩家破坏方块、吃东西、升级、击杀和用券
   enabled: false
 
 integrations:

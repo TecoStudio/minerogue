@@ -45,13 +45,13 @@ recipes:
 
 字段说明：
 
-| 字段 | 说明 |
-| --- | --- |
-| `shape` | 必须 3 行，每行 3 个字符；空格表示空槽 |
-| `ingredients` | 字符到原版材料 ID 的映射 |
-| `result.type` | `armor`、`weapon`、`material` |
-| `result.id` | 防具 ID、武器 ID 或原版材料 ID |
-| `result.amount` | 产物数量 |
+| 字段              | 说明                                   |
+| ----------------- | -------------------------------------- |
+| `shape`         | 必须 3 行，每行 3 个字符；空格表示空槽 |
+| `ingredients`   | 字符到原版材料 ID 的映射               |
+| `result.type`   | `armor`、`weapon`、`material`    |
+| `result.id`     | 防具 ID、武器 ID 或原版材料 ID         |
+| `result.amount` | 产物数量                               |
 
 ## 默认炸药套配方
 

@@ -5,6 +5,7 @@ import com.roguelike.data.PlayerData;
 import com.roguelike.data.PlayerDataManager;
 import com.roguelike.scoreboard.RoguelikeScoreboard;
 import com.roguelike.ticket.TicketManager;
+import com.roguelike.util.DevLog;
 import com.roguelike.util.Message;
 import org.bukkit.entity.Player;
 
@@ -68,6 +69,7 @@ public class LevelManager {
         updateExpBar(player);
 
         if (newLevel > oldLevel) {
+            DevLog.debug(player.getName() + " 升级了，达到了 " + newLevel + " 级");
             final int gained = newLevel - oldLevel;
             final int strengthenTickets = gained;
             final int developmentTickets = countDevelopmentTickets(oldLevel, newLevel);

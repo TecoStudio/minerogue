@@ -4,18 +4,17 @@ import com.roguelike.RoguelikePlugin;
 import com.roguelike.config.ConfigManager;
 import com.roguelike.data.PlayerData;
 import com.roguelike.data.PlayerDataManager;
-import com.roguelike.item.CustomWeapon;
-import com.roguelike.item.WeaponInstanceData;
 import com.roguelike.level.LevelManager;
 import com.roguelike.weapon.WeaponAbilityManager;
-import com.roguelike.weapon.WeaponManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class RoguelikeScoreboard {
     private static RoguelikePlugin plugin;
@@ -62,43 +61,50 @@ public class RoguelikeScoreboard {
         if (manager == null) return;
 
         Scoreboard board = manager.getNewScoreboard();
-        Objective objective = board.registerNewObjective("roguelike", "dummy", "§6§lRoguelike");
+        Objective objective = board.registerNewObjective("roguelike", "dummy", color(ConfigManager.getSidebarTitle()));
         objective.setDisplaySlot(DisplaySlot.SIDEBAR);
 
         PlayerData data = PlayerDataManager.get(player);
-        java.util.List<String> abilityLines = WeaponAbilityManager.getSidebarLines(player);
-        long levelRequiredExp = LevelManager.expForLevel(data.getLevel() + 1);
-        int score = 8 + abilityLines.size();
-        setLine(objective, "§6统计", score--);
-        setLine(objective, "§f玩家: §e" + player.getName(), score--);
-        setLine(objective, "§f等级: §e" + data.getLevel(), score--);
-        setLine(objective, "§f经验: §a" + data.getExpForCurrentLevel() + "§7/§a" + levelRequiredExp, score--);
-        setLine(objective, "§f击杀: §c" + data.getKills(), score--);
-        setLine(objective, "§f死亡: §4" + data.getDeaths(), score--);
-        if (!abilityLines.isEmpty()) {
-            setLine(objective, "§2", score--);
-            for (String line : abilityLines) {
-                setLine(objective, line, score--);
-            }
+        List<String> lines = buildLines(player, data);
+        int score = lines.size();
+        int index = 0;
+        for (String line : lines) {
+            setLine(objective, line, score--, index++);
         }
-        setLine(objective, "§1", score--);
-        setLine(objective, "§7-----", score);
 
         player.setScoreboard(board);
     }
 
-    private static void setLine(Objective objective, String text, int score) {
-        String line = text.length() > 40 ? text.substring(0, 40) : text;
+    private static List<String> buildLines(Player player, PlayerData data) {
+        List<String> lines = new ArrayList<>();
+        List<String> abilityLines = WeaponAbilityManager.getSidebarLines(player);
+        long levelRequiredExp = LevelManager.expForLevel(data.getLevel() + 1);
+        for (String configured : ConfigManager.getSidebarLines()) {
+            if (configured.contains("%ability_cooldowns%")) {
+                for (String abilityLine : abilityLines) {
+                    lines.add(color(configured.replace("%ability_cooldowns%", abilityLine)));
+                }
+                continue;
+            }
+            lines.add(color(configured
+                    .replace("%player%", player.getName())
+                    .replace("%level%", Integer.toString(data.getLevel()))
+                    .replace("%exp%", Long.toString(data.getExpForCurrentLevel()))
+                    .replace("%exp_next%", Long.toString(levelRequiredExp))
+                    .replace("%kills%", Integer.toString(data.getKills()))
+                    .replace("%deaths%", Integer.toString(data.getDeaths()))));
+        }
+        return lines;
+    }
+
+    private static void setLine(Objective objective, String text, int score, int index) {
+        String line = text.length() > 38 ? text.substring(0, 38) : text;
+        line = line + ChatColor.values()[index % ChatColor.values().length];
         objective.getScore(line).setScore(score);
     }
 
-    private static String weaponName(Player player) {
-        ItemStack hand = player.getInventory().getItemInMainHand();
-        CustomWeapon weapon = WeaponManager.getTemplate(hand);
-        WeaponInstanceData data = WeaponManager.getData(hand);
-        if (weapon == null || data == null) return "无";
-        String name = data.getCustomName() != null ? ChatColor.stripColor(data.getCustomName()) : weapon.getName();
-        return name.length() > 12 ? name.substring(0, 12) : name;
+    private static String color(String text) {
+        return ChatColor.translateAlternateColorCodes('&', text == null ? "" : text);
     }
 
     public static void clearPlayer(Player player) {

@@ -5,6 +5,7 @@ import com.roguelike.combat.CombatHandler;
 import com.roguelike.item.CustomItem;
 import com.roguelike.util.Message;
 import net.kyori.adventure.text.Component;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
@@ -110,7 +111,7 @@ public final class ArmorSetManager {
 
         int explosive = countPieces(player, ArmorSet.EXPLOSIVE);
         if (explosive > 0 && RANDOM.nextDouble() < explosiveExplosionChance(explosive)) {
-            player.getWorld().createExplosion(player.getLocation(), 2.6f, false, false, player);
+            applyExplosiveSetBlast(player, explosive);
             player.getWorld().playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 0.8f, 1.2f);
             if (explosive >= 4) {
                 player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 60, 2, true, true, true));
@@ -156,6 +157,32 @@ public final class ArmorSetManager {
             case 3 -> 0.75;
             default -> 1.0;
         };
+    }
+
+    private static void applyExplosiveSetBlast(Player player, int pieces) {
+        Location origin = player.getLocation();
+        player.getWorld().spawnParticle(Particle.EXPLOSION, origin, 1);
+        double radius = switch (pieces) {
+            case 1 -> 2.4;
+            case 2 -> 2.8;
+            case 3 -> 3.2;
+            default -> 3.6;
+        };
+        double maxDamage = switch (pieces) {
+            case 1 -> 4.8;
+            case 2 -> 6.6;
+            case 3 -> 8.4;
+            default -> 10.2;
+        };
+        for (org.bukkit.entity.Entity entity : player.getWorld().getNearbyEntities(origin, radius, radius, radius)) {
+            if (!(entity instanceof LivingEntity target) || target.equals(player)) continue;
+            double distance = Math.max(0.75, target.getLocation().distance(origin));
+            double falloff = Math.max(0.0, 1.0 - distance / radius);
+            double damage = maxDamage * (0.35 + falloff * 0.65);
+            if (damage > 0.25) {
+                CombatHandler.applyInternalDamage(target, damage, player);
+            }
+        }
     }
 
     private static void applyBaseEnchantments(ItemMeta meta, ArmorSet set) {

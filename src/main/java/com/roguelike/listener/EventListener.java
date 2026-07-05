@@ -4,6 +4,7 @@ import com.roguelike.RoguelikePlugin;
 import com.roguelike.armor.ArmorSetManager;
 import com.roguelike.combat.CombatHandler;
 import com.roguelike.config.MobExperienceConfig;
+import com.roguelike.data.PlayerData;
 import com.roguelike.data.PlayerDataManager;
 import com.roguelike.integration.IntegrationManager;
 import com.roguelike.level.LevelManager;
@@ -11,12 +12,14 @@ import com.roguelike.mob.MobManager;
 import com.roguelike.scoreboard.RoguelikeScoreboard;
 import com.roguelike.ticket.TicketManager;
 import com.roguelike.ticket.TicketType;
+import com.roguelike.util.DevLog;
 import com.roguelike.util.Message;
 import com.roguelike.equipment.EquipmentTypeResolver;
 import com.roguelike.forge.ForgeTableManager;
 import com.roguelike.weapon.ToolAbilityManager;
 import com.roguelike.weapon.WeaponAbilityManager;
 import com.roguelike.weapon.WeaponManager;
+import org.bukkit.Material;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -114,7 +117,7 @@ public class EventListener implements Listener {
 
         if (CombatHandler.isInternalDamage()) return;
         ItemStack hand = player.getInventory().getItemInMainHand();
-        if (WeaponManager.getTemplate(hand) != null && player.hasCooldown(hand.getType())) {
+        if (WeaponAbilityManager.hasEffect(hand, "smash") && player.hasCooldown(hand.getType())) {
             event.setCancelled(true);
             Message.send(player, "&c武器暂时无法使用。");
             return;
@@ -160,6 +163,7 @@ public class EventListener implements Listener {
             if (exp > 0) {
                 LevelManager.addExperience(player, exp);
             }
+            DevLog.debug(player.getName() + " 击杀了 " + entityName(entity));
             PlayerDataManager.get(player).addKill();
             WeaponAbilityManager.applyGiftKill(player);
             RoguelikeScoreboard.updatePlayer(player);
@@ -200,5 +204,84 @@ public class EventListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
         ToolAbilityManager.handleBlockBreak(event);
+        if (!countsForMiningExperience(event.getBlock().getType())) return;
+        PlayerData data = PlayerDataManager.get(event.getPlayer());
+        long count = data.incrementMinedBlocks();
+        DevLog.debug(event.getPlayer().getName() + " 破坏了 " + materialName(event.getBlock().getType()) + " 方块 (" + count + "/" + nextProgressTarget(count) + ")");
+        long exp = progressionExperience(count);
+        if (exp > 0) {
+            LevelManager.addExperience(event.getPlayer(), exp);
+            PlayerDataManager.save(event.getPlayer());
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onItemConsume(PlayerItemConsumeEvent event) {
+        if (!countsForFoodExperience(event.getItem().getType())) return;
+        PlayerData data = PlayerDataManager.get(event.getPlayer());
+        long count = data.incrementEatenItems();
+        DevLog.debug(event.getPlayer().getName() + " 吃了 " + materialName(event.getItem().getType()) + " (" + count + "/" + nextProgressTarget(count) + ")");
+        long exp = progressionExperience(count);
+        if (exp > 0) {
+            LevelManager.addExperience(event.getPlayer(), exp);
+            PlayerDataManager.save(event.getPlayer());
+        }
+    }
+
+    private boolean countsForMiningExperience(Material material) {
+        return switch (material) {
+            case COAL_ORE, DEEPSLATE_COAL_ORE,
+                 COPPER_ORE, DEEPSLATE_COPPER_ORE,
+                 NETHER_QUARTZ_ORE,
+                 IRON_ORE, DEEPSLATE_IRON_ORE,
+                 GOLD_ORE, DEEPSLATE_GOLD_ORE, NETHER_GOLD_ORE,
+                 REDSTONE_ORE, DEEPSLATE_REDSTONE_ORE,
+                 LAPIS_ORE, DEEPSLATE_LAPIS_ORE,
+                 DIAMOND_ORE, DEEPSLATE_DIAMOND_ORE,
+                 EMERALD_ORE, DEEPSLATE_EMERALD_ORE,
+                 ANCIENT_DEBRIS -> true;
+            default -> false;
+        };
+    }
+
+    private boolean countsForFoodExperience(Material material) {
+        return switch (material) {
+            case ENCHANTED_GOLDEN_APPLE,
+                 GOLDEN_APPLE, GOLDEN_CARROT,
+                 COOKED_BEEF, COOKED_PORKCHOP, COOKED_MUTTON,
+                 COOKED_CHICKEN, COOKED_COD, COOKED_SALMON,
+                 RABBIT_STEW, MUSHROOM_STEW, BEETROOT_SOUP,
+                 SUSPICIOUS_STEW, PUMPKIN_PIE,
+                 APPLE, BREAD, CARROT, POTATO, BAKED_POTATO,
+                 BEETROOT, MELON_SLICE, SWEET_BERRIES, GLOW_BERRIES,
+                 DRIED_KELP, COOKIE, HONEY_BOTTLE,
+                 BEEF, PORKCHOP, MUTTON, CHICKEN, COD, SALMON,
+                 RABBIT, TROPICAL_FISH -> true;
+            default -> false;
+        };
+    }
+
+    private long progressionExperience(long count) {
+        if (count == 10) return 100;
+        if (count == 20) return 200;
+        if (count == 50) return 300;
+        if (count >= 100 && count % 100 == 0) return 500;
+        return 0;
+    }
+
+    private long nextProgressTarget(long count) {
+        if (count <= 50) return 50;
+        if (count % 100 == 0) return count;
+        return ((count / 100) + 1) * 100;
+    }
+
+    private String materialName(Material material) {
+        return material.name().toLowerCase();
+    }
+
+    private String entityName(LivingEntity entity) {
+        String customName = entity.getCustomName();
+        if (customName != null && !customName.isBlank()) return customName;
+        return entity.getType().name().toLowerCase();
     }
 }
