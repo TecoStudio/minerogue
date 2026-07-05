@@ -93,7 +93,7 @@ powershell -ExecutionPolicy Bypass -File .\build.ps1
 /rw give weapon <id> [玩家] [数量]
 /rw give item <id> [玩家] [数量]
 /rw give armor <id> [玩家] [数量]
-/rw give ticket <ticket_a|super_ticket_a|ticket_b|ticket_c> [玩家] [数量]
+/rw give ticket <ticket_a|super_ticket_a|ticket_b|ticket_c|weapon_development> [玩家] [数量]
 /rw exp <数量> [玩家]
 /rw list <weapons|items|armor>
 /rw stats [玩家]
