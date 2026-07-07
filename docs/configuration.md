@@ -10,9 +10,25 @@
 storage:
   type: json
   sqlite-file: roguelike.db
+  save-interval: 1200
+  async-save: true
+  backup:
+    enabled: true
+    interval-minutes: 60
+    keep: 24
 
 debug:
   enabled: false
+
+gameplay:
+  exp-multiplier: 1.0
+  progression-exp-multiplier: 1.0
+  weapon-drop-multiplier: 1.0
+  weapon-drop-chances:
+    legendary: 0.002
+    epic: 0.005
+    rare: 0.010
+    common: 0.020
 
 integrations:
   placeholderapi:
@@ -37,7 +53,16 @@ scoreboard:
 | --- | --- | --- |
 | `storage.type` | `json` | 玩家数据存储方式，可选 `json` 或 `sqlite`。 |
 | `storage.sqlite-file` | `roguelike.db` | SQLite 文件名，相对于 `plugins/Roguelike/`。仅在 `storage.type: sqlite` 时使用。 |
+| `storage.save-interval` | `1200` | 定期保存间隔，单位 tick，最低 600 tick。 |
+| `storage.async-save` | `true` | 是否将定期保存放到异步线程执行。关服保存仍会同步执行。 |
+| `storage.backup.enabled` | `true` | 是否启用自动玩家数据备份。 |
+| `storage.backup.interval-minutes` | `60` | 自动备份间隔，最低 10 分钟。 |
+| `storage.backup.keep` | `24` | 保留最近多少份 `player-data-*.zip` 备份。 |
 | `debug.enabled` | `false` | 是否输出更多开发调试日志，也可通过 `/rw debug` 切换。 |
+| `gameplay.exp-multiplier` | `1.0` | 怪物击杀经验倍率。`0` 表示关闭击杀经验。 |
+| `gameplay.progression-exp-multiplier` | `1.0` | 挖矿/进食里程碑经验倍率。 |
+| `gameplay.weapon-drop-multiplier` | `1.0` | 随机武器掉落倍率。`0` 表示关闭随机武器掉落。 |
+| `gameplay.weapon-drop-chances.*` | 见示例 | 各品质随机武器基础掉落概率，最终概率会乘以 `weapon-drop-multiplier` 并限制在 0-1。 |
 | `integrations.placeholderapi.enabled` | `false` | 开启 PlaceholderAPI 集成检测。 |
 | `integrations.tab.enabled` | `false` | 开启 TAB 集成检测。通常配合关闭内置侧边栏使用。 |
 | `integrations.commandapi.enabled` | `false` | 开启 CommandAPI 兼容检测；未安装时自动回退 Bukkit 命令。 |
@@ -110,6 +135,20 @@ plugins/Roguelike/examples
 ## 数据存储
 
 默认使用 JSON 保存玩家数据。
+
+插件会按 `storage.save-interval` 定期保存在线玩家数据，并按 `storage.backup.*` 自动生成 zip 备份。也可以手动执行：
+
+```text
+/rw backup
+```
+
+备份文件位于：
+
+```text
+plugins/Roguelike/backups/player-data-*.zip
+```
+
+SQLite 模式会先生成一致性快照，再写入备份 zip。
 
 启用 SQLite：
 

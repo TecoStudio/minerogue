@@ -5,10 +5,35 @@ storage:
   type: json
   # SQLite 文件路径，相对于 plugins/Roguelike 目录
   sqlite-file: roguelike.db
+  # 定期保存间隔 (ticks)，20 ticks = 1 秒。最低 600 ticks。
+  save-interval: 1200
+  # 开启后定期保存会在异步线程写入磁盘，降低主线程 IO 抖动。
+  async-save: true
+  backup:
+    # 自动备份玩家数据到 plugins/Roguelike/backups/player-data-*.zip
+    enabled: true
+    # 备份间隔（分钟），最低 10 分钟。
+    interval-minutes: 60
+    # 保留最近多少份备份。
+    keep: 24
 
 debug:
   # 开启后会在控制台输出更多开发调试日志，包括玩家破坏方块、吃东西、升级、击杀和用券
   enabled: false
+
+gameplay:
+  # 怪物击杀经验倍率。0 = 关闭击杀经验，2.0 = 双倍经验。
+  exp-multiplier: 1.0
+  # 挖矿/进食里程碑经验倍率。未配置时建议与击杀经验分开调节。
+  progression-exp-multiplier: 1.0
+  # 所有随机武器掉落概率倍率。0 = 关闭随机武器掉落。
+  weapon-drop-multiplier: 1.0
+  # 随机武器基础掉落概率，最终概率 = 此处概率 * weapon-drop-multiplier。
+  weapon-drop-chances:
+    legendary: 0.002
+    epic: 0.005
+    rare: 0.010
+    common: 0.020
 
 integrations:
   placeholderapi:

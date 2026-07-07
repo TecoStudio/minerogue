@@ -24,6 +24,7 @@
 
 ```text
 /rw export
+/rw backup
 /rw debug <on|off|status>
 /rw affixes
 /rw reload
@@ -34,6 +35,7 @@
 /rw exp <数量> [玩家]
 /rw list <weapons|items|armor>
 /rw stats [玩家]
+/rw stats top <level|kills|deaths> [数量]
 /rw reset [玩家]
 /rw monster spawn <自定义怪物>
 /rw fixhand
@@ -45,6 +47,7 @@
 | 命令 | 说明 |
 | --- | --- |
 | `/rw export` | 导出当前可编辑 YAML 配置，并导出 TAB、MythicMobs、侧边栏等示例文件。 |
+| `/rw backup` | 立即异步备份玩家数据到 `plugins/Roguelike/backups/`。若已有备份进行中，本次触发会跳过。 |
 | `/rw debug <on|off|status>` | 开启、关闭或查看开发调试日志状态。 |
 | `/rw affixes` | 查看当前可用的基础属性、武器词条和防具词条。 |
 | `/rw reload` | 重载 `config.yml`、`weapons.yml`、`items.yml`、`mobs.yml`、`forge-recipes.yml` 等配置，并刷新侧边栏。 |
@@ -55,7 +58,8 @@
 | `/rw exp <数量> [玩家]` | 给予玩家 Roguelike 经验，可能触发升级奖励。 |
 | `/rw list <weapons|items|armor>` | 列出当前加载的武器、物品或防具 ID。 |
 | `/rw stats [玩家]` | 查看玩家等级、经验、击杀和死亡。 |
-| `/rw reset [玩家]` | 卸载并重新初始化玩家 Roguelike 数据。 |
+| `/rw stats top <level|kills|deaths> [数量]` | 查看在线玩家排行榜。数量限制为 1-20；当前不是离线全服排行。 |
+| `/rw reset [玩家]` | 删除并重新初始化玩家 Roguelike 数据。 |
 | `/rw monster spawn <自定义怪物>` | 在执行者位置生成内置自定义怪物。 |
 | `/rw fixhand` | 刷新手持 Roguelike 武器的属性和显示。 |
 | `/rw help` | 查看管理员命令帮助。 |

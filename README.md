@@ -89,6 +89,7 @@ powershell -ExecutionPolicy Bypass -File .\build.ps1
 ```text
 /rw reload
 /rw export
+/rw backup
 /rw affixes
 /rw give weapon <id> [玩家] [数量]
 /rw give item <id> [玩家] [数量]
@@ -97,6 +98,7 @@ powershell -ExecutionPolicy Bypass -File .\build.ps1
 /rw exp <数量> [玩家]
 /rw list <weapons|items|armor>
 /rw stats [玩家]
+/rw stats top <level|kills|deaths> [数量]
 /rw reset [玩家]
 /rw monster spawn <自定义怪物>
 /rw fixhand

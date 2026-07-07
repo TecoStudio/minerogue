@@ -423,6 +423,27 @@ public class ConfigManager {
         return plugin.getConfig();
     }
 
+    public static double getExpMultiplier() {
+        if (plugin == null) return 1.0;
+        return Math.max(0.0, plugin.getConfig().getDouble("gameplay.exp-multiplier", 1.0));
+    }
+
+    public static double getProgressionExpMultiplier() {
+        if (plugin == null) return 1.0;
+        return Math.max(0.0, plugin.getConfig().getDouble("gameplay.progression-exp-multiplier", getExpMultiplier()));
+    }
+
+    public static double getWeaponDropMultiplier() {
+        if (plugin == null) return 1.0;
+        return Math.max(0.0, plugin.getConfig().getDouble("gameplay.weapon-drop-multiplier", 1.0));
+    }
+
+    public static double getConfiguredWeaponDropChance(String rarity, double fallback) {
+        if (plugin == null) return fallback;
+        String path = "gameplay.weapon-drop-chances." + rarity.toLowerCase();
+        return clampChance(plugin.getConfig().getDouble(path, fallback));
+    }
+
     public static String getSidebarTitle() {
         return sidebarTitle;
     }

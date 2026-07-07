@@ -155,10 +155,17 @@ public class MobManager {
     }
 
     private static String rollWeaponRarity() {
-        if (RANDOM.nextDouble() < 0.002) return "legendary";
-        if (RANDOM.nextDouble() < 0.005) return "epic";
-        if (RANDOM.nextDouble() < 0.010) return "rare";
-        if (RANDOM.nextDouble() < 0.020) return "common";
+        double multiplier = ConfigManager.getWeaponDropMultiplier();
+        if (multiplier <= 0.0) return null;
+        if (rollChance("legendary", 0.002, multiplier)) return "legendary";
+        if (rollChance("epic", 0.005, multiplier)) return "epic";
+        if (rollChance("rare", 0.010, multiplier)) return "rare";
+        if (rollChance("common", 0.020, multiplier)) return "common";
         return null;
+    }
+
+    private static boolean rollChance(String rarity, double fallback, double multiplier) {
+        double chance = Math.min(1.0, ConfigManager.getConfiguredWeaponDropChance(rarity, fallback) * multiplier);
+        return RANDOM.nextDouble() < chance;
     }
 }

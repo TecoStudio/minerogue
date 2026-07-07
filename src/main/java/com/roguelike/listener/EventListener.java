@@ -3,6 +3,7 @@ package com.roguelike.listener;
 import com.roguelike.RoguelikePlugin;
 import com.roguelike.armor.ArmorSetManager;
 import com.roguelike.combat.CombatHandler;
+import com.roguelike.config.ConfigManager;
 import com.roguelike.config.MobExperienceConfig;
 import com.roguelike.data.PlayerData;
 import com.roguelike.data.PlayerDataManager;
@@ -159,7 +160,7 @@ public class EventListener implements Listener {
         if (entity.getKiller() != null) {
             Player player = entity.getKiller();
             String type = entity.getType().name().toLowerCase();
-            int exp = MobExperienceConfig.getMobExp(type);
+            long exp = scaledExperience(MobExperienceConfig.getMobExp(type), ConfigManager.getExpMultiplier());
             if (exp > 0) {
                 LevelManager.addExperience(player, exp);
             }
@@ -210,7 +211,7 @@ public class EventListener implements Listener {
         DevLog.debug(event.getPlayer().getName() + " 破坏了 " + materialName(event.getBlock().getType()) + " 方块 (" + count + "/" + nextProgressTarget(count) + ")");
         long exp = progressionExperience(count);
         if (exp > 0) {
-            LevelManager.addExperience(event.getPlayer(), exp);
+            LevelManager.addExperience(event.getPlayer(), scaledExperience(exp, ConfigManager.getProgressionExpMultiplier()));
             PlayerDataManager.save(event.getPlayer());
         }
     }
@@ -223,7 +224,7 @@ public class EventListener implements Listener {
         DevLog.debug(event.getPlayer().getName() + " 吃了 " + materialName(event.getItem().getType()) + " (" + count + "/" + nextProgressTarget(count) + ")");
         long exp = progressionExperience(count);
         if (exp > 0) {
-            LevelManager.addExperience(event.getPlayer(), exp);
+            LevelManager.addExperience(event.getPlayer(), scaledExperience(exp, ConfigManager.getProgressionExpMultiplier()));
             PlayerDataManager.save(event.getPlayer());
         }
     }
@@ -267,6 +268,11 @@ public class EventListener implements Listener {
         if (count == 50) return 300;
         if (count >= 100 && count % 100 == 0) return 500;
         return 0;
+    }
+
+    private long scaledExperience(long base, double multiplier) {
+        if (base <= 0 || multiplier <= 0.0) return 0;
+        return Math.max(1L, Math.round(base * multiplier));
     }
 
     private long nextProgressTarget(long count) {

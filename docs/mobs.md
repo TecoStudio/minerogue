@@ -39,6 +39,8 @@
 
 怪物死亡时有低概率掉落内置武器模板。掉落会优先判定高品质，命中某个品质后从该品质的内置武器中随机选择一个。
 
+掉落概率按 `legendary -> epic -> rare -> common` 顺序独立判定。每个品质的最终概率为 `gameplay.weapon-drop-chances.<品质> * gameplay.weapon-drop-multiplier`，并限制在 0-1。
+
 | 品质 | 掉落概率 |
 | --- | ---: |
 | legendary | 0.2% |
