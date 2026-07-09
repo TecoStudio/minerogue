@@ -5,3 +5,5 @@ sources.txt
 *.iml
 *.class
 mbopencode.bat
+/.omo
+server
