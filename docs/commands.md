@@ -31,7 +31,7 @@
 /rw give weapon <id> [玩家] [数量]
 /rw give item <id> [玩家] [数量]
 /rw give armor <id> [玩家] [数量]
-/rw give ticket <ticket_a|super_ticket_a|ticket_b|ticket_c|weapon_development> [玩家] [数量]
+/rw give ticket <ticket_a|super_ticket_a|ticket_b|ticket_c> [玩家] [数量]
 /rw exp <数量> [玩家]
 /rw list <weapons|items|armor>
 /rw stats [玩家]
@@ -72,7 +72,6 @@
 | `super_ticket_a` | 超级强化券 | 必定成功强化词条。 |
 | `ticket_b` | 开发券 | 开发普通物品为特殊武器，或给已有装备随机添加词条。 |
 | `ticket_c` | 移除券 | 移除一个插件词条，并可提升武器下次普通强化成功率。 |
-| `weapon_development` | 武器开发券 | 将任意非空气、非券、非 Roguelike 武器的物品开发为特殊品质武器。 |
 
 ## 常用 ID 查询
 
