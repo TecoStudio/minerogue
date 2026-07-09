@@ -103,7 +103,7 @@ public class EventListener implements Listener {
     }
 
     private boolean canTargetAnyItem(TicketType ticket) {
-        return ticket == TicketType.TICKET_B || ticket == TicketType.WEAPON_DEVELOPMENT;
+        return ticket == TicketType.TICKET_B;
     }
 
     @EventHandler

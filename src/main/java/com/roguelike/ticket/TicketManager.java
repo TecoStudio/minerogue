@@ -64,7 +64,7 @@ public class TicketManager {
             List<Component> lore = new ArrayList<>();
             lore.add(Message.toComponent(type.getDescription()));
             lore.add(Message.toComponent("§7─────────────────"));
-            if (type == TicketType.TICKET_B || type == TicketType.WEAPON_DEVELOPMENT) {
+            if (type == TicketType.TICKET_B) {
                 lore.add(Message.toComponent("§7手持此券，另一手拿任意物品"));
             } else {
                 lore.add(Message.toComponent("§7手持此券，另一手拿武器"));
@@ -135,9 +135,6 @@ public class TicketManager {
     public static boolean applyTicket(Player player, ItemStack ticketStack, ItemStack weaponStack) {
         TicketType type = getTicketType(ticketStack);
         if (type == null) return false;
-        if (type == TicketType.WEAPON_DEVELOPMENT) {
-            return applyWeaponDevelopment(player, ticketStack, weaponStack, type);
-        }
 
         if (weaponStack != null && EquipmentTypeResolver.isWearable(weaponStack.getType())) {
             return applyArmorTicket(player, ticketStack, weaponStack, type);
