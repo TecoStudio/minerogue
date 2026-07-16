@@ -13,6 +13,8 @@ import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.metadata.FixedMetadataValue;
+import org.bukkit.metadata.MetadataValue;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
@@ -23,6 +25,7 @@ import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class CombatHandler {
+    private static final String BLEEDING_METADATA = "roguelike_bleeding_until";
     private static final Random RANDOM = ThreadLocalRandom.current();
     private static boolean internalDamage = false;
     private static RoguelikePlugin plugin;
@@ -85,8 +88,10 @@ public class CombatHandler {
 
         boolean wasBurning = target.getFireTicks() > 0;
         boolean wasPoisoned = target.hasPotionEffect(PotionEffectType.POISON);
+        boolean wasBleeding = isBleeding(target);
         double burningBonus = data.getTotalEffect(template, "burning_target_damage_percent", 0.0);
         double poisonedBonus = data.getTotalEffect(template, "poisoned_target_damage_percent", 0.0);
+        double bleedingBonus = data.getTotalEffect(template, "bleeding_target_damage_percent", 0.0);
         if (wasBurning && burningBonus > 0) {
             double before = damage;
             damage *= 1 + burningBonus;
@@ -102,6 +107,14 @@ public class CombatHandler {
             damageParts.add("中毒目标增伤 x" + WeaponManager.format(multiplier, 2)
                     + "：" + WeaponManager.format(before, 1) + " -> " + WeaponManager.format(damage, 1));
             formulaParts.add(FormulaPart.multiply("§2", multiplier));
+        }
+        if (wasBleeding && bleedingBonus > 0) {
+            double before = damage;
+            damage *= 1 + bleedingBonus;
+            double multiplier = 1 + bleedingBonus;
+            damageParts.add("流血目标增伤 x" + WeaponManager.format(multiplier, 2)
+                    + "：" + WeaponManager.format(before, 1) + " -> " + WeaponManager.format(damage, 1));
+            formulaParts.add(FormulaPart.multiply("§4", multiplier));
         }
 
         // 暴击
@@ -176,6 +189,13 @@ public class CombatHandler {
         if (poisonChance > 0 && RANDOM.nextDouble() < poisonChance) {
             target.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 100, 0));
             extraParts.add("中毒触发");
+        }
+
+        // 流血
+        double bleedChance = chance(data.getTotalEffect(template, "bleed_chance", 0.0));
+        if (bleedChance > 0 && RANDOM.nextDouble() < bleedChance) {
+            applyBleeding(player, target);
+            extraParts.add("流血触发");
         }
 
         // 雷电
@@ -258,6 +278,8 @@ public class CombatHandler {
                 || data.getTotalEffect(template, "damage_store_percent", 0.0) > 0
                 || data.getTotalEffect(template, "burning_target_damage_percent", 0.0) > 0
                 || data.getTotalEffect(template, "poisoned_target_damage_percent", 0.0) > 0
+                || data.getTotalEffect(template, "bleed_chance", 0.0) > 0
+                || data.getTotalEffect(template, "bleeding_target_damage_percent", 0.0) > 0
                 || data.getTotalEffect(template, "explosion_chance", 0.0) > 0
                 || data.getTotalEffect(template, "big_explosion_chance", 0.0) > 0
                 || data.getTotalEffect(template, "smash", 0.0) > 0
@@ -269,6 +291,28 @@ public class CombatHandler {
                 || data.getTotalEffect(template, "neutral_lifesteal_100", 0.0) > 0
                 || data.getTotalEffect(template, "neutral_thunder_100", 0.0) > 0
                 || data.getTotalEffect(template, "neutral_explosion_100", 0.0) > 0;
+    }
+
+    private static boolean isBleeding(LivingEntity target) {
+        long now = System.currentTimeMillis();
+        for (MetadataValue value : target.getMetadata(BLEEDING_METADATA)) {
+            if (value.asLong() > now) return true;
+        }
+        return false;
+    }
+
+    private static void applyBleeding(Player player, LivingEntity target) {
+        if (plugin == null) return;
+        long until = System.currentTimeMillis() + 5_000L;
+        target.setMetadata(BLEEDING_METADATA, new FixedMetadataValue(plugin, until));
+        target.getWorld().spawnParticle(Particle.DAMAGE_INDICATOR, target.getEyeLocation(), 8, 0.25, 0.35, 0.25);
+        for (int i = 1; i <= 5; i++) {
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                if (target.isDead() || !target.isValid() || !isBleeding(target)) return;
+                applyInternalDamage(target, 1.0, player);
+                target.getWorld().spawnParticle(Particle.DAMAGE_INDICATOR, target.getEyeLocation(), 3, 0.2, 0.25, 0.2);
+            }, i * 20L);
+        }
     }
 
     private static void sendStoreProgress(Player player, int hits, int requiredHits) {

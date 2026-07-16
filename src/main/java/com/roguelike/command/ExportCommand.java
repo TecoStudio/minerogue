@@ -46,6 +46,7 @@ class ExportCommand {
                     "      hyper: 1.0\n");
             writeFile(examples.resolve("items.yml"), "items:\n" +
                     "  healing_potion:\n" +
+                    "    item: minecraft:potion\n" +
                     "    name: 治疗药水\n" +
                     "    description: 恢复生命值\n" +
                     "    item-type: potion\n" +

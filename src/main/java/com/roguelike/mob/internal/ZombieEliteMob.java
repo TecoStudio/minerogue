@@ -59,7 +59,7 @@ public class ZombieEliteMob implements InternalMob {
     private void apply(Zombie zombie, ConfigManager.ZombieEliteConfig config) {
         zombie.getPersistentDataContainer().set(mobKey, PersistentDataType.STRING, ID);
         zombie.customName(Message.toComponent(config.name()));
-        zombie.setCustomNameVisible(true);
+        zombie.setCustomNameVisible(false);
 
         var health = zombie.getAttribute(Attribute.MAX_HEALTH);
         if (health != null) {

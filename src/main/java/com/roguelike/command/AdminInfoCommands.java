@@ -125,9 +125,10 @@ class AdminInfoCommands {
         Message.send(sender, "&e/rw export &7- 导出可选 YAML/TAB/MythicMobs 示例");
         Message.send(sender, "&e/rw backup &7- 立即异步备份玩家数据");
         Message.send(sender, "&e/rw debug <on|off|status> &7- 控制开发日志输出");
-        Message.send(sender, "&e/rw affixes &7- 查看可用词条");
+        Message.send(sender, "&e/rw affixes [held] &7- 查看可用词条/手持武器词条");
         Message.send(sender, "&e/rw reload &7- 重载配置");
-        Message.send(sender, "&e/rw give weapon <id> [玩家] [数量] &7- 给予武器");
+        Message.send(sender, "&e/rw give &7- 打开给予 GUI");
+        Message.send(sender, "&e/rw give <weapon|item|armor|ticket> <id> [玩家] [数量] &7- 命令给予");
         Message.send(sender, "&e/rw give armor <id> [玩家] [数量] &7- 给予防具");
         Message.send(sender, "&e/rw exp <数量> [玩家] &7- 给予经验");
         Message.send(sender, "&e/rw list <weapons|items|armor> &7- 列出模板");

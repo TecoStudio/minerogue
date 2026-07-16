@@ -141,12 +141,22 @@ public final class ForgeRecipeManager {
         addDefault(config, "explosive_chestplate", List.of("CTC", "TCT", "CTC"), "explosive_chestplate");
         addDefault(config, "explosive_leggings", List.of("TCT", "C C", "TCT"), "explosive_leggings");
         addDefault(config, "explosive_boots", List.of("C C", "T T", "T T"), "explosive_boots");
+        addWeaponDefault(config, "ember_knife", List.of(" F ", " W ", " S "), "minecraft:stone_sword", 'F', "minecraft:flint", 'S', "minecraft:stick");
+        addWeaponDefault(config, "frost_cleaver", List.of(" I ", " W ", " B "), "minecraft:iron_axe", 'I', "minecraft:blue_ice", 'B', "minecraft:iron_block");
+        addWeaponDefault(config, "storm_spear", List.of(" C ", " W ", " R "), "minecraft:trident", 'C', "minecraft:copper_ingot", 'R', "minecraft:redstone");
+        addWeaponDefault(config, "plague_saber", List.of(" P ", " W ", " G "), "minecraft:golden_sword", 'P', "minecraft:spider_eye", 'G', "minecraft:gold_ingot");
+        addWeaponDefault(config, "echo_blade", List.of(" A ", " W ", " D "), "minecraft:diamond_sword", 'A', "minecraft:amethyst_shard", 'D', "minecraft:diamond");
+        addWeaponDefault(config, "glass_cannon_hammer", List.of(" N ", " W ", " B "), "minecraft:netherite_axe", 'N', "minecraft:netherite_ingot", 'B', "minecraft:diamond_block");
 
         File parent = file.getParentFile();
         if (parent != null && !parent.exists() && !parent.mkdirs()) {
             throw new IOException("无法创建目录: " + parent.getAbsolutePath());
         }
         config.save(file);
+    }
+
+    static void saveDefaultsForTest(File file) throws IOException {
+        saveDefaults(file);
     }
 
     private static void addDefault(YamlConfiguration config, String id, List<String> shape, String armorId) {
@@ -156,6 +166,19 @@ public final class ForgeRecipeManager {
         config.set(path + "ingredients.T", "minecraft:tnt");
         config.set(path + "result.type", "armor");
         config.set(path + "result.id", armorId);
+        config.set(path + "result.amount", 1);
+    }
+
+    private static void addWeaponDefault(YamlConfiguration config, String id, List<String> shape,
+                                         String weaponMaterial, char catalystSymbol, String catalyst,
+                                         char baseSymbol, String baseMaterial) {
+        String path = "recipes." + id + ".";
+        config.set(path + "shape", shape);
+        config.set(path + "ingredients.W", weaponMaterial);
+        config.set(path + "ingredients." + catalystSymbol, catalyst);
+        config.set(path + "ingredients." + baseSymbol, baseMaterial);
+        config.set(path + "result.type", "weapon");
+        config.set(path + "result.id", id);
         config.set(path + "result.amount", 1);
     }
 

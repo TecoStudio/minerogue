@@ -22,6 +22,9 @@ public class WeaponInstanceData {
     private String instanceId;
     private String baseWeaponId;
     private String customName;
+    private int gearLevel;
+    private String quality;
+    private String legendaryAffix;
     private double damageBonus;
     private double attackSpeedBonus;
     private double storedDamage;
@@ -38,6 +41,9 @@ public class WeaponInstanceData {
         this.instanceId = UUID.randomUUID().toString();
         this.baseWeaponId = baseWeaponId;
         this.customName = null;
+        this.gearLevel = 1;
+        this.quality = "base";
+        this.legendaryAffix = "";
         this.damageBonus = 0;
         this.attackSpeedBonus = 0;
         this.storedDamage = 0;
@@ -67,6 +73,58 @@ public class WeaponInstanceData {
 
     public String getCustomName() { return customName; }
     public void setCustomName(String customName) { this.customName = customName; }
+
+    public int getGearLevel() { return Math.max(1, gearLevel); }
+    public void setGearLevel(int gearLevel) { this.gearLevel = Math.max(1, gearLevel); }
+
+    public String getQuality() { return normalizeQuality(quality); }
+    public void setQuality(String quality) { this.quality = normalizeQuality(quality); }
+
+    public String getLegendaryAffix() { return legendaryAffix == null ? "" : legendaryAffix; }
+    public void setLegendaryAffix(String legendaryAffix) { this.legendaryAffix = legendaryAffix == null ? "" : legendaryAffix; }
+
+    public int getQualityPowerBonus() {
+        return switch (getQuality()) {
+            case "plus" -> 2;
+            case "plusplus" -> 4;
+            case "s" -> 6;
+            case "legendary" -> 3;
+            default -> 1;
+        };
+    }
+
+    public int getGearPower() {
+        return getGearLevel() + getQualityPowerBonus();
+    }
+
+    public int getRandomAffixSlotLimit(CustomWeapon template) {
+        int baseSlots = switch (getQuality()) {
+            case "plus" -> 2;
+            case "plusplus" -> 3;
+            case "s" -> 4;
+            case "legendary" -> 3;
+            default -> 1;
+        };
+        int bonus = template == null ? 0 : template.getBonusAffixSlots();
+        return Math.max(0, baseSlots + bonus);
+    }
+
+    public int getRandomAffixCount() {
+        int count = 0;
+        for (double value : effectBonuses.values()) {
+            if (value != 0.0) count++;
+        }
+        return count;
+    }
+
+    public boolean hasOpenRandomAffixSlot(CustomWeapon template) {
+        if (template != null && template.allowsOverflowAffixes()) return true;
+        return getRandomAffixCount() < getRandomAffixSlotLimit(template);
+    }
+
+    public boolean isOverflowingRandomAffixSlots(CustomWeapon template) {
+        return getRandomAffixCount() > getRandomAffixSlotLimit(template);
+    }
 
     public double getDamageBonus() { return damageBonus; }
     public void addDamageBonus(double amount) { this.damageBonus += amount; }
@@ -135,8 +193,12 @@ public class WeaponInstanceData {
     public int getTicketCUses() { return ticketCUses; }
     public void incrementTicketCUses() { this.ticketCUses++; }
 
+    public double getScaledBaseDamage(CustomWeapon base) {
+        return base.getBaseDamage() * (1.0 + getGearPower() * 0.08);
+    }
+
     public double getTotalDamage(CustomWeapon base) {
-        return base.getBaseDamage() + damageBonus;
+        return getScaledBaseDamage(base) + damageBonus;
     }
 
     public double getTotalAttackSpeed(CustomWeapon base) {
@@ -170,6 +232,7 @@ public class WeaponInstanceData {
         if (json == null || json.isEmpty()) return null;
         try {
             WeaponInstanceData data = GSON.fromJson(json, WeaponInstanceData.class);
+            if (data != null) data.normalizeNewFields();
             if (data != null && (data.instanceId == null || data.instanceId.isBlank())) {
                 // Older items did not store an instance id. Assign one lazily so GUI
                 // confirmations can verify the exact item instead of only its template.
@@ -195,5 +258,23 @@ public class WeaponInstanceData {
         if (meta == null) return;
         meta.getPersistentDataContainer().remove(KEY);
         stack.setItemMeta(meta);
+    }
+
+    private void normalizeNewFields() {
+        if (gearLevel <= 0) gearLevel = 1;
+        quality = normalizeQuality(quality);
+        if (legendaryAffix == null) legendaryAffix = "";
+    }
+
+    private static String normalizeQuality(String quality) {
+        if (quality == null || quality.isBlank()) return "base";
+        String normalized = quality.trim().toLowerCase();
+        return switch (normalized) {
+            case "+", "plus" -> "plus";
+            case "++", "plusplus" -> "plusplus";
+            case "s" -> "s";
+            case "l", "legendary" -> "legendary";
+            default -> "base";
+        };
     }
 }

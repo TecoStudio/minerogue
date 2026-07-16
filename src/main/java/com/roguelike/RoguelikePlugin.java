@@ -1,6 +1,7 @@
 package com.roguelike;
 
 import com.roguelike.command.RoguelikeCommand;
+import com.roguelike.command.GiveCommand;
 import com.roguelike.armor.ArmorSetManager;
 import com.roguelike.armor.affix.ArmorAffixManager;
 import com.roguelike.combat.CombatHandler;
@@ -33,6 +34,7 @@ public class RoguelikePlugin extends JavaPlugin {
         IntegrationManager.init(this);
         PlayerDataManager.init(this);
         WeaponManager.init(this);
+        GiveCommand.init(this);
         TicketManager.init(this);
         MobManager.init(this);
         LevelManager.init(this);

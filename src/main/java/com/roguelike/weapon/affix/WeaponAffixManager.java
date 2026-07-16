@@ -18,6 +18,8 @@ import java.util.Random;
 public class WeaponAffixManager {
     private static final Map<String, WeaponAffix> AFFIXES = new LinkedHashMap<>();
     private static final Map<String, Target> TARGETS = new LinkedHashMap<>();
+    private static final Map<String, String> CATEGORIES = new LinkedHashMap<>();
+    private static final Map<String, String> SYNERGY_HINTS = new LinkedHashMap<>();
 
     private enum Target { WEAPON, TOOL, ALL }
 
@@ -87,7 +89,15 @@ public class WeaponAffixManager {
         register(percent("poison_chance", "中毒概率", 0.10, 0.30, (lore, template, data) -> {
             double value = chance(total(template, data, "poison_chance", 0.0));
             if (value > 0) lore.add(Message.toComponent("§2☠ 中毒概率: §f" + WeaponManager.format(value * 100, 0) + "%"));
-        }));
+        }), Target.WEAPON, "状态附加");
+        register(percent("bleed_chance", "流血概率", 0.08, 0.25, (lore, template, data) -> {
+            double value = chance(total(template, data, "bleed_chance", 0.0));
+            if (value > 0) lore.add(Message.toComponent("§4🩸 流血概率: §f" + WeaponManager.format(value * 100, 0) + "%"));
+        }), Target.WEAPON, "状态附加");
+        register(percent("bleeding_target_damage_percent", "流血目标增伤", 0.15, 0.45, (lore, template, data) -> {
+            double value = total(template, data, "bleeding_target_damage_percent", 0.0);
+            if (value > 0) lore.add(Message.toComponent("§4⚖ 流血增伤: §f" + WeaponManager.format(value * 100, 0) + "%"));
+        }), Target.WEAPON, "协同增伤", "对已流血目标造成更高直接伤害，可与流血概率词条自洽成套。");
         register(percent("explosion_chance", "爆炸概率", 0.05, 0.15, (lore, template, data) -> {
             double value = chance(total(template, data, "explosion_chance", 0.0));
             if (value > 0) lore.add(Message.toComponent("§6⚖ 爆炸概率: §f" + WeaponManager.format(value * 100, 0) + "%，受到伤害 200%"));
@@ -96,6 +106,10 @@ public class WeaponAffixManager {
             double value = chance(total(template, data, "big_explosion_chance", 0.0));
             if (value > 0) lore.add(Message.toComponent("§6⚖ 大爆炸概率: §f" + WeaponManager.format(value * 100, 0) + "%，受到伤害 200%"));
         }));
+        register(percent("victim_explosion_chance", "击杀爆炸概率", 0.05, 0.20, (lore, template, data) -> {
+            double value = chance(total(template, data, "victim_explosion_chance", 0.0));
+            if (value > 0) lore.add(Message.toComponent("§6☄ 击杀爆炸: §f" + WeaponManager.format(value * 100, 0) + "% §7(击杀时触发)"));
+        }), Target.WEAPON, "击杀触发", "击杀敌人时有概率引爆尸体，适合高爆发和连锁清怪武器。");
         register(toggle("smash", "猛击", "§6⚖ 猛击: §f3倍伤害，力量效果翻倍，使用后冷却7秒，受到伤害 200%", false));
         register(toggle("bomb", "小心炸弹！", "§6☄ 小心炸弹！: §f潜行投掷常规大爆炸TNT，20格或3秒后爆炸，30秒冷却", false));
         register(new SimpleAffix("hyper", "亢奋", true, 1, 1, true, (lore, template, data) -> {
@@ -136,6 +150,10 @@ public class WeaponAffixManager {
         return List.copyOf(AFFIXES.keySet());
     }
 
+    public static List<String> rollableEffectIds() {
+        return effectIds();
+    }
+
     public static WeaponAffix get(String id) {
         return AFFIXES.get(id);
     }
@@ -143,6 +161,44 @@ public class WeaponAffixManager {
     public static String displayName(String id) {
         WeaponAffix affix = get(id);
         return affix == null ? id : affix.displayName();
+    }
+
+    public static String category(String id) {
+        return CATEGORIES.getOrDefault(id, "通用词条");
+    }
+
+    public static String synergyHint(String id) {
+        return SYNERGY_HINTS.getOrDefault(id, "");
+    }
+
+    public static List<String> scalingTags(CustomWeapon template, WeaponInstanceData data) {
+        List<String> tags = new ArrayList<>();
+        if (total(template, data, "fire_damage", 0.0) > 0
+                || total(template, data, "burning_target_damage_percent", 0.0) > 0
+                || total(template, data, "bleed_chance", 0.0) > 0
+                || total(template, data, "bleeding_target_damage_percent", 0.0) > 0
+                || total(template, data, "lifesteal_percent", 0.0) > 0
+                || total(template, data, "smash", 0.0) > 0) {
+            tags.add("暴虐");
+        }
+        if (total(template, data, "lightning_chance", 0.0) > 0
+                || total(template, data, "chain_targets", 0.0) > 0
+                || total(template, data, "chain_damage_percent", 0.0) > 0
+                || total(template, data, "explosion_chance", 0.0) > 0
+                || total(template, data, "big_explosion_chance", 0.0) > 0
+                || total(template, data, "victim_explosion_chance", 0.0) > 0
+                || total(template, data, "dash", 0.0) > 0) {
+            tags.add("战术");
+        }
+        if (total(template, data, "slow_duration", 0.0) > 0
+                || total(template, data, "damage_store_percent", 0.0) > 0
+                || total(template, data, "poison_chance", 0.0) > 0
+                || total(template, data, "poisoned_target_damage_percent", 0.0) > 0
+                || total(template, data, "gift", 0.0) > 0) {
+            tags.add("生存");
+        }
+        if (tags.isEmpty()) tags.add("无色");
+        return List.copyOf(tags);
     }
 
     public static String format(String id, double value) {
@@ -156,7 +212,7 @@ public class WeaponAffixManager {
     }
 
     public static boolean isAvailable(CustomWeapon template, WeaponInstanceData data, String id) {
-        return template.getEffect(id, 0.0) == 0.0 && data.getEffectBonus(id) == 0.0;
+        return AFFIXES.containsKey(id) && template.getEffect(id, 0.0) == 0.0 && data.getEffectBonus(id) == 0.0;
     }
 
     public static boolean isAvailable(CustomWeapon template, WeaponInstanceData data, String id, Material material) {
@@ -200,8 +256,20 @@ public class WeaponAffixManager {
     }
 
     private static void register(WeaponAffix affix, Target target) {
+        register(affix, target, "通用词条", "");
+    }
+
+    private static void register(WeaponAffix affix, Target target, String category) {
+        register(affix, target, category, "");
+    }
+
+    private static void register(WeaponAffix affix, Target target, String category, String synergyHint) {
         AFFIXES.put(affix.id(), affix);
         TARGETS.put(affix.id(), target);
+        CATEGORIES.put(affix.id(), category);
+        if (synergyHint != null && !synergyHint.isBlank()) {
+            SYNERGY_HINTS.put(affix.id(), synergyHint);
+        }
     }
 
     private static SimpleAffix percent(String id, String displayName, double min, double max, LoreAppender loreAppender) {

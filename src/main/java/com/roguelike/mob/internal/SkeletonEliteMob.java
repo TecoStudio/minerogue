@@ -75,7 +75,7 @@ public class SkeletonEliteMob implements InternalMob {
     private void apply(Skeleton skeleton, ConfigManager.SkeletonEliteConfig config) {
         skeleton.getPersistentDataContainer().set(mobKey, PersistentDataType.STRING, ID);
         skeleton.customName(Message.toComponent(config.name()));
-        skeleton.setCustomNameVisible(true);
+        skeleton.setCustomNameVisible(false);
 
         var health = skeleton.getAttribute(Attribute.MAX_HEALTH);
         if (health != null) {

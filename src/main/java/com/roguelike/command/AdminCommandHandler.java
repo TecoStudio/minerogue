@@ -33,10 +33,6 @@ class AdminCommandHandler {
                 return affixesCommand.handleAffixes(sender, args);
             }
             case "give" -> {
-                if (args.length < 3) {
-                    Message.send(sender, "&c用法: /roguelike give <weapon|item|ticket> <id> [玩家] [数量]");
-                    return true;
-                }
                 return giveCommand.handleGive(sender, args);
             }
             case "exp" -> infoCommands.handleExp(sender, args);

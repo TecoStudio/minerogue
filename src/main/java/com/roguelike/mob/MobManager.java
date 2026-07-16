@@ -4,11 +4,14 @@ import com.roguelike.RoguelikePlugin;
 import com.roguelike.config.ConfigManager;
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.integration.IntegrationManager;
+import com.roguelike.mob.internal.ConciergeBossMob;
 import com.roguelike.mob.internal.SkeletonEliteMob;
 import com.roguelike.mob.internal.SpiderEliteMob;
+import com.roguelike.mob.internal.TimeKeeperBossMob;
 import com.roguelike.mob.internal.ZombieEliteMob;
 import com.roguelike.weapon.WeaponManager;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Monster;
@@ -18,6 +21,7 @@ import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -33,6 +37,8 @@ public class MobManager {
         internalMobs.add(new SkeletonEliteMob(plugin));
         internalMobs.add(new ZombieEliteMob(plugin));
         internalMobs.add(new SpiderEliteMob(plugin));
+        internalMobs.add(new ConciergeBossMob(plugin));
+        internalMobs.add(new TimeKeeperBossMob(plugin));
         behaviorTask = plugin.getServer().getScheduler().runTaskTimer(plugin, MobManager::tickInternalMobs, 20L, 10L);
     }
 
@@ -82,7 +88,7 @@ public class MobManager {
         if (!"zombie".equals(type) && config.weaponTemplate() != null && entity.getEquipment() != null) {
             CustomWeapon template = ConfigManager.getWeapon(config.weaponTemplate());
             if (template != null) {
-                ItemStack weapon = WeaponManager.createWeaponStack(template, org.bukkit.Material.IRON_SWORD);
+                ItemStack weapon = WeaponManager.createWeaponStack(template, modifierWeaponMaterial(template));
                 entity.getEquipment().setItemInMainHand(weapon);
                 if (entity instanceof Monster monster) {
                     entity.getEquipment().setItemInMainHandDropChance(0.15f);
@@ -106,6 +112,14 @@ public class MobManager {
         return ids;
     }
 
+    public static List<String> defaultInternalMobIds() {
+        return List.of("skeleton_elite", "zombie_elite", "spider_elite", "concierge_boss", "time_keeper_boss");
+    }
+
+    public static boolean shouldForceInternalMobNameVisible() {
+        return false;
+    }
+
     public static LivingEntity spawnInternalMob(String id, Location location) {
         for (InternalMob mob : internalMobs) {
             if (mob.id().equalsIgnoreCase(id)) {
@@ -113,6 +127,19 @@ public class MobManager {
             }
         }
         return null;
+    }
+
+    static Material modifierWeaponMaterial(CustomWeapon template) {
+        String materialName = modifierWeaponMaterialName(template);
+        Material material = Material.matchMaterial(materialName);
+        return material == null || material.isAir() ? Material.IRON_SWORD : material;
+    }
+
+    static String modifierWeaponMaterialName(CustomWeapon template) {
+        if (template == null || template.getItem() == null || template.getItem().isBlank()) return "IRON_SWORD";
+        String normalized = template.getItem().trim().toUpperCase(Locale.ROOT);
+        if (normalized.startsWith("MINECRAFT:")) normalized = normalized.substring("MINECRAFT:".length());
+        return normalized;
     }
 
     private static void tickInternalMobs() {
@@ -133,7 +160,7 @@ public class MobManager {
         if (RANDOM.nextDouble() > 0.15) return;
         CustomWeapon template = ConfigManager.getWeapon(config.weaponTemplate());
         if (template == null) return;
-        ItemStack weapon = WeaponManager.createWeaponStack(template, org.bukkit.Material.IRON_SWORD);
+        ItemStack weapon = WeaponManager.createWeaponStack(template, modifierWeaponMaterial(template));
         entity.getWorld().dropItemNaturally(entity.getLocation(), weapon);
     }
 

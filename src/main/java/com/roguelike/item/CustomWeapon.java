@@ -13,9 +13,18 @@ public class CustomWeapon {
     private final int durability;
     private final String rarity;
     private final Map<String, Double> effects;
+    private final int bonusAffixSlots;
+    private final boolean allowOverflowAffixes;
+    private final String legendaryAffix;
 
     public CustomWeapon(String id, String name, String description, String item, double baseDamage,
                         double attackSpeed, int durability, String rarity, Map<String, Double> effects) {
+        this(id, name, description, item, baseDamage, attackSpeed, durability, rarity, effects, 0, false, "");
+    }
+
+    public CustomWeapon(String id, String name, String description, String item, double baseDamage,
+                        double attackSpeed, int durability, String rarity, Map<String, Double> effects,
+                        int bonusAffixSlots, boolean allowOverflowAffixes, String legendaryAffix) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -25,6 +34,9 @@ public class CustomWeapon {
         this.durability = durability;
         this.rarity = rarity;
         this.effects = effects != null ? new HashMap<>(effects) : new HashMap<>();
+        this.bonusAffixSlots = Math.max(0, bonusAffixSlots);
+        this.allowOverflowAffixes = allowOverflowAffixes;
+        this.legendaryAffix = legendaryAffix == null ? "" : legendaryAffix;
     }
 
     public String getId() { return id; }
@@ -35,6 +47,9 @@ public class CustomWeapon {
     public double getAttackSpeed() { return attackSpeed; }
     public int getDurability() { return durability; }
     public String getRarity() { return rarity; }
+    public int getBonusAffixSlots() { return bonusAffixSlots; }
+    public boolean allowsOverflowAffixes() { return allowOverflowAffixes; }
+    public String getLegendaryAffix() { return legendaryAffix; }
 
     public Map<String, Double> getEffects() {
         return new HashMap<>(effects);

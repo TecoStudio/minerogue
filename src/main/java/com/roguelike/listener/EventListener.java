@@ -8,6 +8,8 @@ import com.roguelike.config.MobExperienceConfig;
 import com.roguelike.data.PlayerData;
 import com.roguelike.data.PlayerDataManager;
 import com.roguelike.integration.IntegrationManager;
+import com.roguelike.item.CustomItem;
+import com.roguelike.item.CustomItemStackFactory;
 import com.roguelike.level.LevelManager;
 import com.roguelike.mob.MobManager;
 import com.roguelike.scoreboard.RoguelikeScoreboard;
@@ -17,6 +19,8 @@ import com.roguelike.util.DevLog;
 import com.roguelike.util.Message;
 import com.roguelike.equipment.EquipmentTypeResolver;
 import com.roguelike.forge.ForgeTableManager;
+import com.roguelike.item.CustomWeapon;
+import com.roguelike.item.WeaponInstanceData;
 import com.roguelike.weapon.ToolAbilityManager;
 import com.roguelike.weapon.WeaponAbilityManager;
 import com.roguelike.weapon.WeaponManager;
@@ -33,6 +37,8 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+
+import java.util.concurrent.ThreadLocalRandom;
 
 public class EventListener implements Listener {
 
@@ -167,6 +173,7 @@ public class EventListener implements Listener {
             DevLog.debug(player.getName() + " 击杀了 " + entityName(entity));
             PlayerDataManager.get(player).addKill();
             WeaponAbilityManager.applyGiftKill(player);
+            applyVictimExplosion(player, entity);
             RoguelikeScoreboard.updatePlayer(player);
             MobManager.handleDrop(entity);
         }
@@ -218,6 +225,7 @@ public class EventListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onItemConsume(PlayerItemConsumeEvent event) {
+        if (applyCustomItemConsume(event.getPlayer(), event.getItem())) return;
         if (!countsForFoodExperience(event.getItem().getType())) return;
         PlayerData data = PlayerDataManager.get(event.getPlayer());
         long count = data.incrementEatenItems();
@@ -227,6 +235,46 @@ public class EventListener implements Listener {
             LevelManager.addExperience(event.getPlayer(), scaledExperience(exp, ConfigManager.getProgressionExpMultiplier()));
             PlayerDataManager.save(event.getPlayer());
         }
+    }
+
+    private boolean applyCustomItemConsume(Player player, ItemStack stack) {
+        String id = CustomItemStackFactory.getCustomItemId(stack);
+        if (id == null) return false;
+        CustomItem item = ConfigManager.getItem(id);
+        if (item == null) return false;
+
+        double heal = item.getEffect("heal_amount", 0.0);
+        if (heal > 0.0) {
+            var maxHealth = player.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+            double maximum = maxHealth == null ? player.getHealth() : maxHealth.getValue();
+            player.setHealth(healedHealth(player.getHealth(), maximum, heal));
+        }
+        return true;
+    }
+
+    static double healedHealth(double current, double maximum, double amount) {
+        if (amount <= 0.0) return current;
+        return Math.min(maximum, current + amount);
+    }
+
+    private void applyVictimExplosion(Player player, LivingEntity victim) {
+        ItemStack hand = player.getInventory().getItemInMainHand();
+        CustomWeapon template = WeaponManager.getTemplate(hand);
+        WeaponInstanceData data = WeaponManager.getData(hand);
+        if (template == null || data == null) return;
+        double chance = data.getTotalEffect(template, "victim_explosion_chance", 0.0);
+        if (!shouldTriggerChance(chance, ThreadLocalRandom.current().nextDouble())) return;
+        victim.getWorld().createExplosion(victim.getLocation(), 2.0f, false, false, player);
+    }
+
+    static boolean shouldTriggerChance(double chance, double roll) {
+        double clamped = Math.max(0.0, Math.min(1.0, chance));
+        return roll < clamped;
+    }
+
+    static double damageWithBleedingBonus(double damage, boolean bleeding, double bonus) {
+        if (!bleeding || bonus <= 0.0) return damage;
+        return damage * (1.0 + bonus);
     }
 
     private boolean countsForMiningExperience(Material material) {

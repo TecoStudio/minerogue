@@ -11,6 +11,7 @@ import com.roguelike.item.CustomWeapon;
 import com.roguelike.item.WeaponInstanceData;
 import com.roguelike.util.DevLog;
 import com.roguelike.util.Message;
+import com.roguelike.weapon.affix.WeaponAffixManager;
 import com.roguelike.weapon.WeaponManager;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
@@ -115,7 +116,7 @@ public class TicketManager {
     }
 
     public static List<String> getEffectStatKeys() {
-        return AffixManager.weaponEffectIds();
+        return WeaponAffixManager.rollableEffectIds();
     }
 
     public static List<String> getAllStatKeys() {
@@ -130,6 +131,10 @@ public class TicketManager {
 
     public static String formatStatValue(String stat, double value) {
         return format(value, stat);
+    }
+
+    static boolean canDevelopWeaponAffix(CustomWeapon template, WeaponInstanceData data) {
+        return data != null && data.hasOpenRandomAffixSlot(template);
     }
 
     public static boolean applyTicket(Player player, ItemStack ticketStack, ItemStack weaponStack) {
@@ -322,7 +327,7 @@ public class TicketManager {
                 "&7失败加成: &f+" + formatPercent(choice.failBonus),
                 "&7可强化词条: &f" + choice.availableStats.size() + " 个",
                 "&7羊毛: 基础属性",
-                "&7陶瓦: 效果词条",
+                "&7陶瓦: 效果词条（按《死亡细胞》式状态/协同/击杀触发区分）",
                 "&7点击词条后立即尝试强化",
                 choice.guaranteed ? "&7超级强化不会失败" : "&7失败后下次成功率随机 +3% 到 +13%",
                 "&7成功后清空失败加成"
@@ -403,6 +408,10 @@ public class TicketManager {
         List<String> availableEffects = getAvailableEffects(template, data, weaponStack.getType());
         if (availableEffects.isEmpty()) {
             Message.send(player, "&c武器已经拥有所有可能的词条！");
+            return false;
+        }
+        if (!canDevelopWeaponAffix(template, data)) {
+            Message.send(player, "&c随机词条槽已满！请先使用移除券腾出槽位，或使用可突破限制的特殊武器。");
             return false;
         }
 
@@ -572,7 +581,7 @@ public class TicketManager {
 
     private static void setStatValue(CustomWeapon template, WeaponInstanceData data, String stat, double value) {
         switch (stat) {
-            case "damage" -> data.setDamageBonus(value - template.getBaseDamage());
+            case "damage" -> data.setDamageBonus(value - data.getScaledBaseDamage(template));
             case "attack_speed" -> data.setAttackSpeedBonus(value - template.getAttackSpeed());
             case "attack_range" -> data.setEffectBonus(stat, value - template.getEffect(stat, 3.0));
             default -> data.setEffectBonus(stat, value - template.getEffect(stat, 0.0));
@@ -800,6 +809,10 @@ public class TicketManager {
             List<String> availableEffects = getAvailableEffects(active.template, active.data, active.weapon.getType());
             if (availableEffects.isEmpty()) {
                 Message.send(player, "&c武器已经拥有所有可能的词条！");
+                return;
+            }
+            if (!canDevelopWeaponAffix(active.template, active.data)) {
+                Message.send(player, "&c随机词条槽已满！请先使用移除券腾出槽位，或使用可突破限制的特殊武器。");
                 return;
             }
 

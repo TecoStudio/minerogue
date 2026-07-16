@@ -27,6 +27,8 @@ public class ConfigManager {
     private static SkeletonEliteConfig skeletonEliteConfig = DefaultMobs.skeletonElite();
     private static ZombieEliteConfig zombieEliteConfig = DefaultMobs.zombieElite();
     private static SpiderEliteConfig spiderEliteConfig = DefaultMobs.spiderElite();
+    private static BossConfig conciergeBossConfig = DefaultMobs.conciergeBoss();
+    private static BossConfig timeKeeperBossConfig = DefaultMobs.timeKeeperBoss();
 
     private static final Map<String, CustomWeapon> weapons = new LinkedHashMap<>();
     private static final Map<String, CustomItem> items = new LinkedHashMap<>();
@@ -62,6 +64,8 @@ public class ConfigManager {
         skeletonEliteConfig = DefaultMobs.skeletonElite();
         zombieEliteConfig = DefaultMobs.zombieElite();
         spiderEliteConfig = DefaultMobs.spiderElite();
+        conciergeBossConfig = DefaultMobs.conciergeBoss();
+        timeKeeperBossConfig = DefaultMobs.timeKeeperBoss();
         skeletonEliteSpawnChance = skeletonEliteConfig.spawnChance();
         MobExperienceConfig.setDefaultExp(DefaultMobs.defaultExperience());
         DefaultMobs.experience().forEach(MobExperienceConfig::setMobExp);
@@ -90,8 +94,12 @@ public class ConfigManager {
         double speed = section.getDouble("attack-speed", 1.6);
         int durability = section.getInt("durability", 250);
         String rarity = section.getString("rarity", "common");
+        int bonusAffixSlots = Math.max(0, section.getInt("bonus-affix-slots", 0));
+        boolean allowOverflowAffixes = section.getBoolean("allow-overflow-affixes", "special".equalsIgnoreCase(rarity));
+        String legendaryAffix = section.getString("legendary-affix", "");
         Map<String, Double> effects = readDoubleMap(section.getConfigurationSection("effects"));
-        return new CustomWeapon(id, name, desc, item, damage, speed, durability, rarity, effects);
+        return new CustomWeapon(id, name, desc, item, damage, speed, durability, rarity, effects,
+                bonusAffixSlots, allowOverflowAffixes, legendaryAffix);
     }
 
     private static void loadItems() {
@@ -109,12 +117,18 @@ public class ConfigManager {
 
     private static CustomItem parseItem(String id, ConfigurationSection section) {
         if (section == null) return DefaultItems.create().get(id.toLowerCase());
+        String type = section.getString("item-type", "misc");
+        String item = section.getString("item", defaultItemMaterial(type));
         String name = section.getString("name", id);
         String desc = section.getString("description", "");
-        String type = section.getString("item-type", "misc");
         String rarity = section.getString("rarity", "common");
         Map<String, Double> effects = readDoubleMap(section.getConfigurationSection("effects"));
-        return new CustomItem(id, name, desc, type, rarity, effects);
+        return new CustomItem(id, item, name, desc, type, rarity, effects);
+    }
+
+    private static String defaultItemMaterial(String itemType) {
+        if ("potion".equalsIgnoreCase(itemType) || "tonic".equalsIgnoreCase(itemType)) return "minecraft:potion";
+        return "minecraft:paper";
     }
 
     private static void loadMobs() {
@@ -123,6 +137,8 @@ public class ConfigManager {
         skeletonEliteConfig = parseSkeletonEliteConfig(config.getConfigurationSection("internal.skeleton-elite"));
         zombieEliteConfig = parseZombieEliteConfig(config.getConfigurationSection("internal.zombie-elite"));
         spiderEliteConfig = parseSpiderEliteConfig(config.getConfigurationSection("internal.spider-elite"));
+        conciergeBossConfig = parseBossConfig(config.getConfigurationSection("internal.concierge-boss"), conciergeBossConfig);
+        timeKeeperBossConfig = parseBossConfig(config.getConfigurationSection("internal.time-keeper-boss"), timeKeeperBossConfig);
         skeletonEliteSpawnChance = skeletonEliteConfig.spawnChance();
         MobExperienceConfig.setDefaultExp(config.getInt("default-experience", MobExperienceConfig.getDefaultExp()));
         ConfigurationSection experience = config.getConfigurationSection("experience");
@@ -202,6 +218,21 @@ public class ConfigManager {
         );
     }
 
+    private static BossConfig parseBossConfig(ConfigurationSection section, BossConfig defaults) {
+        if (section == null) return defaults;
+        return new BossConfig(
+                section.getBoolean("enabled", defaults.enabled()),
+                section.getString("name", defaults.name()),
+                Math.max(1.0, section.getDouble("health", defaults.health())),
+                Math.max(0.0, section.getDouble("damage", defaults.damage())),
+                Math.max(0.0, section.getDouble("speed-multiplier", defaults.speedMultiplier())),
+                Math.max(0.0, section.getDouble("detect-range", defaults.detectRange())),
+                Math.max(0.0, section.getDouble("skill-range", defaults.skillRange())),
+                Math.max(1L, section.getLong("skill-cooldown-ticks", defaults.skillCooldownTicks())),
+                Math.max(0.0, section.getDouble("skill-damage", defaults.skillDamage()))
+        );
+    }
+
     private static Map<String, Double> readDoubleMap(ConfigurationSection section) {
         Map<String, Double> values = new LinkedHashMap<>();
         if (section == null) return values;
@@ -273,6 +304,9 @@ public class ConfigManager {
             config.set(path + "attack-speed", weapon.getAttackSpeed());
             config.set(path + "durability", weapon.getDurability());
             config.set(path + "rarity", weapon.getRarity());
+            if (weapon.getBonusAffixSlots() > 0) config.set(path + "bonus-affix-slots", weapon.getBonusAffixSlots());
+            if (weapon.allowsOverflowAffixes()) config.set(path + "allow-overflow-affixes", true);
+            if (!weapon.getLegendaryAffix().isBlank()) config.set(path + "legendary-affix", weapon.getLegendaryAffix());
             weapon.getEffects().forEach((key, value) -> config.set(path + "effects." + key, value));
         }
         saveYaml(config, file);
@@ -283,6 +317,7 @@ public class ConfigManager {
         config.options().header("Roguelike 物品配置。修改后使用 /rw reload 重载。");
         for (CustomItem item : source.values()) {
             String path = "items." + item.getId() + ".";
+            config.set(path + "item", item.getItem());
             config.set(path + "name", item.getName());
             config.set(path + "description", item.getDescription());
             config.set(path + "item-type", item.getItemType());
@@ -300,13 +335,19 @@ public class ConfigManager {
                 概率字段使用 0.0 - 1.0：0.12 = 12%，0.35 = 35%。
                 药水等级字段使用游戏内显示等级：1 = I，2 = II，3 = III。
                 MythicMobs 集成开启时，本插件内置怪物不会自然生成。
-                /rw monster spawn 只生成插件自定义怪物，例如 skeleton_elite、zombie_elite、spider_elite。
+                /rw monster spawn 只生成插件自定义怪物，例如 skeleton_elite、zombie_elite、spider_elite、concierge_boss、time_keeper_boss。
                 """);
         config.setComments("internal", List.of("是否启用本插件内置怪物系统。"));
         config.set("internal.enabled", internalMonsterSystemEnabled);
         saveSkeletonEliteConfig(config, "internal.skeleton-elite", skeletonEliteConfig);
         saveZombieEliteConfig(config, "internal.zombie-elite", zombieEliteConfig);
         saveSpiderEliteConfig(config, "internal.spider-elite", spiderEliteConfig);
+        saveBossConfig(config, "internal.concierge-boss", conciergeBossConfig,
+                "看守者 Boss：参考死亡细胞 Concierge，重甲近战，跃击接范围震地。",
+                "震地范围。范围内目标受到伤害并被击退。");
+        saveBossConfig(config, "internal.time-keeper-boss", timeKeeperBossConfig,
+                "时光守护者 Boss：参考死亡细胞 Time Keeper，瞬移背刺，范围刀阵附加缓慢。",
+                "刀阵范围。范围内目标受到伤害并被缓慢。");
         config.set("default-experience", MobExperienceConfig.getDefaultExp());
         MobExperienceConfig.getAllMobExp().forEach((key, value) -> config.set("experience." + key, value));
         mobs.forEach((key, value) -> {
@@ -385,6 +426,28 @@ public class ConfigManager {
         config.set(path + ".slow-duration-seconds", value.slowDurationSeconds());
         config.setComments(path + ".slow-level", List.of("缓慢等级，按游戏内显示填写：1 = 缓慢 I，2 = 缓慢 II。"));
         config.set(path + ".slow-level", value.slowLevel());
+    }
+
+    private static void saveBossConfig(YamlConfiguration config, String path, BossConfig value, String title, String skillRangeComment) {
+        config.setComments(path, List.of(title, "Boss 不会自然生成，可用 /rw monster spawn <id> 生成。名称默认不强制显示，避免隔墙看到名字。"));
+        config.setComments(path + ".enabled", List.of("是否启用该 Boss。"));
+        config.set(path + ".enabled", value.enabled());
+        config.setComments(path + ".name", List.of("Boss 显示名，支持 & 颜色代码。"));
+        config.set(path + ".name", value.name());
+        config.setComments(path + ".health", List.of("最大生命值。"));
+        config.set(path + ".health", value.health());
+        config.setComments(path + ".damage", List.of("基础近战伤害。"));
+        config.set(path + ".damage", value.damage());
+        config.setComments(path + ".speed-multiplier", List.of("移动速度倍率。"));
+        config.set(path + ".speed-multiplier", value.speedMultiplier());
+        config.setComments(path + ".detect-range", List.of("索敌和主动技能检测距离。"));
+        config.set(path + ".detect-range", value.detectRange());
+        config.setComments(path + ".skill-range", List.of(skillRangeComment));
+        config.set(path + ".skill-range", value.skillRange());
+        config.setComments(path + ".skill-cooldown-ticks", List.of("核心技能冷却，20 tick = 1 秒。"));
+        config.set(path + ".skill-cooldown-ticks", value.skillCooldownTicks());
+        config.setComments(path + ".skill-damage", List.of("核心技能伤害。"));
+        config.set(path + ".skill-damage", value.skillDamage());
     }
 
     private static void saveYaml(YamlConfiguration config, File file) throws IOException {
@@ -473,6 +536,14 @@ public class ConfigManager {
         return spiderEliteConfig;
     }
 
+    public static BossConfig getConciergeBossConfig() {
+        return conciergeBossConfig;
+    }
+
+    public static BossConfig getTimeKeeperBossConfig() {
+        return timeKeeperBossConfig;
+    }
+
     public static RoguelikePlugin getPlugin() {
         return plugin;
     }
@@ -494,5 +565,9 @@ public class ConfigManager {
     public record SpiderEliteConfig(boolean enabled, double spawnChance, String name, double health,
                                     double speedMultiplier, double slowChance, double slowDurationSeconds,
                                     int slowLevel) {
+    }
+
+    public record BossConfig(boolean enabled, String name, double health, double damage, double speedMultiplier,
+                             double detectRange, double skillRange, long skillCooldownTicks, double skillDamage) {
     }
 }

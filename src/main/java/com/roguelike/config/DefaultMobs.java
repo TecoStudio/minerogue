@@ -66,6 +66,34 @@ public final class DefaultMobs {
         );
     }
 
+    public static ConfigManager.BossConfig conciergeBoss() {
+        return new ConfigManager.BossConfig(
+                true,
+                "&4看守者",
+                180.0,
+                9.0,
+                0.95,
+                24.0,
+                5.0,
+                120L,
+                8.0
+        );
+    }
+
+    public static ConfigManager.BossConfig timeKeeperBoss() {
+        return new ConfigManager.BossConfig(
+                true,
+                "&5时光守护者",
+                150.0,
+                7.0,
+                1.25,
+                26.0,
+                4.5,
+                90L,
+                6.0
+        );
+    }
+
     public static Map<String, Integer> experience() {
         Map<String, Integer> experience = new LinkedHashMap<>();
         experience.put("zombie", 15);
@@ -81,6 +109,11 @@ public final class DefaultMobs {
     }
 
     public static Map<String, ConfigManager.MobConfig> modifiers() {
-        return new LinkedHashMap<>();
+        Map<String, ConfigManager.MobConfig> modifiers = new LinkedHashMap<>();
+        modifiers.put("husk", new ConfigManager.MobConfig(1.25, 1.10, 0.95, "frost_cleaver"));
+        modifiers.put("drowned", new ConfigManager.MobConfig(1.10, 1.05, 1.05, "storm_spear"));
+        modifiers.put("pillager", new ConfigManager.MobConfig(1.15, 1.15, 1.00, "echo_blade"));
+        modifiers.put("zombified_piglin", new ConfigManager.MobConfig(1.20, 1.20, 1.05, "plague_saber"));
+        return modifiers;
     }
 }

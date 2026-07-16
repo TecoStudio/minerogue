@@ -7,6 +7,7 @@ import com.roguelike.equipment.affix.AffixManager;
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.item.WeaponInstanceData;
 import com.roguelike.util.Message;
+import com.roguelike.weapon.affix.WeaponAffixManager;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -150,6 +151,14 @@ public class WeaponManager {
             lore.add(Message.toComponent("§7" + template.getDescription()));
         }
         lore.add(Message.toComponent("§7─────────────────"));
+        lore.add(Message.toComponent("§7等级: §f" + toRoman(data.getGearLevel()) + qualitySuffix(data.getQuality())
+                + " §7强度: §f" + data.getGearPower()
+                + " §7随机词条: §f" + data.getRandomAffixCount() + "/" + data.getRandomAffixSlotLimit(template)
+                + (template.allowsOverflowAffixes() ? " §d可突破" : "")));
+        if (data.isOverflowingRandomAffixSlots(template)) {
+            lore.add(Message.toComponent("§d遗留/特殊超槽: §f" + data.getRandomAffixCount() + "/" + data.getRandomAffixSlotLimit(template)));
+        }
+        lore.add(Message.toComponent("§7─────────────────"));
 
         double totalDamage = data.getTotalDamage(template);
         double totalSpeed = data.getTotalAttackSpeed(template);
@@ -161,6 +170,7 @@ public class WeaponManager {
         lore.add(Message.toComponent("§b⚡ 攻击速度: §f" + format(totalSpeed, 2)));
         lore.add(Message.toComponent("§e⬛ 攻击距离: §f" + format(totalRange, 1) + "格"));
         lore.add(Message.toComponent("§7─────────────────"));
+        lore.add(Message.toComponent("§7流派: " + formatScalingTags(WeaponAffixManager.scalingTags(template, data))));
 
         appendEffectLore(lore, template, data);
 
@@ -211,6 +221,19 @@ public class WeaponManager {
 
     private static void appendEffectLore(List<Component> lore, CustomWeapon template, WeaponInstanceData data) {
         AffixManager.appendWeaponLore(lore, template, data);
+    }
+
+    private static String formatScalingTags(List<String> tags) {
+        List<String> colored = new ArrayList<>();
+        for (String tag : tags) {
+            colored.add(switch (tag) {
+                case "暴虐" -> "§c暴虐";
+                case "战术" -> "§b战术";
+                case "生存" -> "§a生存";
+                default -> "§f" + tag;
+            });
+        }
+        return String.join("§7 / ", colored);
     }
 
     private static void appendVanillaEnchantLore(List<Component> lore, ItemMeta meta) {
@@ -415,6 +438,16 @@ public class WeaponManager {
 
     public static String format(double value, int decimals) {
         return String.format("%." + decimals + "f", value);
+    }
+
+    private static String qualitySuffix(String quality) {
+        return switch (quality == null ? "base" : quality.toLowerCase(Locale.ROOT)) {
+            case "plus" -> "+";
+            case "plusplus" -> "++";
+            case "s" -> "S";
+            case "legendary" -> "L";
+            default -> "";
+        };
     }
 
     public static List<String> getModifiableStats(CustomWeapon template, WeaponInstanceData data) {

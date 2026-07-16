@@ -55,7 +55,7 @@ public class SpiderEliteMob implements InternalMob {
     private void apply(Spider spider, ConfigManager.SpiderEliteConfig config) {
         spider.getPersistentDataContainer().set(mobKey, PersistentDataType.STRING, ID);
         spider.customName(Message.toComponent(config.name()));
-        spider.setCustomNameVisible(true);
+        spider.setCustomNameVisible(false);
         spider.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, PotionEffect.INFINITE_DURATION, 0, false, false));
 
         var health = spider.getAttribute(Attribute.MAX_HEALTH);

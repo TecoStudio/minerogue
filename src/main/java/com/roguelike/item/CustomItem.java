@@ -5,14 +5,16 @@ import java.util.Map;
 
 public class CustomItem {
     private final String id;
+    private final String item;
     private final String name;
     private final String description;
     private final String itemType;
     private final String rarity;
     private final Map<String, Double> effects;
 
-    public CustomItem(String id, String name, String description, String itemType, String rarity, Map<String, Double> effects) {
+    public CustomItem(String id, String item, String name, String description, String itemType, String rarity, Map<String, Double> effects) {
         this.id = id;
+        this.item = item;
         this.name = name;
         this.description = description;
         this.itemType = itemType;
@@ -22,6 +24,10 @@ public class CustomItem {
 
     public String getId() {
         return id;
+    }
+
+    public String getItem() {
+        return item;
     }
 
     public String getName() {
