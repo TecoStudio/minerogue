@@ -83,11 +83,11 @@ Important local settings normally used for smoke tests:
 - `simulation-distance=10`
 - `spawn-protection=16`
 
-The RCON password is stored only in ignored local `server/server.properties`. Read it from that file when needed; do not copy it into tracked files.
+The user manually starts and stops the local server. Agents must not start, stop, restart, kill, or otherwise control the Paper server process unless the user explicitly asks in that turn.
 
-If `server/server.properties` is missing or regenerated, configure the keys above before running automated smoke tests. Keep `rcon.password` local-only and never paste it into tracked files, logs, docs, or commit messages.
+The RCON password is stored only in ignored local `server/server.properties`. Do not copy it into tracked files, logs, docs, or commit messages. Prefer not to use RCON when the user is manually operating the server.
 
-## Deploy And Start Server
+## Deploy And Hot Reload
 
 From the repository root, build first:
 
@@ -95,34 +95,30 @@ From the repository root, build first:
 .\gradlew.bat build
 ```
 
-Then start the local server through the server script if it exists:
+The user has installed PlugManX for local hot-reload testing. After a successful build, ask the user to copy or deploy the newest `build/libs/minerogue-*.jar` into `server/plugins` and run the server manually if it is not already running.
 
-```powershell
-Push-Location -LiteralPath ".\server"
-.\start.bat
-Pop-Location
+Use PlugManX for manual in-server reload checks. Suggested console or in-game commands:
+
+```text
+plugman reload Roguelike
+plugins
+rw reload
 ```
 
-`server/start.bat` is expected to copy the newest `build/libs/minerogue-*.jar` into `server/plugins`, verify the SHA256 hash, then start `server.jar` in the foreground.
+If PlugManX command syntax differs on the installed version, use its help command and adapt only the command spelling, not the test intent.
 
-Expected startup evidence in console or `server/logs/latest.log`:
+Expected hot-reload evidence in console or `server/logs/latest.log`:
 
 ```text
 [Roguelike] Enabling Roguelike v1.0.0
 [Roguelike] Roguelike plugin enabled.
-RCON running on 127.0.0.1:25575
-Done (...s)! For help, type "help"
 ```
 
-Because the server is a long-running process, stop it cleanly with:
-
-```text
-stop
-```
+Do not use `server/start.bat`, `java -jar server.jar`, RCON `stop`, task killing, or process-control commands as part of normal verification. Server lifecycle is user-operated.
 
 ## Manual In-Game Smoke Tests
 
-After the server reaches `Done`, connect a local client or bot to:
+After the user confirms the server is running and the plugin has been hot-reloaded, connect a local client or bot to:
 
 ```text
 127.0.0.1:25565
@@ -150,14 +146,14 @@ When testing player-facing behavior, verify both chat output and server log erro
 
 ## Future Automation Direction
 
-Preferred local automation path:
+Preferred local verification path:
 
 1. Build with `./gradlew.bat build`.
-2. Deploy the newest `minerogue-*.jar` through `server/start.bat` or a dedicated smoke script.
-3. Wait for `Done (` in `server/logs/latest.log`.
-4. Use RCON for server commands such as `plugins`, `list`, `/rw reload`, and setup commands.
-5. Use a Minecraft bot for true in-game actions such as joining, chatting, moving, mining, eating, attacking, opening GUIs, and checking inventory.
-6. Stop the server cleanly through RCON or console `stop`.
+2. Have the user deploy the newest `minerogue-*.jar` into `server/plugins`.
+3. Have the user run or keep running the local server.
+4. Use PlugManX manual commands such as `plugman reload Roguelike`, `plugins`, and `/rw reload` to verify plugin reload behavior.
+5. Use a Minecraft client or bot only when the user has the server running and the test requires true in-game actions such as joining, chatting, moving, mining, eating, attacking, opening GUIs, and checking inventory.
+6. Ask the user to stop the server when needed; do not stop it yourself.
 
 Do not introduce external hosting for tests unless the user explicitly asks. Keep all game tests local and reproducible.
 
@@ -167,7 +163,7 @@ Before reporting completion after code changes:
 
 - Run `./gradlew.bat build`.
 - If build script behavior changed, run `tests/build-script-check.ps1`.
-- If plugin runtime behavior changed, start `server/start.bat` and confirm the plugin enables.
-- For gameplay changes, perform an in-game or bot/RCON smoke test that exercises the changed feature.
-- Check `server/logs/latest.log` for exceptions or plugin errors.
+- If plugin runtime behavior changed, ask the user to run the server and hot-reload `Roguelike` with PlugManX, then confirm the plugin enables.
+- For gameplay changes, perform or request an in-game/client/bot smoke test that exercises the changed feature on the user-run server.
+- Ask the user to check `server/logs/latest.log` or paste relevant errors if the server log is needed; do not rely on direct server process control.
 - Confirm no ignored `server/` files or secrets are staged.
