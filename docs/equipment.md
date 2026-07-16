@@ -9,6 +9,12 @@
 | wooden_sword        | 木剑       | minecraft:wooden_sword    |    4 |  1.6 |   59 | common    | 攻击距离 3.0，暴击率 5%，暴击倍率 1.5                                                              |
 | flame_sword         | 烈焰之剑   | minecraft:diamond_sword   |   10 |  1.4 |  800 | epic      | 攻击距离 3.2，火焰伤害 4，燃烧 3 秒，暴击率 10%，暴击倍率 1.75                                     |
 | vampire_dagger      | 吸血匕首   | minecraft:iron_sword      |    5 |  2.4 |  600 | rare      | 攻击距离 2.8，吸血 15%，暴击率 8%，暴击倍率 1.6                                                    |
+| ember_knife         | 余烬短刃   | minecraft:stone_sword     |    5 |  2.0 |  180 | common    | 攻击距离 2.7，火焰伤害 2，燃烧 2 秒，暴击率 8%                                                     |
+| frost_cleaver       | 霜裂斧     | minecraft:iron_axe        |   11 |  0.9 |  520 | rare      | 攻击距离 3.0，减速 2.5 秒，减速等级 1，暴击倍率 1.8                                                |
+| storm_spear         | 风暴长矛   | minecraft:trident         |    8 |  1.2 |  650 | rare      | 攻击距离 4.0，雷电概率 10%，暴击率 8%                                                              |
+| plague_saber        | 疫毒军刀   | minecraft:golden_sword    |    9 |  1.5 |  500 | epic      | 攻击距离 3.0，中毒概率 35%，中毒目标增伤 30%，暴击率 12%，暴击倍率 1.7                             |
+| echo_blade          | 回响之刃   | minecraft:diamond_sword   |   10 |  1.3 |  900 | epic      | 攻击距离 3.2，连锁 4 目标，范围 3.5，连锁伤害 45%，暴击率 10%                                      |
+| glass_cannon_hammer | 玻璃重锤   | minecraft:netherite_axe   |   20 |  0.7 | 1600 | legendary | 攻击距离 3.1，暴击率 20%，暴击倍率 2.4，伤害储存 20%，储存触发次数减少 4                           |
 | thunder_axe         | 雷霆战斧   | minecraft:diamond_axe     |   14 |  0.9 | 1200 | legendary | 攻击距离 3.0，雷电概率 15%，暴击率 12%，暴击倍率 2.0                                               |
 | whirlwind_blade     | 旋风之刃   | minecraft:iron_sword      |    9 |  1.3 | 1000 | epic      | 攻击距离 3.1，连锁 3 目标，范围 3.0，连锁伤害 50%，暴击率 10%                                      |
 | inferno_greatsword  | 炼狱巨剑   | minecraft:netherite_sword |   18 |  0.8 | 2000 | legendary | 攻击距离 3.5，火焰伤害 6，燃烧 4 秒，连锁 4 目标，范围 4.0，连锁伤害 40%，暴击率 15%，暴击倍率 2.0 |
@@ -23,9 +29,14 @@
 
 ## 内置物品
 
-| ID             | 名称     | 类型   | 品质   | 效果           |
-| -------------- | -------- | ------ | ------ | -------------- |
-| healing_potion | 治疗药水 | potion | common | heal_amount 10 |
+| ID                     | 名称         | 物品             | 类型   | 品质   | 效果                                     |
+| ---------------------- | ------------ | ---------------- | ------ | ------ | ---------------------------------------- |
+| healing_potion         | 治疗药水     | minecraft:potion | potion | common | heal_amount 10                           |
+| greater_healing_potion | 强效治疗药水 | minecraft:potion | potion | rare   | heal_amount 20                           |
+| swift_tonic            | 迅捷药剂     | minecraft:potion | tonic  | rare   | speed_level 1，duration_seconds 12       |
+| iron_skin_tonic        | 铁肤药剂     | minecraft:potion | tonic  | epic   | resistance_level 1，duration_seconds 10  |
+
+内置物品当前作为可发放和可配置模板保存。`/rw give item` 会按 `item` 字段创建对应材质；药水和药剂模板默认显示为药水物品，并在 lore 或药水元数据中呈现配置效果。
 
 ## 防具套装
 

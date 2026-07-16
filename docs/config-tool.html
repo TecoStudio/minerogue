@@ -1,0 +1,1248 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Roguelike 配置片段助手</title>
+  <style>
+    :root {
+      --color-bg: #101318;
+      --color-bg-deep: #0b0d11;
+      --color-bg-soft: #171b22;
+      --color-bg-code: #0b0f14;
+      --color-surface: #20262f;
+      --color-surface-raised: #29313d;
+      --color-surface-glass: rgba(23, 27, 34, 0.84);
+      --color-surface-card: rgba(32, 38, 47, 0.86);
+      --color-surface-panel: rgba(16, 19, 24, 0.72);
+      --color-surface-control: rgba(16, 19, 24, 0.78);
+      --color-surface-control-focus: rgba(16, 19, 24, 0.94);
+      --color-surface-nav: rgba(16, 19, 24, 0.88);
+      --color-surface-hover: rgba(255, 255, 255, 0.06);
+      --color-surface-button: rgba(255, 255, 255, 0.04);
+      --color-line: #3b4655;
+      --color-line-strong: #516073;
+      --color-text: #f3efe5;
+      --color-text-inverse: #17110a;
+      --color-text-muted: #c4bcaa;
+      --color-text-soft: #918877;
+      --color-code-text: #f4dfb5;
+      --color-accent: #d8a84f;
+      --color-accent-strong: #f0c66c;
+      --color-accent-muted: #6c542c;
+      --color-accent-aura: rgba(216, 168, 79, 0.20);
+      --color-accent-aura-soft: rgba(216, 168, 79, 0.14);
+      --color-accent-line: rgba(216, 168, 79, 0.18);
+      --color-accent-surface: rgba(216, 168, 79, 0.08);
+      --color-accent-focus: rgba(216, 168, 79, 0.18);
+      --color-hero-start: rgba(35, 43, 54, 0.96);
+      --color-danger: #ee7f74;
+      --color-warning: #e8b45d;
+      --color-success: #83c985;
+      --radius-sm: 6px;
+      --radius-md: 12px;
+      --radius-lg: 20px;
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 24px;
+      --space-6: 32px;
+      --space-7: 48px;
+      --shadow-raised: 0 24px 70px rgba(0, 0, 0, 0.34);
+      --shadow-soft: 0 12px 34px rgba(0, 0, 0, 0.22);
+      --font-ui: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", system-ui, sans-serif;
+      --font-mono: "Cascadia Mono", "Microsoft YaHei Mono", Consolas, monospace;
+      --duration-fast: 150ms;
+      --duration-base: 220ms;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-height: 100%;
+      background: var(--color-bg);
+      color: var(--color-text);
+      font-family: var(--font-ui);
+      line-height: 1.6;
+    }
+
+    body {
+      min-height: 100%;
+      margin: 0;
+      background:
+        radial-gradient(circle at top left, var(--color-accent-aura), transparent 36rem),
+        linear-gradient(135deg, var(--color-hero-start), var(--color-bg) 46%, var(--color-bg-deep));
+    }
+
+    a {
+      color: var(--color-accent-strong);
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    .page {
+      width: min(1180px, calc(100% - var(--space-5) * 2));
+      margin: 0 auto;
+      padding: var(--space-7) 0;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.6fr);
+      gap: var(--space-5);
+      align-items: stretch;
+      margin-bottom: var(--space-6);
+    }
+
+    .hero-main,
+    .hero-side,
+    .panel {
+      border: 1px solid var(--color-line);
+      border-radius: var(--radius-lg);
+      background: var(--color-surface-glass);
+      box-shadow: var(--shadow-raised);
+      backdrop-filter: blur(14px);
+    }
+
+    .hero-main {
+      padding: var(--space-6);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-main::after {
+      content: "";
+      position: absolute;
+      right: var(--space-6);
+      bottom: var(--space-6);
+      width: 11rem;
+      height: 11rem;
+      border: 1px solid var(--color-accent-line);
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--color-accent-aura-soft), transparent 62%);
+      pointer-events: none;
+    }
+
+    .hero-side {
+      padding: var(--space-5);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      margin: 0 0 var(--space-3);
+      color: var(--color-accent-strong);
+      font-size: 0.84rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 28px;
+      height: 2px;
+      border-radius: var(--radius-sm);
+      background: var(--color-accent);
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin: 0;
+      line-height: 1.2;
+    }
+
+    h1 {
+      max-width: 760px;
+      font-size: clamp(2.15rem, 6vw, 4.35rem);
+      letter-spacing: -0.06em;
+    }
+
+    h2 {
+      font-size: clamp(1.35rem, 3vw, 2rem);
+      letter-spacing: -0.03em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      color: var(--color-text);
+    }
+
+    .lead {
+      max-width: 760px;
+      margin: var(--space-4) 0 0;
+      color: var(--color-text-muted);
+      font-size: 1.04rem;
+    }
+
+    .note-list {
+      display: grid;
+      gap: var(--space-3);
+      margin: var(--space-4) 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .note-list li {
+      padding: var(--space-3);
+      border: 1px solid var(--color-accent-line);
+      border-radius: var(--radius-md);
+      background: var(--color-accent-surface);
+      color: var(--color-text-muted);
+    }
+
+    .tabs {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: var(--space-2);
+      margin-bottom: var(--space-5);
+      padding: var(--space-2);
+      border: 1px solid var(--color-line);
+      border-radius: var(--radius-lg);
+      background: var(--color-surface-nav);
+      backdrop-filter: blur(14px);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .tab-button,
+    .primary-button,
+    .ghost-button,
+    .preset-button {
+      border: 0;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: transform var(--duration-fast) ease, background var(--duration-fast) ease, border-color var(--duration-fast) ease, color var(--duration-fast) ease;
+    }
+
+    .tab-button {
+      min-height: 48px;
+      padding: var(--space-3) var(--space-4);
+      background: transparent;
+      color: var(--color-text-muted);
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .tab-button:hover,
+    .tab-button:focus-visible {
+      background: var(--color-surface-hover);
+      color: var(--color-text);
+      outline: none;
+    }
+
+      .tab-button[aria-selected="true"] {
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+    }
+
+    .panel {
+      display: none;
+      padding: var(--space-5);
+      margin-bottom: var(--space-5);
+    }
+
+    .panel.is-active {
+      display: block;
+    }
+
+    .panel-header {
+      display: grid;
+      gap: var(--space-2);
+      margin-bottom: var(--space-5);
+    }
+
+    .panel-header p {
+      max-width: 760px;
+      margin: 0;
+      color: var(--color-text-muted);
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 0.95fr) minmax(360px, 1.05fr);
+      gap: var(--space-5);
+      align-items: start;
+    }
+
+    .form-card,
+    .output-card {
+      border: 1px solid var(--color-line);
+      border-radius: var(--radius-lg);
+      background: var(--color-surface-card);
+      overflow: hidden;
+    }
+
+    .card-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+      padding: var(--space-4) var(--space-4) 0;
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--space-4);
+      padding: var(--space-4);
+    }
+
+    .field-grid .wide {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      display: grid;
+      gap: var(--space-2);
+      color: var(--color-text-muted);
+      font-size: 0.92rem;
+      font-weight: 700;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--color-line);
+      border-radius: var(--radius-md);
+      background: var(--color-surface-control);
+      color: var(--color-text);
+      outline: none;
+      transition: border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease, background var(--duration-fast) ease;
+    }
+
+    input,
+    select {
+      min-height: 44px;
+      padding: 0 var(--space-3);
+    }
+
+    textarea {
+      min-height: 118px;
+      padding: var(--space-3);
+      resize: vertical;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px var(--color-accent-focus);
+      background: var(--color-surface-control-focus);
+    }
+
+    .hint {
+      color: var(--color-text-soft);
+      font-size: 0.82rem;
+      font-weight: 500;
+    }
+
+    .preset-row,
+    .action-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      padding: 0 var(--space-4) var(--space-4);
+    }
+
+    .preset-button,
+    .ghost-button {
+      border: 1px solid var(--color-line);
+      background: var(--color-surface-button);
+      color: var(--color-text-muted);
+    }
+
+    .preset-button {
+      padding: var(--space-2) var(--space-3);
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    .ghost-button,
+    .primary-button {
+      min-height: 42px;
+      padding: 0 var(--space-4);
+      font-weight: 800;
+    }
+
+      .primary-button {
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+    }
+
+    .preset-button:hover,
+    .preset-button:focus-visible,
+    .ghost-button:hover,
+    .ghost-button:focus-visible {
+      border-color: var(--color-accent);
+      color: var(--color-text);
+      transform: translateY(-1px);
+      outline: none;
+    }
+
+    .primary-button:hover,
+    .primary-button:focus-visible {
+      background: var(--color-accent-strong);
+      transform: translateY(-1px);
+      outline: none;
+    }
+
+    .output-card {
+      position: sticky;
+      top: 86px;
+    }
+
+    .output-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+      padding: var(--space-4);
+      border-bottom: 1px solid var(--color-line);
+    }
+
+    .output-toolbar span {
+      color: var(--color-text-muted);
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    pre {
+      min-height: 420px;
+      max-height: 620px;
+      margin: 0;
+      padding: var(--space-4);
+      overflow: auto;
+      background: var(--color-bg-code);
+      color: var(--color-code-text);
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      line-height: 1.55;
+      white-space: pre;
+    }
+
+    .warnings {
+      display: grid;
+      gap: var(--space-2);
+      min-height: 36px;
+      margin: 0;
+      padding: var(--space-4);
+      border-top: 1px solid var(--color-line);
+      color: var(--color-warning);
+      list-style: none;
+    }
+
+    .warnings:empty::before {
+      content: "校验通过，片段可复制。";
+      color: var(--color-success);
+      font-weight: 700;
+    }
+
+    .status-line {
+      min-height: 22px;
+      color: var(--color-success);
+      font-size: 0.86rem;
+      font-weight: 700;
+    }
+
+    .footer-note {
+      margin-top: var(--space-6);
+      padding: var(--space-4);
+      border: 1px solid var(--color-line);
+      border-radius: var(--radius-lg);
+      background: var(--color-surface-panel);
+      color: var(--color-text-muted);
+    }
+
+    @media (max-width: 900px) {
+      .page {
+        width: min(100% - var(--space-4) * 2, 720px);
+        padding: var(--space-5) 0;
+      }
+
+      .hero,
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+
+      .tabs {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .output-card {
+        position: static;
+      }
+
+      pre {
+        min-height: 320px;
+      }
+    }
+
+    @media (max-width: 580px) {
+      .page {
+        width: min(100% - var(--space-3) * 2, 520px);
+      }
+
+      .hero-main,
+      .hero-side,
+      .panel {
+        padding: var(--space-4);
+        border-radius: var(--radius-md);
+      }
+
+      .field-grid {
+        grid-template-columns: 1fr;
+        padding: var(--space-3);
+      }
+
+      .tabs {
+        position: static;
+        grid-template-columns: 1fr;
+      }
+
+      .card-title,
+      .output-toolbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero" aria-labelledby="page-title">
+      <div class="hero-main">
+        <p class="eyebrow">Roguelike YAML Helper</p>
+        <h1 id="page-title">配置片段助手</h1>
+        <p class="lead">这是一个静态页面，直接双击打开即可使用。填写字段后复制生成的 YAML 片段，放入对应的 <code>plugins/Roguelike/&lt;file&gt;.yml</code>，再在用户自己运行的服务器中执行 <code>/rw reload</code> 或用 PlugManX 重载 Roguelike。</p>
+      </div>
+      <aside class="hero-side" aria-label="使用提示">
+        <h2>使用顺序</h2>
+        <ul class="note-list">
+          <li>先选模板，再改字段和效果。</li>
+          <li>只复制当前片段到对应文件；相同 ID 会覆盖已有模板。</li>
+          <li>概率使用 0.0-1.0，例如 0.12 表示 12%。</li>
+        </ul>
+      </aside>
+    </section>
+
+    <nav class="tabs" aria-label="配置类型">
+      <button class="tab-button" type="button" data-tab="weapon" aria-selected="true">武器模板</button>
+      <button class="tab-button" type="button" data-tab="item" aria-selected="false">物品模板</button>
+      <button class="tab-button" type="button" data-tab="elite" aria-selected="false">精英怪 / Boss 难度</button>
+      <button class="tab-button" type="button" data-tab="modifier" aria-selected="false">普通怪物词条/难度</button>
+    </nav>
+
+    <section class="panel is-active" id="panel-weapon" aria-labelledby="weapon-title">
+      <div class="panel-header">
+        <h2 id="weapon-title">武器模板</h2>
+        <p>生成 `weapons.<id>` 片段。效果字段会原样写入 `effects`，常见键包括 `attack_range`、`crit_chance`、`crit_damage`、`lifesteal_percent`、`fire_damage`、`fire_duration`、`slow_duration`、`slow_level`、`chain_targets`、`chain_range`、`chain_damage_percent`、`lightning_chance`、`poison_chance`、`poisoned_target_damage_percent`、`dash`、`hyper`。</p>
+      </div>
+      <div class="workspace">
+        <form class="form-card config-form" data-kind="weapon" autocomplete="off">
+          <div class="card-title">
+            <h3>基础字段</h3>
+            <span class="hint">目标文件：weapons.yml</span>
+          </div>
+          <div class="field-grid">
+            <label>ID
+              <input name="id" value="frost_training_blade" data-rule="id" required>
+              <span class="hint">只使用小写字母、数字、下划线或连字符。</span>
+            </label>
+            <label>item
+              <input name="item" value="minecraft:iron_sword" required>
+            </label>
+            <label>name
+              <input name="name" value="霜训短剑" required>
+            </label>
+            <label>rarity
+              <select name="rarity">
+                <option>common</option>
+                <option selected>rare</option>
+                <option>epic</option>
+                <option>legendary</option>
+                <option>special</option>
+              </select>
+            </label>
+            <label class="wide">description
+              <input name="description" value="用于调整战斗节奏的练习武器">
+            </label>
+            <label>base-damage
+              <input name="base-damage" type="number" step="0.1" min="0" value="7" data-rule="positive" required>
+            </label>
+            <label>attack-speed
+              <input name="attack-speed" type="number" step="0.1" min="0" value="1.5" data-rule="positive" required>
+            </label>
+            <label>durability
+              <input name="durability" type="number" step="1" min="1" value="380" data-rule="positive" required>
+            </label>
+            <label class="wide">effects
+              <textarea name="effects" spellcheck="false">attack_range: 3.1
+crit_chance: 0.08
+crit_damage: 1.6
+slow_duration: 2.0
+slow_level: 1</textarea>
+              <span class="hint">每行一个 `key: value`。数值使用小数或整数。</span>
+            </label>
+          </div>
+          <div class="preset-row" aria-label="武器预设">
+            <button class="preset-button" type="button" data-preset="weapon-balanced">均衡单手剑</button>
+            <button class="preset-button" type="button" data-preset="weapon-fire">火焰大剑</button>
+            <button class="preset-button" type="button" data-preset="weapon-chain">连锁长刃</button>
+          </div>
+        </form>
+        <div class="output-card" data-output-card="weapon">
+          <div class="output-toolbar">
+            <span>复制到 plugins/Roguelike/weapons.yml</span>
+            <button class="primary-button" type="button" data-copy="weapon">复制片段</button>
+            <div class="status-line" data-status="weapon" aria-live="polite"></div>
+          </div>
+          <pre><code data-output="weapon"></code></pre>
+          <ul class="warnings" data-warnings="weapon" aria-live="polite"></ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-item" aria-labelledby="item-title">
+      <div class="panel-header">
+        <h2 id="item-title">物品模板</h2>
+        <p>生成 `items.<id>` 片段。`item` 是物品材质字段；`potion` 和 `tonic` 默认可用 `minecraft:potion`。预设包含治疗药水、迅捷药剂和铁肤药剂。</p>
+      </div>
+      <div class="workspace">
+        <form class="form-card config-form" data-kind="item" autocomplete="off">
+          <div class="card-title">
+            <h3>基础字段</h3>
+            <span class="hint">目标文件：items.yml</span>
+          </div>
+          <div class="field-grid">
+            <label>ID
+              <input name="id" value="healing_potion" data-rule="id" required>
+            </label>
+            <label>item
+              <input name="item" value="minecraft:potion" required>
+              <span class="hint">新物品材质字段，例如 minecraft:potion 或 minecraft:paper。</span>
+            </label>
+            <label>name
+              <input name="name" value="治疗药水" required>
+            </label>
+            <label>item-type
+              <select name="item-type">
+                <option selected>potion</option>
+                <option>tonic</option>
+                <option>misc</option>
+              </select>
+            </label>
+            <label>rarity
+              <select name="rarity">
+                <option selected>common</option>
+                <option>rare</option>
+                <option>epic</option>
+                <option>legendary</option>
+                <option>special</option>
+              </select>
+            </label>
+            <label class="wide">description
+              <input name="description" value="恢复生命值">
+            </label>
+            <label class="wide">effects
+              <textarea name="effects" spellcheck="false">heal_amount: 10</textarea>
+              <span class="hint">示例：`heal_amount: 10`、`speed_level: 1`、`duration_seconds: 12`。</span>
+            </label>
+          </div>
+          <div class="preset-row" aria-label="物品预设">
+            <button class="preset-button" type="button" data-preset="item-heal">治疗药水</button>
+            <button class="preset-button" type="button" data-preset="item-swift">迅捷药剂</button>
+            <button class="preset-button" type="button" data-preset="item-iron">铁肤药剂</button>
+          </div>
+        </form>
+        <div class="output-card" data-output-card="item">
+          <div class="output-toolbar">
+            <span>复制到 plugins/Roguelike/items.yml</span>
+            <button class="primary-button" type="button" data-copy="item">复制片段</button>
+            <div class="status-line" data-status="item" aria-live="polite"></div>
+          </div>
+          <pre><code data-output="item"></code></pre>
+          <ul class="warnings" data-warnings="item" aria-live="polite"></ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-elite" aria-labelledby="elite-title">
+      <div class="panel-header">
+        <h2 id="elite-title">精英怪 / Boss 难度</h2>
+        <p>这里调整的是已有内部精英怪的精英/Boss-like 难度参数，不会新增新的 Boss 运行时。生成路径为 `internal.skeleton-elite`、`internal.zombie-elite` 或 `internal.spider-elite`。</p>
+      </div>
+      <div class="workspace">
+        <form class="form-card config-form" data-kind="elite" autocomplete="off">
+          <div class="card-title">
+            <h3>内部精英怪字段</h3>
+            <span class="hint">目标文件：mobs.yml</span>
+          </div>
+          <div class="field-grid">
+            <label>精英怪
+              <select name="elite-type">
+                <option value="skeleton">internal.skeleton-elite</option>
+                <option value="zombie">internal.zombie-elite</option>
+                <option value="spider">internal.spider-elite</option>
+              </select>
+            </label>
+            <label>enabled
+              <select name="enabled">
+                <option value="true" selected>true</option>
+                <option value="false">false</option>
+              </select>
+            </label>
+            <label>spawn-chance
+              <input name="spawn-chance" type="number" step="0.01" min="0" max="1" value="0.12" data-rule="chance" required>
+            </label>
+            <label>name
+              <input name="name" value="&6骷髅精英" required>
+            </label>
+            <label>health
+              <input name="health" type="number" step="0.1" min="0" value="30" data-rule="positive" required>
+            </label>
+            <label data-elite-field="damage">damage
+              <input name="damage" type="number" step="0.1" min="0" value="5" data-rule="positive">
+            </label>
+            <label data-elite-field="weapon-template">weapon-template
+              <input name="weapon-template" value="rusty_iron_sword">
+            </label>
+            <label data-elite-field="speed-multiplier">speed-multiplier
+              <input name="speed-multiplier" type="number" step="0.05" min="0" value="1.2" data-rule="positive">
+            </label>
+            <label data-elite-field="slow-chance">slow-chance
+              <input name="slow-chance" type="number" step="0.01" min="0" max="1" value="0.35" data-rule="chance">
+            </label>
+            <label data-elite-field="slow-duration-seconds">slow-duration-seconds
+              <input name="slow-duration-seconds" type="number" step="0.1" min="0" value="3" data-rule="positive">
+            </label>
+            <label data-elite-field="slow-level">slow-level
+              <input name="slow-level" type="number" step="1" min="1" value="1" data-rule="positive">
+            </label>
+            <label class="wide" data-elite-field="skeleton-effects">骷髅精英攻击参数
+              <textarea name="skeleton-effects" spellcheck="false">poison-chance: 0.30
+poisoned-damage-bonus: 0.10
+poison-duration-seconds: 4</textarea>
+            </label>
+            <label class="wide" data-elite-field="behavior">骷髅行为 behavior
+              <textarea name="behavior" spellcheck="false">detect-range: 18
+keep-distance: 8
+melee-range: 3
+shot-cooldown-ticks: 45
+burst-cooldown-ticks: 100
+arrow-speed: 1.7
+retreat-speed: 0.36
+lunge-speed: 0.48
+post-burst-retreat-speed: 0.42</textarea>
+              <span class="hint">仅用于 skeleton-elite。距离单位为格，冷却单位为 tick。</span>
+            </label>
+          </div>
+          <div class="preset-row" aria-label="精英怪预设">
+            <button class="preset-button" type="button" data-preset="elite-skeleton">骷髅精英</button>
+            <button class="preset-button" type="button" data-preset="elite-zombie">僵尸精英</button>
+            <button class="preset-button" type="button" data-preset="elite-spider">精英蜘蛛</button>
+          </div>
+        </form>
+        <div class="output-card" data-output-card="elite">
+          <div class="output-toolbar">
+            <span>复制到 plugins/Roguelike/mobs.yml</span>
+            <button class="primary-button" type="button" data-copy="elite">复制片段</button>
+            <div class="status-line" data-status="elite" aria-live="polite"></div>
+          </div>
+          <pre><code data-output="elite"></code></pre>
+          <ul class="warnings" data-warnings="elite" aria-live="polite"></ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-modifier" aria-labelledby="modifier-title">
+      <div class="panel-header">
+        <h2 id="modifier-title">普通怪物词条/难度</h2>
+        <p>生成 `modifiers.<entity>` 片段，用于普通怪物生命、攻击、速度倍率和生成时使用的 Roguelike 武器模板。</p>
+      </div>
+      <div class="workspace">
+        <form class="form-card config-form" data-kind="modifier" autocomplete="off">
+          <div class="card-title">
+            <h3>普通怪强化字段</h3>
+            <span class="hint">目标文件：mobs.yml</span>
+          </div>
+          <div class="field-grid">
+            <label>entity
+              <input name="id" value="husk" data-rule="id" required>
+              <span class="hint">示例：husk、drowned、pillager、zombified_piglin。</span>
+            </label>
+            <label>weapon-template
+              <input name="weapon-template" value="frost_cleaver">
+            </label>
+            <label>health-multiplier
+              <input name="health-multiplier" type="number" step="0.05" min="0" value="1.25" data-rule="positive" required>
+            </label>
+            <label>damage-multiplier
+              <input name="damage-multiplier" type="number" step="0.05" min="0" value="1.10" data-rule="positive" required>
+            </label>
+            <label>speed-multiplier
+              <input name="speed-multiplier" type="number" step="0.05" min="0" value="0.95" data-rule="positive" required>
+            </label>
+          </div>
+          <div class="preset-row" aria-label="普通怪预设">
+            <button class="preset-button" type="button" data-preset="mod-husk">husk</button>
+            <button class="preset-button" type="button" data-preset="mod-drowned">drowned</button>
+            <button class="preset-button" type="button" data-preset="mod-pillager">pillager</button>
+            <button class="preset-button" type="button" data-preset="mod-piglin">zombified_piglin</button>
+          </div>
+        </form>
+        <div class="output-card" data-output-card="modifier">
+          <div class="output-toolbar">
+            <span>复制到 plugins/Roguelike/mobs.yml</span>
+            <button class="primary-button" type="button" data-copy="modifier">复制片段</button>
+            <div class="status-line" data-status="modifier" aria-live="polite"></div>
+          </div>
+          <pre><code data-output="modifier"></code></pre>
+          <ul class="warnings" data-warnings="modifier" aria-live="polite"></ul>
+        </div>
+      </div>
+    </section>
+
+    <p class="footer-note">提示：本页只生成可复制的 YAML 片段，不会读取或修改任何服务器文件。修改 <code>plugins/Roguelike/weapons.yml</code>、<code>items.yml</code> 或 <code>mobs.yml</code> 后，在用户自己运行的服务器中执行 <code>/rw reload</code>，或用 PlugManX 重载 Roguelike。</p>
+  </main>
+
+  <script>
+    const idPattern = /^[a-z0-9_-]+$/;
+
+    const presets = {
+      "weapon-balanced": {
+        kind: "weapon",
+        values: {
+          id: "frost_training_blade",
+          item: "minecraft:iron_sword",
+          name: "霜训短剑",
+          description: "用于调整战斗节奏的练习武器",
+          "base-damage": "7",
+          "attack-speed": "1.5",
+          durability: "380",
+          rarity: "rare",
+          effects: "attack_range: 3.1\ncrit_chance: 0.08\ncrit_damage: 1.6\nslow_duration: 2.0\nslow_level: 1"
+        }
+      },
+      "weapon-fire": {
+        kind: "weapon",
+        values: {
+          id: "ember_greatsword",
+          item: "minecraft:diamond_sword",
+          name: "余烬巨剑",
+          description: "带有持续火焰伤害的重型武器",
+          "base-damage": "12",
+          "attack-speed": "1.0",
+          durability: "900",
+          rarity: "epic",
+          effects: "attack_range: 3.3\nfire_damage: 4\nfire_duration: 3\ncrit_chance: 0.10\ncrit_damage: 1.75"
+        }
+      },
+      "weapon-chain": {
+        kind: "weapon",
+        values: {
+          id: "echo_training_blade",
+          item: "minecraft:diamond_sword",
+          name: "回响试炼刃",
+          description: "攻击会向附近目标扩散的武器模板",
+          "base-damage": "9",
+          "attack-speed": "1.25",
+          durability: "720",
+          rarity: "epic",
+          effects: "attack_range: 3.2\nchain_targets: 3\nchain_range: 3.0\nchain_damage_percent: 0.45\ncrit_chance: 0.10"
+        }
+      },
+      "item-heal": {
+        kind: "item",
+        values: {
+          id: "healing_potion",
+          item: "minecraft:potion",
+          name: "治疗药水",
+          description: "恢复生命值",
+          "item-type": "potion",
+          rarity: "common",
+          effects: "heal_amount: 10"
+        }
+      },
+      "item-swift": {
+        kind: "item",
+        values: {
+          id: "swift_tonic",
+          item: "minecraft:potion",
+          name: "迅捷药剂",
+          description: "可配置为短时间提升移动节奏的模板物品",
+          "item-type": "tonic",
+          rarity: "rare",
+          effects: "speed_level: 1\nduration_seconds: 12"
+        }
+      },
+      "item-iron": {
+        kind: "item",
+        values: {
+          id: "iron_skin_tonic",
+          item: "minecraft:potion",
+          name: "铁肤药剂",
+          description: "可配置为短时间提升生存能力的模板物品",
+          "item-type": "tonic",
+          rarity: "epic",
+          effects: "resistance_level: 1\nduration_seconds: 10"
+        }
+      },
+      "elite-skeleton": {
+        kind: "elite",
+        values: {
+          "elite-type": "skeleton",
+          enabled: "true",
+          "spawn-chance": "0.12",
+          name: "&6骷髅精英",
+          health: "30",
+          damage: "5",
+          "weapon-template": "rusty_iron_sword",
+          "skeleton-effects": "poison-chance: 0.30\npoisoned-damage-bonus: 0.10\npoison-duration-seconds: 4",
+          behavior: "detect-range: 18\nkeep-distance: 8\nmelee-range: 3\nshot-cooldown-ticks: 45\nburst-cooldown-ticks: 100\narrow-speed: 1.7\nretreat-speed: 0.36\nlunge-speed: 0.48\npost-burst-retreat-speed: 0.42"
+        }
+      },
+      "elite-zombie": {
+        kind: "elite",
+        values: {
+          "elite-type": "zombie",
+          enabled: "true",
+          "spawn-chance": "0.12",
+          name: "&2僵尸精英",
+          health: "35",
+          damage: "5",
+          "weapon-template": "excited_stone_sword"
+        }
+      },
+      "elite-spider": {
+        kind: "elite",
+        values: {
+          "elite-type": "spider",
+          enabled: "true",
+          "spawn-chance": "0.12",
+          name: "&5精英蜘蛛",
+          health: "35",
+          "speed-multiplier": "1.2",
+          "slow-chance": "0.35",
+          "slow-duration-seconds": "3",
+          "slow-level": "1"
+        }
+      },
+      "mod-husk": {
+        kind: "modifier",
+        values: { id: "husk", "health-multiplier": "1.25", "damage-multiplier": "1.10", "speed-multiplier": "0.95", "weapon-template": "frost_cleaver" }
+      },
+      "mod-drowned": {
+        kind: "modifier",
+        values: { id: "drowned", "health-multiplier": "1.10", "damage-multiplier": "1.05", "speed-multiplier": "1.05", "weapon-template": "storm_spear" }
+      },
+      "mod-pillager": {
+        kind: "modifier",
+        values: { id: "pillager", "health-multiplier": "1.15", "damage-multiplier": "1.15", "speed-multiplier": "1.00", "weapon-template": "echo_blade" }
+      },
+      "mod-piglin": {
+        kind: "modifier",
+        values: { id: "zombified_piglin", "health-multiplier": "1.20", "damage-multiplier": "1.20", "speed-multiplier": "1.05", "weapon-template": "plague_saber" }
+      }
+    };
+
+    function formFor(kind) {
+      return document.querySelector(`.config-form[data-kind="${kind}"]`);
+    }
+
+    function valuesFor(kind) {
+      const form = formFor(kind);
+      const data = {};
+      new FormData(form).forEach((value, key) => {
+        data[key] = String(value).trim();
+      });
+      return data;
+    }
+
+    function setFormValues(kind, values) {
+      const form = formFor(kind);
+      Object.entries(values).forEach(([key, value]) => {
+        const field = form.elements.namedItem(key);
+        if (field) field.value = value;
+      });
+      if (kind === "elite") updateEliteFields();
+      render(kind);
+    }
+
+    function yamlValue(value) {
+      if (value === "true" || value === "false") return value;
+      if (/^-?\d+(\.\d+)?$/.test(value)) return value;
+      const escaped = value.replace(/"/g, "\\\"");
+      return `"${escaped}"`;
+    }
+
+    function parseKeyValueLines(text, label, warnings, options = {}) {
+      const rows = [];
+      const positiveKeys = options.positiveKeys || [];
+      const chanceKeys = options.chanceKeys || [];
+      text.split(/\r?\n/).forEach((line, index) => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+        const match = trimmed.match(/^([A-Za-z0-9_.-]+)\s*:\s*(.+)$/);
+        if (!match) {
+          warnings.push(`${label} 第 ${index + 1} 行格式应为 key: value。`);
+          return;
+        }
+        const key = match[1];
+        const value = match[2].trim();
+        if (!isFiniteNumber(value)) {
+          warnings.push(`${label}.${key} 应为数字。`);
+        }
+        if (positiveKeys.includes(key) && Number(value) <= 0) {
+          warnings.push(`${label}.${key} 应为正数。`);
+        }
+        if (chanceKeys.includes(key) && !isChance(value)) {
+          warnings.push(`${label}.${key} 应在 0.0 到 1.0 之间。`);
+        }
+        rows.push([key, value]);
+      });
+      return rows;
+    }
+
+    function isFiniteNumber(value) {
+      return value !== "" && Number.isFinite(Number(value));
+    }
+
+    function isPositive(value) {
+      return isFiniteNumber(value) && Number(value) > 0;
+    }
+
+    function isChance(value) {
+      if (!isFiniteNumber(value)) return false;
+      const numeric = Number(value);
+      return numeric >= 0 && numeric <= 1;
+    }
+
+    function validateCommon(kind, data, warnings) {
+      const form = formFor(kind);
+      form.querySelectorAll("[data-rule]").forEach((field) => {
+        const label = field.name;
+        const value = String(field.value).trim();
+        if (field.dataset.rule === "id" && !idPattern.test(value)) {
+          warnings.push(`${label} 只能使用小写字母、数字、下划线或连字符。`);
+        }
+        if (field.dataset.rule === "chance" && !isChance(value)) {
+          warnings.push(`${label} 必须在 0.0 到 1.0 之间。`);
+        }
+        if (field.dataset.rule === "positive" && !isPositive(value)) {
+          warnings.push(`${label} 必须是正数。`);
+        }
+      });
+      if (data.id && !idPattern.test(data.id)) warnings.push("配置 ID 建议保持小写，避免覆盖或读取时不一致。");
+    }
+
+    function generateWeapon(data, warnings) {
+      const effectRows = parseKeyValueLines(data.effects || "", "effects", warnings, {
+        positiveKeys: ["attack_range", "crit_damage", "fire_damage", "fire_duration", "slow_duration", "chain_range"],
+        chanceKeys: ["crit_chance", "lightning_chance", "poison_chance"]
+      });
+      return [
+        "weapons:",
+        `  ${data.id}:`,
+        `    item: ${yamlValue(data.item)}`,
+        `    name: ${yamlValue(data.name)}`,
+        `    description: ${yamlValue(data.description)}`,
+        `    base-damage: ${data["base-damage"]}`,
+        `    attack-speed: ${data["attack-speed"]}`,
+        `    durability: ${data.durability}`,
+        `    rarity: ${yamlValue(data.rarity)}`,
+        "    effects:",
+        ...effectRows.map(([key, value]) => `      ${key}: ${value}`)
+      ].join("\n");
+    }
+
+    function generateItem(data, warnings) {
+      const effectRows = parseKeyValueLines(data.effects || "", "effects", warnings, {
+        positiveKeys: ["heal_amount", "duration_seconds", "speed_level", "resistance_level"]
+      });
+      return [
+        "items:",
+        `  ${data.id}:`,
+        `    item: ${yamlValue(data.item)}`,
+        `    name: ${yamlValue(data.name)}`,
+        `    description: ${yamlValue(data.description)}`,
+        `    item-type: ${yamlValue(data["item-type"])}`,
+        `    rarity: ${yamlValue(data.rarity)}`,
+        "    effects:",
+        ...effectRows.map(([key, value]) => `      ${key}: ${value}`)
+      ].join("\n");
+    }
+
+    function generateElite(data, warnings) {
+      const pathByType = {
+        skeleton: "skeleton-elite",
+        zombie: "zombie-elite",
+        spider: "spider-elite"
+      };
+      const type = data["elite-type"];
+      const lines = [
+        "internal:",
+        `  ${pathByType[type]}:`,
+        `    enabled: ${data.enabled}`,
+        `    spawn-chance: ${data["spawn-chance"]}`,
+        `    name: ${yamlValue(data.name)}`,
+        `    health: ${data.health}`
+      ];
+
+      if (type === "skeleton") {
+        const attackRows = parseKeyValueLines(data["skeleton-effects"] || "", "skeleton-elite", warnings, {
+          positiveKeys: ["poison-duration-seconds"],
+          chanceKeys: ["poison-chance"]
+        });
+        const behaviorRows = parseKeyValueLines(data.behavior || "", "behavior", warnings, {
+          positiveKeys: ["detect-range", "keep-distance", "melee-range", "shot-cooldown-ticks", "burst-cooldown-ticks", "arrow-speed", "retreat-speed", "lunge-speed", "post-burst-retreat-speed"]
+        });
+        lines.push(`    damage: ${data.damage}`);
+        attackRows.forEach(([key, value]) => lines.push(`    ${key}: ${value}`));
+        lines.push(`    weapon-template: ${yamlValue(data["weapon-template"])}`);
+        lines.push("    behavior:");
+        behaviorRows.forEach(([key, value]) => lines.push(`      ${key}: ${value}`));
+      }
+
+      if (type === "zombie") {
+        lines.push(`    damage: ${data.damage}`);
+        lines.push(`    weapon-template: ${yamlValue(data["weapon-template"])}`);
+      }
+
+      if (type === "spider") {
+        lines.push(`    speed-multiplier: ${data["speed-multiplier"]}`);
+        lines.push(`    slow-chance: ${data["slow-chance"]}`);
+        lines.push(`    slow-duration-seconds: ${data["slow-duration-seconds"]}`);
+        lines.push(`    slow-level: ${data["slow-level"]}`);
+      }
+
+      return lines.join("\n");
+    }
+
+    function generateModifier(data) {
+      return [
+        "modifiers:",
+        `  ${data.id}:`,
+        `    health-multiplier: ${data["health-multiplier"]}`,
+        `    damage-multiplier: ${data["damage-multiplier"]}`,
+        `    speed-multiplier: ${data["speed-multiplier"]}`,
+        `    weapon-template: ${yamlValue(data["weapon-template"])}`
+      ].join("\n");
+    }
+
+    function render(kind) {
+      const data = valuesFor(kind);
+      const warnings = [];
+      validateCommon(kind, data, warnings);
+      let yaml = "";
+      if (kind === "weapon") yaml = generateWeapon(data, warnings);
+      if (kind === "item") yaml = generateItem(data, warnings);
+      if (kind === "elite") yaml = generateElite(data, warnings);
+      if (kind === "modifier") yaml = generateModifier(data, warnings);
+
+      document.querySelector(`[data-output="${kind}"]`).textContent = yaml + "\n";
+      const warningsList = document.querySelector(`[data-warnings="${kind}"]`);
+      warningsList.innerHTML = "";
+      warnings.forEach((warning) => {
+        const item = document.createElement("li");
+        item.textContent = warning;
+        warningsList.appendChild(item);
+      });
+      return { yaml, warnings };
+    }
+
+    function updateEliteFields() {
+      const data = valuesFor("elite");
+      const type = data["elite-type"];
+      document.querySelectorAll("[data-elite-field]").forEach((field) => {
+        const name = field.dataset.eliteField;
+        const show =
+          (type === "skeleton" && ["damage", "weapon-template", "skeleton-effects", "behavior"].includes(name)) ||
+          (type === "zombie" && ["damage", "weapon-template"].includes(name)) ||
+          (type === "spider" && ["speed-multiplier", "slow-chance", "slow-duration-seconds", "slow-level"].includes(name));
+        field.style.display = show ? "grid" : "none";
+      });
+    }
+
+    function showTab(kind) {
+      document.querySelectorAll(".tab-button").forEach((button) => {
+        const selected = button.dataset.tab === kind;
+        button.setAttribute("aria-selected", String(selected));
+      });
+      document.querySelectorAll(".panel").forEach((panel) => {
+        panel.classList.toggle("is-active", panel.id === `panel-${kind}`);
+      });
+      render(kind);
+    }
+
+    async function copyKind(kind) {
+      const result = render(kind);
+      const status = document.querySelector(`[data-status="${kind}"]`);
+      if (result.warnings.length > 0) {
+        status.textContent = "请先处理黄色校验提示。";
+        status.style.color = "var(--color-warning)";
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(result.yaml + "\n");
+        status.textContent = "已复制。";
+        status.style.color = "var(--color-success)";
+      } catch (error) {
+        const helper = document.createElement("textarea");
+        helper.value = result.yaml + "\n";
+        document.body.appendChild(helper);
+        helper.select();
+        document.execCommand("copy");
+        document.body.removeChild(helper);
+        status.textContent = "已复制。";
+        status.style.color = "var(--color-success)";
+      }
+      window.setTimeout(() => {
+        status.textContent = "";
+      }, 2400);
+    }
+
+    document.querySelectorAll(".tab-button").forEach((button) => {
+      button.addEventListener("click", () => showTab(button.dataset.tab));
+    });
+
+    document.querySelectorAll(".config-form").forEach((form) => {
+      form.addEventListener("input", () => {
+        if (form.dataset.kind === "elite") updateEliteFields();
+        render(form.dataset.kind);
+      });
+      form.addEventListener("change", () => {
+        if (form.dataset.kind === "elite") updateEliteFields();
+        render(form.dataset.kind);
+      });
+    });
+
+    document.querySelectorAll("[data-preset]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const preset = presets[button.dataset.preset];
+        setFormValues(preset.kind, preset.values);
+      });
+    });
+
+    document.querySelectorAll("[data-copy]").forEach((button) => {
+      button.addEventListener("click", () => copyKind(button.dataset.copy));
+    });
+
+    updateEliteFields();
+    ["weapon", "item", "elite", "modifier"].forEach(render);
+  </script>
+</body>
+</html>

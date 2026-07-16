@@ -15,9 +15,10 @@
 | [券系统](tickets.md) | 强化券、超级强化券、开发券、移除券 |
 | [铸造台](forge.md) | 铸造台结构、GUI、`forge-recipes.yml` 配方格式 |
 | [词条数据](affixes.md) | 当前所有武器/工具/防具词条、重复原版附魔检查 |
-| [怪物系统](mobs.md) | 怪物经验、内置精英怪、仇恨说明、随机武器掉落 |
+| [怪物系统](mobs.md) | 怪物经验、内置精英怪、内置 Boss、普通怪强化、仇恨说明、随机武器掉落 |
 | [命令](commands.md) | 玩家命令、管理员命令、权限 |
 | [配置文件](configuration.md) | `config.yml`、`weapons.yml`、`items.yml`、`mobs.yml`、`forge-recipes.yml` |
+| [配置片段助手](config-tool.html) | 静态网页工具，用于生成武器、物品、精英怪/Boss 难度和普通怪强化 YAML 片段 |
 
 ## 快速链接
 
@@ -26,6 +27,7 @@
 - 查看所有词条：见 [词条数据](affixes.md)
 - 修改铸造配方：见 [铸造台](forge.md)
 - 配置文件说明：见 [配置文件](configuration.md)
+- 生成配置片段：打开 [配置片段助手](config-tool.html)
 - 维护和本地测试：见根目录 [AGENTS.md](../AGENTS.md)
 
 ## 阅读顺序

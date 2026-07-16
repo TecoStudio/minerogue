@@ -89,6 +89,27 @@ T   T
 T   T
 ```
 
+## 默认武器配方
+
+新增内置武器也会随默认 `forge-recipes.yml` 导出铸造配方。每个配方中间的 `W` 表示对应原版武器，另外两个材料作为强化核心。
+
+| 产物 ID | W 材料 | 上方材料 | 下方材料 |
+| --- | --- | --- | --- |
+| `ember_knife` | minecraft:stone_sword | minecraft:flint | minecraft:stick |
+| `frost_cleaver` | minecraft:iron_axe | minecraft:blue_ice | minecraft:iron_block |
+| `storm_spear` | minecraft:trident | minecraft:copper_ingot | minecraft:redstone |
+| `plague_saber` | minecraft:golden_sword | minecraft:spider_eye | minecraft:gold_ingot |
+| `echo_blade` | minecraft:diamond_sword | minecraft:amethyst_shard | minecraft:diamond |
+| `glass_cannon_hammer` | minecraft:netherite_axe | minecraft:netherite_ingot | minecraft:diamond_block |
+
+武器配方形状均为：
+
+```text
+核心材料
+原版武器
+下方材料
+```
+
 ## 相关文档
 
 - [装备与武器](equipment.md)

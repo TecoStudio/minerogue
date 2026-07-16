@@ -100,6 +100,12 @@ Roguelike 武器模板包含以下核心数据：
 | `wooden_sword` | 木剑 | common | 基础入门武器，自带攻击距离、少量暴击率和暴击倍率。 |
 | `flame_sword` | 烈焰之剑 | epic | 火焰伤害武器，附带燃烧、火焰额外伤害和暴击。 |
 | `vampire_dagger` | 吸血匕首 | rare | 高攻速吸血武器，适合续航战斗。 |
+| `ember_knife` | 余烬短刃 | common | 高攻速早期武器，提供短燃烧和少量暴击。 |
+| `frost_cleaver` | 霜裂斧 | rare | 慢速控制武器，用减速限制敌人。 |
+| `storm_spear` | 风暴长矛 | rare | 长距离突刺武器，带低概率雷击。 |
+| `plague_saber` | 疫毒军刀 | epic | 毒系爆发武器，对中毒目标增伤。 |
+| `echo_blade` | 回响之刃 | epic | 群怪清理武器，攻击会连锁多个目标。 |
+| `glass_cannon_hammer` | 玻璃重锤 | legendary | 高风险重型爆发武器，依靠暴击和伤害储存打出峰值。 |
 | `thunder_axe` | 雷霆战斧 | legendary | 高伤害低攻速战斧，攻击有概率召唤雷电。 |
 | `whirlwind_blade` | 旋风之刃 | epic | 连锁伤害武器，可波及附近多个目标。 |
 | `inferno_greatsword` | 炼狱巨剑 | legendary | 大范围火焰与连锁伤害重型武器。 |
@@ -237,6 +243,8 @@ plugins/Roguelike/forge-recipes.yml
 | 精英蜘蛛 | 12% | 35 | 1.2 | 移速较高，带跳跃/位移相关能力参数。 |
 
 精英怪数据和普通怪经验可通过 `mobs.yml` 调整。
+
+部分原版普通怪默认带有强化配置，例如尸壳、溺尸、掠夺者和僵尸猪灵会获得适度属性倍率和指定武器模板。服主可在 `mobs.yml` 的 `modifiers` 中调整或移除这些规则。
 
 ## 掉落内容
 

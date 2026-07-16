@@ -62,6 +62,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -TimeoutSeconds 
 - 伤害聊天显示使用彩色公式，乘法倍率直接显示，鼠标悬停显示完整计算来源。
 - 铸造台由“铁砧 + 下方白色羊毛”组成，配方存储在 `forge-recipes.yml`。
 - 怪物死亡会按品质低概率掉落内置武器。
+- 内置精英怪、普通怪强化和可手动生成的内置 Boss，可在 `mobs.yml` 调整。
 - 骷髅精英保留原版骷髅仇恨判定，不主动锁定创造/旁观玩家。
 
 ## 可选集成
@@ -82,9 +83,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -TimeoutSeconds 
 | [券系统](docs/tickets.md) | 强化券、超级强化券、开发券、移除券 |
 | [铸造台](docs/forge.md) | 铸造台结构、GUI、`forge-recipes.yml` 配方格式 |
 | [词条数据](docs/affixes.md) | 当前全部词条、强化规则、原版附魔重复项检查 |
-| [怪物系统](docs/mobs.md) | 怪物经验、内置精英怪、随机武器掉落、仇恨说明 |
+| [怪物系统](docs/mobs.md) | 怪物经验、内置精英怪、内置 Boss、普通怪强化、随机武器掉落、仇恨说明 |
 | [命令](docs/commands.md) | 玩家命令、管理员命令、权限 |
 | [配置文件](docs/configuration.md) | `config.yml`、`weapons.yml`、`items.yml`、`mobs.yml`、`forge-recipes.yml` |
+| [配置片段助手](docs/config-tool.html) | 静态网页工具，用于生成武器、物品、精英怪/Boss 难度和普通怪强化 YAML 片段 |
 
 面向代码代理和维护者的工作说明见 [AGENTS.md](AGENTS.md)。
 
@@ -108,6 +110,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -TimeoutSeconds 
 /rw backup
 /rw debug <on|off|status>
 /rw affixes
+/rw affixes held [玩家]
+/rw give
 /rw give weapon <id> [玩家] [数量]
 /rw give item <id> [玩家] [数量]
 /rw give armor <id> [玩家] [数量]
@@ -117,7 +121,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -TimeoutSeconds 
 /rw stats [玩家]
 /rw stats top <level|kills|deaths> [数量]
 /rw reset [玩家]
-/rw monster spawn <自定义怪物>
+/rw monster spawn <skeleton_elite|zombie_elite|spider_elite|concierge_boss|time_keeper_boss>
 /rw fixhand
 /rw help
 ```

@@ -87,10 +87,62 @@ scoreboard:
 - 相同 ID 的武器、物品或怪物配置会覆盖内置模板。
 - 修改配置后需要执行 `/rw reload`，或重启服务器。
 
+也可以直接打开 [配置片段助手](config-tool.html) 生成武器、物品、精英怪/Boss 难度和普通怪强化 YAML 片段。该页面是随文档附带的静态网页，不需要后端或构建步骤；把生成内容复制进对应的 `plugins/Roguelike/*.yml` 后再执行 `/rw reload`。
+
 修改后执行：
 
 ```text
 /rw reload
+```
+
+### `items.yml` 物品模板
+
+`items.yml` 的物品模板使用 `items.<物品 ID>`，可配置以下字段：
+
+| 字段 | 说明 |
+| --- | --- |
+| `item` | 原版物品材质 ID，例如 `minecraft:potion`。`potion` 和 `tonic` 类型默认使用药水材质。 |
+| `name` | 显示名称。 |
+| `description` | lore 描述文本。 |
+| `item-type` | 物品类型，例如 `potion`、`tonic` 或自定义分类。 |
+| `rarity` | 品质文本。 |
+| `effects.*` | 自定义效果数值，例如 `heal_amount`、`speed_level`、`resistance_level`、`duration_seconds`。 |
+
+示例：
+
+```yaml
+items:
+  swift_tonic:
+    item: minecraft:potion
+    name: 迅捷药剂
+    description: 短时间提升移动节奏
+    item-type: tonic
+    rarity: rare
+    effects:
+      speed_level: 1.0
+      duration_seconds: 12.0
+```
+
+通过 `/rw give item <id> [玩家] [数量]` 发放物品时，插件会按 `item` 生成对应材质。药水和药剂模板会显示为药水物品，并在 lore 中显示配置效果；`speed_level`、`resistance_level` 会写入药水元数据，`heal_amount` 会以恢复量说明和药水颜色呈现。
+
+`mobs.yml` 的普通怪强化规则使用 `modifiers.<怪物 ID>`，可配置以下字段：
+
+| 字段 | 说明 |
+| --- | --- |
+| `health-multiplier` | 最大生命倍率。 |
+| `damage-multiplier` | 攻击伤害倍率。 |
+| `speed-multiplier` | 移动速度倍率。 |
+| `weapon-template` | 生成时给予的 Roguelike 武器模板 ID。 |
+
+示例：
+
+```yaml
+modifiers:
+  husk:
+    health-multiplier: 1.25
+    damage-multiplier: 1.10
+    speed-multiplier: 0.95
+    weapon-template: frost_cleaver
 ```
 
 ## 导出配置
