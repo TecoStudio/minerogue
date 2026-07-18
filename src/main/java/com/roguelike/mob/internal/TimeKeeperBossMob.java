@@ -3,6 +3,7 @@ package com.roguelike.mob.internal;
 import com.roguelike.RoguelikePlugin;
 import com.roguelike.config.ConfigManager;
 import com.roguelike.mob.InternalMob;
+import com.roguelike.mob.MobManager;
 import com.roguelike.util.Message;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -22,8 +23,10 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
+import java.util.List;
+
 public class TimeKeeperBossMob implements InternalMob {
-    private static final String ID = "time_keeper_boss";
+    private static final String ID = "time_keeper";
 
     private final RoguelikePlugin plugin;
     private final NamespacedKey mobKey;
@@ -40,6 +43,11 @@ public class TimeKeeperBossMob implements InternalMob {
     @Override
     public String id() {
         return ID;
+    }
+
+    @Override
+    public List<String> aliases() {
+        return List.of("time_keeper_boss");
     }
 
     @Override
@@ -92,6 +100,10 @@ public class TimeKeeperBossMob implements InternalMob {
     @Override
     public void onDamage(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof LivingEntity attacker) || !isMob(attacker)) return;
+        if (event.getEntity() instanceof Player player && !MobManager.shouldBossAffectPlayer(player.getGameMode(), player.isDead())) {
+            event.setCancelled(true);
+            return;
+        }
         event.setDamage(ConfigManager.getTimeKeeperBossConfig().damage());
         if (event.getEntity() instanceof LivingEntity target) {
             target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 50, 0));
@@ -106,6 +118,10 @@ public class TimeKeeperBossMob implements InternalMob {
             for (Skeleton boss : world.getEntitiesByClass(Skeleton.class)) {
                 if (!isMob(boss) || boss.isDead()) continue;
                 LivingEntity target = boss.getTarget();
+                if (target instanceof Player player && !MobManager.shouldBossAffectPlayer(player.getGameMode(), player.isDead())) {
+                    boss.setTarget(null);
+                    target = null;
+                }
                 if (!(target instanceof Player) || target.isDead()) {
                     target = nearestPlayer(boss, config.detectRange());
                     if (target != null) boss.setTarget(target);
@@ -127,7 +143,7 @@ public class TimeKeeperBossMob implements InternalMob {
         Player nearest = null;
         double best = range * range;
         for (var entity : boss.getWorld().getNearbyEntities(boss.getLocation(), range, range, range)) {
-            if (!(entity instanceof Player player) || player.isDead()) continue;
+            if (!(entity instanceof Player player) || !MobManager.shouldBossAffectPlayer(player.getGameMode(), player.isDead())) continue;
             double distance = player.getLocation().distanceSquared(boss.getLocation());
             if (distance < best) {
                 best = distance;
@@ -166,6 +182,7 @@ public class TimeKeeperBossMob implements InternalMob {
         boss.getWorld().spawnParticle(Particle.SWEEP_ATTACK, boss.getLocation().add(0, 1, 0), 8, radius / 2, 0.2, radius / 2);
         for (var entity : boss.getWorld().getNearbyEntities(boss.getLocation(), radius, 2.0, radius)) {
             if (!(entity instanceof LivingEntity target) || target.equals(boss)) continue;
+            if (target instanceof Player player && !MobManager.shouldBossAffectPlayer(player.getGameMode(), player.isDead())) continue;
             target.damage(config.skillDamage(), boss);
             target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 60, 1));
         }
@@ -174,6 +191,6 @@ public class TimeKeeperBossMob implements InternalMob {
     @Override
     public boolean isMob(LivingEntity entity) {
         String value = entity.getPersistentDataContainer().get(mobKey, PersistentDataType.STRING);
-        return ID.equals(value);
+        return MobManager.matchesInternalMobValue(this, value);
     }
 }

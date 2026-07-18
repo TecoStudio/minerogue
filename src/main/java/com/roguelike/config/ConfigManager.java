@@ -335,7 +335,7 @@ public class ConfigManager {
                 概率字段使用 0.0 - 1.0：0.12 = 12%，0.35 = 35%。
                 药水等级字段使用游戏内显示等级：1 = I，2 = II，3 = III。
                 MythicMobs 集成开启时，本插件内置怪物不会自然生成。
-                /rw monster spawn 只生成插件自定义怪物，例如 skeleton_elite、zombie_elite、spider_elite、concierge_boss、time_keeper_boss。
+                /rw monster spawn 只生成插件自定义怪物，例如 skeleton_elite、zombie_elite、spider_elite、concierge、time_keeper。
                 """);
         config.setComments("internal", List.of("是否启用本插件内置怪物系统。"));
         config.set("internal.enabled", internalMonsterSystemEnabled);
@@ -343,10 +343,10 @@ public class ConfigManager {
         saveZombieEliteConfig(config, "internal.zombie-elite", zombieEliteConfig);
         saveSpiderEliteConfig(config, "internal.spider-elite", spiderEliteConfig);
         saveBossConfig(config, "internal.concierge-boss", conciergeBossConfig,
-                "看守者 Boss：参考死亡细胞 Concierge，重甲近战，跃击接范围震地。",
+                "沸血僵尸 Boss：参考死亡细胞 Concierge，重甲近战，跃击接范围震地。",
                 "震地范围。范围内目标受到伤害并被击退。");
         saveBossConfig(config, "internal.time-keeper-boss", timeKeeperBossConfig,
-                "时光守护者 Boss：参考死亡细胞 Time Keeper，瞬移背刺，范围刀阵附加缓慢。",
+                "流浪者 Boss：参考死亡细胞 Time Keeper，瞬移背刺，范围刀阵附加缓慢。",
                 "刀阵范围。范围内目标受到伤害并被缓慢。");
         config.set("default-experience", MobExperienceConfig.getDefaultExp());
         MobExperienceConfig.getAllMobExp().forEach((key, value) -> config.set("experience." + key, value));

@@ -4,8 +4,14 @@ import org.bukkit.Location;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 
+import java.util.List;
+
 public interface InternalMob {
     String id();
+
+    default List<String> aliases() {
+        return List.of();
+    }
 
     void onSpawn(LivingEntity entity);
 

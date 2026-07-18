@@ -134,6 +134,12 @@ class DefaultContentTest {
         );
     }
 
+    @Test
+    void defaultBossDisplayNamesUseCurrentChineseNames() {
+        assertEquals("&4沸血僵尸", DefaultMobs.conciergeBoss().name());
+        assertEquals("&5流浪者", DefaultMobs.timeKeeperBoss().name());
+    }
+
     private static void assertValidModifier(Map<String, ConfigManager.MobConfig> modifiers,
                                             Map<String, CustomWeapon> weapons,
                                             String id) {

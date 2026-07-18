@@ -37,10 +37,10 @@ Boss 不会自然生成，管理员可用 `/rw monster spawn <id>` 生成。
 
 | Boss ID | 名称 | 生命 | 攻击 | 特殊技能 | 装备 |
 | --- | --- | ---: | ---: | --- | --- |
-| `concierge_boss` | 看守者 | 180 | 9 | 参考死亡细胞 Concierge：中距离跃击，近距离震地冲击波，对范围内目标造成伤害并击退 | 下界合金头盔/胸甲/靴子、钻石护腿、钻石斧 |
-| `time_keeper_boss` | 时光守护者 | 150 | 7 | 参考死亡细胞 Time Keeper：瞬移到目标背后，近距离刀阵，对范围内目标造成伤害并附加缓慢 | 钻石胸甲/靴子、锁链头盔/护腿、下界合金剑、时钟 |
+| `concierge` | 沸血僵尸 | 180 | 9 | 参考死亡细胞 Concierge：中距离跃击，近距离震地冲击波，对范围内目标造成伤害并击退 | 下界合金头盔/胸甲/靴子、钻石护腿、钻石斧 |
+| `time_keeper` | 流浪者 | 150 | 7 | 参考死亡细胞 Time Keeper：瞬移到目标背后，近距离刀阵，对范围内目标造成伤害并附加缓慢 | 钻石胸甲/靴子、锁链头盔/护腿、下界合金剑、时钟 |
 
-Boss 名称同样不会强制常显，避免隔墙看到名字。技能数值可在 `mobs.yml` 的 `internal.concierge-boss` 与 `internal.time-keeper-boss` 中调整。
+Boss 名称同样不会强制常显，避免隔墙看到名字。技能数值可在 `mobs.yml` 的 `internal.concierge-boss` 与 `internal.time-keeper-boss` 中调整。旧生成 ID `concierge_boss`、`time_keeper_boss` 仍保留为兼容别名。
 
 ## 普通怪强化规则
 

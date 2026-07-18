@@ -39,7 +39,7 @@
 /rw stats [玩家]
 /rw stats top <level|kills|deaths> [数量]
 /rw reset [玩家]
-/rw monster spawn <skeleton_elite|zombie_elite|spider_elite|concierge_boss|time_keeper_boss>
+/rw monster spawn <skeleton_elite|zombie_elite|spider_elite|concierge|time_keeper>
 /rw fixhand
 /rw help
 ```
@@ -64,7 +64,7 @@
 | `/rw stats [玩家]` | 查看玩家等级、经验、击杀和死亡。 |
 | `/rw stats top <level|kills|deaths> [数量]` | 查看在线玩家排行榜。数量限制为 1-20；当前不是离线全服排行。 |
 | `/rw reset [玩家]` | 删除并重新初始化玩家 Roguelike 数据。 |
-| `/rw monster spawn <id>` | 在执行者位置生成内置自定义怪物或 Boss。可用 ID 包括 `skeleton_elite`、`zombie_elite`、`spider_elite`、`concierge_boss`、`time_keeper_boss`。 |
+| `/rw monster spawn <id>` | 在执行者位置生成内置自定义怪物或 Boss。可用 ID 包括 `skeleton_elite`、`zombie_elite`、`spider_elite`、`concierge`、`time_keeper`。旧 ID `concierge_boss`、`time_keeper_boss` 仍可兼容使用。 |
 | `/rw fixhand` | 刷新手持 Roguelike 武器的属性和显示。 |
 | `/rw help` | 查看管理员命令帮助。 |
 

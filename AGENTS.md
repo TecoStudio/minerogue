@@ -83,9 +83,35 @@ Important local settings normally used for smoke tests:
 - `simulation-distance=10`
 - `spawn-protection=16`
 
-The user manually starts and stops the local server. Agents must not start, stop, restart, kill, or otherwise control the Paper server process unless the user explicitly asks in that turn.
+The user manually starts and stops the local server by default. Agents must not start, stop, restart, kill, or otherwise control the Paper server process unless the user explicitly asks in that turn. When the user explicitly asks the agent to run server-side tests, use the psmux workflow below instead of opening an unmanaged terminal window.
 
 The RCON password is stored only in ignored local `server/server.properties`. Do not copy it into tracked files, logs, docs, or commit messages. Prefer not to use RCON when the user is manually operating the server.
+
+### psmux Server Test Sessions
+
+When the user explicitly asks the agent to start or manage the local test server for automation, run it in a detached psmux session so RCON/MCP commands and server console output stay separated:
+
+```text
+server/start.bat
+```
+
+Expected session details:
+
+```text
+Session: minerogue-server
+Window:  server
+Attach:  psmux attach -t minerogue-server
+Output:  psmux capture-pane -p -t minerogue-server:server -S -200
+```
+
+Rules for psmux testing:
+
+- Use `server/start.bat` only when the user explicitly authorizes agent-controlled server startup/testing in the current turn.
+- Keep the server console in psmux; use RCON for console commands and Minecraft MCP for player/bot actions.
+- If `psmux` was just installed and is not yet on `PATH`, use the installed WinGet binary path shown by `server/start.bat` rather than editing tracked files with a machine-specific absolute path.
+- Before deploying a rebuilt plugin jar, remove duplicate stale `server/plugins/minerogue-*.jar` files so Paper/PlugManX cannot load an older jar.
+- After each automated test run, clean up test state: kill temporary hostile/test entities near the bot, restore the bot to creative mode when appropriate, clear short-lived effects/items created only for the test, and check `server/logs/latest.log` for new Roguelike errors.
+- At the end of testing, leave the psmux session running only if the user asked to keep the server available; otherwise ask the user before stopping/killing the session.
 
 ## Deploy And Hot Reload
 

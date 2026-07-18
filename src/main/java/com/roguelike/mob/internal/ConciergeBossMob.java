@@ -3,6 +3,7 @@ package com.roguelike.mob.internal;
 import com.roguelike.RoguelikePlugin;
 import com.roguelike.config.ConfigManager;
 import com.roguelike.mob.InternalMob;
+import com.roguelike.mob.MobManager;
 import com.roguelike.util.Message;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -20,8 +21,10 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.util.Vector;
 
+import java.util.List;
+
 public class ConciergeBossMob implements InternalMob {
-    private static final String ID = "concierge_boss";
+    private static final String ID = "concierge";
 
     private final RoguelikePlugin plugin;
     private final NamespacedKey mobKey;
@@ -38,6 +41,11 @@ public class ConciergeBossMob implements InternalMob {
     @Override
     public String id() {
         return ID;
+    }
+
+    @Override
+    public List<String> aliases() {
+        return List.of("concierge_boss");
     }
 
     @Override
@@ -89,6 +97,10 @@ public class ConciergeBossMob implements InternalMob {
     @Override
     public void onDamage(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof LivingEntity attacker) || !isMob(attacker)) return;
+        if (event.getEntity() instanceof Player player && !MobManager.shouldBossAffectPlayer(player.getGameMode(), player.isDead())) {
+            event.setCancelled(true);
+            return;
+        }
         event.setDamage(ConfigManager.getConciergeBossConfig().damage());
     }
 
@@ -100,6 +112,10 @@ public class ConciergeBossMob implements InternalMob {
             for (Zombie boss : world.getEntitiesByClass(Zombie.class)) {
                 if (!isMob(boss) || boss.isDead()) continue;
                 LivingEntity target = boss.getTarget();
+                if (target instanceof Player player && !MobManager.shouldBossAffectPlayer(player.getGameMode(), player.isDead())) {
+                    boss.setTarget(null);
+                    target = null;
+                }
                 if (!(target instanceof Player) || target.isDead()) {
                     target = nearestPlayer(boss, config.detectRange());
                     if (target != null) boss.setTarget(target);
@@ -120,7 +136,7 @@ public class ConciergeBossMob implements InternalMob {
         Player nearest = null;
         double best = range * range;
         for (var entity : boss.getWorld().getNearbyEntities(boss.getLocation(), range, range, range)) {
-            if (!(entity instanceof Player player) || player.isDead()) continue;
+            if (!(entity instanceof Player player) || !MobManager.shouldBossAffectPlayer(player.getGameMode(), player.isDead())) continue;
             double distance = player.getLocation().distanceSquared(boss.getLocation());
             if (distance < best) {
                 best = distance;
@@ -142,6 +158,7 @@ public class ConciergeBossMob implements InternalMob {
         double radius = config.skillRange();
         for (var entity : boss.getWorld().getNearbyEntities(boss.getLocation(), radius, 1.8, radius)) {
             if (!(entity instanceof LivingEntity target) || target.equals(boss)) continue;
+            if (target instanceof Player player && !MobManager.shouldBossAffectPlayer(player.getGameMode(), player.isDead())) continue;
             target.damage(config.skillDamage(), boss);
             Vector knockback = target.getLocation().toVector().subtract(boss.getLocation().toVector());
             if (knockback.lengthSquared() > 0.001) {
@@ -165,6 +182,6 @@ public class ConciergeBossMob implements InternalMob {
     @Override
     public boolean isMob(LivingEntity entity) {
         String value = entity.getPersistentDataContainer().get(mobKey, PersistentDataType.STRING);
-        return ID.equals(value);
+        return MobManager.matchesInternalMobValue(this, value);
     }
 }

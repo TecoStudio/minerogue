@@ -13,6 +13,7 @@ import com.roguelike.weapon.WeaponManager;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.GameMode;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Monster;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
@@ -112,21 +113,55 @@ public class MobManager {
         return ids;
     }
 
+    public static List<String> getAcceptedMobIds() {
+        List<String> ids = new ArrayList<>();
+        for (InternalMob mob : internalMobs) {
+            ids.add(mob.id());
+            ids.addAll(mob.aliases());
+        }
+        return ids;
+    }
+
     public static List<String> defaultInternalMobIds() {
-        return List.of("skeleton_elite", "zombie_elite", "spider_elite", "concierge_boss", "time_keeper_boss");
+        return List.of("skeleton_elite", "zombie_elite", "spider_elite", "concierge", "time_keeper");
     }
 
     public static boolean shouldForceInternalMobNameVisible() {
         return false;
     }
 
+    public static boolean shouldBossAffectPlayer(GameMode gameMode, boolean dead) {
+        return !dead && gameMode != GameMode.CREATIVE && gameMode != GameMode.SPECTATOR;
+    }
+
     public static LivingEntity spawnInternalMob(String id, Location location) {
         for (InternalMob mob : internalMobs) {
-            if (mob.id().equalsIgnoreCase(id)) {
+            if (matchesId(mob, id)) {
                 return mob.spawn(location);
             }
         }
         return null;
+    }
+
+    static boolean matchesId(InternalMob mob, String id) {
+        if (mob == null || id == null) return false;
+        if (mob.id().equalsIgnoreCase(id)) return true;
+        for (String alias : mob.aliases()) {
+            if (alias.equalsIgnoreCase(id)) return true;
+        }
+        return false;
+    }
+
+    public static boolean matchesInternalMobValue(InternalMob mob, String value) {
+        if (mob == null || value == null) return false;
+        return matchesId(mob, value);
+    }
+
+    public static boolean isAcceptedMobId(String id) {
+        for (InternalMob mob : internalMobs) {
+            if (matchesId(mob, id)) return true;
+        }
+        return false;
     }
 
     static Material modifierWeaponMaterial(CustomWeapon template) {

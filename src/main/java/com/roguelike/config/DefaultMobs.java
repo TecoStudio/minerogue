@@ -69,7 +69,7 @@ public final class DefaultMobs {
     public static ConfigManager.BossConfig conciergeBoss() {
         return new ConfigManager.BossConfig(
                 true,
-                "&4看守者",
+                "&4沸血僵尸",
                 180.0,
                 9.0,
                 0.95,
@@ -83,7 +83,7 @@ public final class DefaultMobs {
     public static ConfigManager.BossConfig timeKeeperBoss() {
         return new ConfigManager.BossConfig(
                 true,
-                "&5时光守护者",
+                "&5流浪者",
                 150.0,
                 7.0,
                 1.25,

@@ -90,17 +90,21 @@ class AdminInfoCommands {
     }
 
     void handleMonster(CommandSender sender, String[] args) {
-        if (!(sender instanceof Player player)) {
-            Message.send(sender, "&c只有玩家可以生成怪物。");
-            return;
-        }
         if (args.length < 3 || !args[1].equalsIgnoreCase("spawn")) {
             Message.send(sender, "&c用法: /rw monster spawn <" + String.join("|", MobManager.getSpawnableMobIds()) + ">");
             return;
         }
+        if (!MobManager.isAcceptedMobId(args[2])) {
+            Message.send(sender, "&c无效的自定义怪物。可用: " + String.join(", ", MobManager.getAcceptedMobIds()));
+            return;
+        }
+        if (!(sender instanceof Player player)) {
+            Message.send(sender, "&c只有玩家可以生成怪物。");
+            return;
+        }
         var entity = MobManager.spawnInternalMob(args[2], player.getLocation());
         if (entity == null) {
-            Message.send(sender, "&c无效的自定义怪物。可用: " + String.join(", ", MobManager.getSpawnableMobIds()));
+            Message.send(sender, "&c生成怪物失败，请检查当前位置和世界状态。");
             return;
         }
         Message.send(sender, "&a已生成 " + args[2] + "。");

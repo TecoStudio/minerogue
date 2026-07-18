@@ -121,7 +121,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -TimeoutSeconds 
 /rw stats [玩家]
 /rw stats top <level|kills|deaths> [数量]
 /rw reset [玩家]
-/rw monster spawn <skeleton_elite|zombie_elite|spider_elite|concierge_boss|time_keeper_boss>
+/rw monster spawn <skeleton_elite|zombie_elite|spider_elite|concierge|time_keeper>
 /rw fixhand
 /rw help
 ```
