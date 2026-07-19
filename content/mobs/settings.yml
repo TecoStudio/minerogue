@@ -1,0 +1,4 @@
+type: settings
+id: settings
+internal-system-enabled: true
+default-experience: 10
