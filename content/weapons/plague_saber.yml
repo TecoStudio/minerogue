@@ -1,0 +1,14 @@
+id: plague_saber
+item: minecraft:golden_sword
+name: 疫毒军刀
+description: 对中毒目标造成更高伤害
+base-damage: 9
+attack-speed: 1.5
+durability: 500
+rarity: epic
+effects:
+  attack_range: 3.0
+  poison_chance: 0.35
+  poisoned_target_damage_percent: 0.30
+  crit_chance: 0.12
+  crit_damage: 1.7
