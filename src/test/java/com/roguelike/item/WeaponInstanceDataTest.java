@@ -54,7 +54,7 @@ class WeaponInstanceDataTest {
     }
 
     @Test
-    void bonusSlotsExtendNormalLimitWithoutFullOverflow() {
+    void formerBonusSlotLimitNoLongerBlocksDevelopment() {
         WeaponInstanceData data = new WeaponInstanceData("echo_blade");
         CustomWeapon template = weapon("echo_blade", "epic", 2, false);
 
@@ -65,7 +65,7 @@ class WeaponInstanceDataTest {
         data.setEffectBonus("chain_targets", 2.0);
 
         assertEquals(4, data.getRandomAffixSlotLimit(template));
-        assertFalse(data.hasOpenRandomAffixSlot(template));
+        assertTrue(data.hasOpenRandomAffixSlot(template));
         assertFalse(data.isOverflowingRandomAffixSlots(template));
     }
 
