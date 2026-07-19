@@ -1,0 +1,6 @@
+type: modifier
+id: pillager
+health-multiplier: 1.15
+damage-multiplier: 1.15
+speed-multiplier: 1.00
+weapon-template: echo_blade
