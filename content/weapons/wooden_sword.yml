@@ -1,0 +1,19 @@
+id: wooden_sword
+item: minecraft:wooden_sword
+name: 木剑
+description: 最基础的武器
+base-damage: 4
+attack-speed: 1.6
+durability: 59
+rarity: common
+effects:
+  attack_range: 3.0
+  lifesteal_percent: 0.0
+  slow_duration: 0.0
+  chain_targets: 0.0
+  chain_range: 0.0
+  chain_damage_percent: 0.0
+  damage_store_percent: 0.0
+  damage_store_hit_reduction: 0.0
+  crit_chance: 0.05
+  crit_damage: 1.5
