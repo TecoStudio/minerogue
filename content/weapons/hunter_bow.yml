@@ -1,0 +1,12 @@
+id: hunter_bow
+item: minecraft:bow
+name: 猎手长弓
+description: 可开发弓类词条的远程武器
+base-damage: 6
+attack-speed: 1.0
+durability: 384
+rarity: rare
+effects:
+  attack_range: 3.0
+  scatter_shot: 1.0
+  charge_power: 1.0
