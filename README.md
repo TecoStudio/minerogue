@@ -53,17 +53,22 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -TimeoutSeconds 
 ## 当前主要内容
 
 - Roguelike 武器和词条系统。
-- 强化券按武器品质调整成功率和强化量。
+- 强化券按武器品质调整成功率和强化量，使用次数升高后成功率会大幅衰减。
 - 开发券可把普通物品开发为特殊武器，并保留原物品伤害、攻击速度和已有攻击距离属性。
-- 开发券给装备添加词条时使用单按钮随机开发 GUI。
+- 开发券给装备添加词条时使用单按钮随机开发 GUI；武器已移除随机词条槽位数量上限。
+- 工具开发券只给 Roguelike 镐或斧添加工具类词条。
+- 弓类词条包含散射、连发和蓄能。
+- 原版经验条由插件接管为法力条。
 - 移除券可移除武器词条，并提升下次普通强化成功率。
 - Roguelike 武器兼容原版 MC 附魔。
 - 玩家可通过击杀怪物、挖矿和吃东西获得 Roguelike 经验。
 - 伤害聊天显示使用彩色公式，乘法倍率直接显示，鼠标悬停显示完整计算来源。
 - 铸造台由“铁砧 + 下方白色羊毛”组成，配方存储在 `forge-recipes.yml`。
 - 怪物死亡会按品质低概率掉落内置武器。
-- 内置精英怪、普通怪强化和可手动生成的内置 Boss，可在 `mobs.yml` 调整。
+- 内置精英怪、普通怪强化和可手动生成的内置 Boss，可在 `mobs.yml` 调整；Boss 会显示中文 Boss 血条。
 - 骷髅精英保留原版骷髅仇恨判定，不主动锁定创造/旁观玩家。
+- `/rw give` 图形界面会使用真实武器、物品、防具和券作为预览，便于直接查看属性与 lore。
+- 内置汉堡物品使用玩家头颅图标，右键直接食用，回复最大生命值的 30% 并补满饱食度。
 
 ## 可选集成
 
@@ -80,12 +85,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -TimeoutSeconds 
 | [快速开始](docs/quick-start.md) | 核心循环、基础部署、常用入口 |
 | [等级与经验](docs/leveling.md) | 经验需求、升级奖励、死亡惩罚 |
 | [装备与武器](docs/equipment.md) | 内置武器、内置物品、防具套装、原版附魔兼容 |
-| [券系统](docs/tickets.md) | 强化券、超级强化券、开发券、移除券 |
+| [券系统](docs/tickets.md) | 强化券、超级强化券、开发券、工具开发券、移除券 |
 | [铸造台](docs/forge.md) | 铸造台结构、GUI、`forge-recipes.yml` 配方格式 |
 | [词条数据](docs/affixes.md) | 当前全部词条、强化规则、原版附魔重复项检查 |
 | [怪物系统](docs/mobs.md) | 怪物经验、内置精英怪、内置 Boss、普通怪强化、随机武器掉落、仇恨说明 |
 | [命令](docs/commands.md) | 玩家命令、管理员命令、权限 |
 | [配置文件](docs/configuration.md) | `config.yml`、`weapons.yml`、`items.yml`、`mobs.yml`、`forge-recipes.yml` |
+| [Velocity 双服 MMO + 生存网络方案](docs/mmo-velocity-network.md) | 使用免费插件组合 Velocity、Paper 生存服和 MMO 服，规划跨服数据互通、插件分层和第一阶段验收 |
 | [配置片段助手](docs/config-tool.html) | 静态网页工具，用于生成武器、物品、精英怪/Boss 难度和普通怪强化 YAML 片段 |
 
 面向代码代理和维护者的工作说明见 [AGENTS.md](AGENTS.md)。
