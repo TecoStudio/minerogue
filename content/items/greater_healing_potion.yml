@@ -1,0 +1,8 @@
+id: greater_healing_potion
+item: minecraft:potion
+name: 强效治疗药水
+description: 恢复更多生命值
+item-type: potion
+rarity: rare
+effects:
+  heal_amount: 20.0
