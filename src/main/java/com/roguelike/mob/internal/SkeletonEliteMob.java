@@ -35,15 +35,15 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class SkeletonEliteMob implements InternalMob {
     private static final Random RANDOM = ThreadLocalRandom.current();
-    private static final String ID = "skeleton_elite";
-
     private final RoguelikePlugin plugin;
+    private final ConfigManager.InternalMobDefinition definition;
     private final NamespacedKey mobKey;
     private final NamespacedKey nextShotKey;
     private final NamespacedKey nextBurstKey;
 
-    public SkeletonEliteMob(RoguelikePlugin plugin) {
+    public SkeletonEliteMob(RoguelikePlugin plugin, ConfigManager.InternalMobDefinition definition) {
         this.plugin = plugin;
+        this.definition = definition;
         this.mobKey = new NamespacedKey(plugin, "internal_mob");
         this.nextShotKey = new NamespacedKey(plugin, "elite_next_shot");
         this.nextBurstKey = new NamespacedKey(plugin, "elite_next_burst");
@@ -51,12 +51,22 @@ public class SkeletonEliteMob implements InternalMob {
 
     @Override
     public String id() {
-        return ID;
+        return definition.id();
+    }
+
+    @Override
+    public java.util.List<String> aliases() {
+        return definition.aliases();
+    }
+
+    @Override
+    public boolean spawnable() {
+        return definition.spawnable();
     }
 
     @Override
     public void onSpawn(LivingEntity entity) {
-        ConfigManager.SkeletonEliteConfig config = ConfigManager.getSkeletonEliteConfig();
+        ConfigManager.SkeletonEliteConfig config = ConfigManager.getSkeletonEliteConfig(id());
         if (!config.enabled()) return;
         if (!(entity instanceof Skeleton skeleton)) return;
         if (skeleton.getEntitySpawnReason() != CreatureSpawnEvent.SpawnReason.NATURAL) return;
@@ -68,12 +78,12 @@ public class SkeletonEliteMob implements InternalMob {
     @Override
     public LivingEntity spawn(Location location) {
         Skeleton skeleton = (Skeleton) location.getWorld().spawnEntity(location, EntityType.SKELETON);
-        apply(skeleton, ConfigManager.getSkeletonEliteConfig());
+        apply(skeleton, ConfigManager.getSkeletonEliteConfig(id()));
         return skeleton;
     }
 
     private void apply(Skeleton skeleton, ConfigManager.SkeletonEliteConfig config) {
-        skeleton.getPersistentDataContainer().set(mobKey, PersistentDataType.STRING, ID);
+        skeleton.getPersistentDataContainer().set(mobKey, PersistentDataType.STRING, id());
         skeleton.customName(Message.toComponent(config.name()));
         skeleton.setCustomNameVisible(false);
 
@@ -115,7 +125,7 @@ public class SkeletonEliteMob implements InternalMob {
     }
 
     private ItemStack configuredSword(String weaponTemplate) {
-        CustomWeapon template = ConfigManager.getWeapon(weaponTemplate);
+        CustomWeapon template = weaponTemplate == null || weaponTemplate.isBlank() ? null : ConfigManager.getWeapon(weaponTemplate);
         if (template != null) {
             return WeaponManager.createWeaponStack(template, Material.IRON_SWORD);
         }
@@ -149,13 +159,13 @@ public class SkeletonEliteMob implements InternalMob {
 
         if (event.getDamager() instanceof Arrow arrow && arrow.getShooter() instanceof LivingEntity shooter) {
             if (!isMob(shooter)) return;
-            event.setDamage(ConfigManager.getSkeletonEliteConfig().damage());
+            event.setDamage(ConfigManager.getSkeletonEliteConfig(id()).damage());
             return;
         }
 
         if (!(event.getDamager() instanceof LivingEntity attacker) || !isMob(attacker)) return;
 
-        ConfigManager.SkeletonEliteConfig config = ConfigManager.getSkeletonEliteConfig();
+        ConfigManager.SkeletonEliteConfig config = ConfigManager.getSkeletonEliteConfig(id());
         double damage = config.damage();
         if (target.hasPotionEffect(PotionEffectType.POISON)) {
             damage *= 1 + config.poisonedDamageBonus();
@@ -169,7 +179,7 @@ public class SkeletonEliteMob implements InternalMob {
 
     @Override
     public void tick() {
-        ConfigManager.SkeletonEliteConfig config = ConfigManager.getSkeletonEliteConfig();
+        ConfigManager.SkeletonEliteConfig config = ConfigManager.getSkeletonEliteConfig(id());
         if (!config.enabled()) return;
 
         for (var world : plugin.getServer().getWorlds()) {
@@ -184,9 +194,9 @@ public class SkeletonEliteMob implements InternalMob {
                 if (target == null) continue;
 
                 double distance = skeleton.getLocation().distance(target.getLocation());
-                if (distance <= config.meleeRange()) {
+                if (distance <= config.meleeRange() && MobCombatScript.actionEnabled(config.combatScript(), "melee-burst", true)) {
                     startMeleeBurst(skeleton, target, config);
-                } else {
+                } else if (MobCombatScript.actionEnabled(config.combatScript(), "ranged-shot", true)) {
                     keepRangeAndShoot(skeleton, target, distance, config);
                 }
             }
@@ -250,6 +260,6 @@ public class SkeletonEliteMob implements InternalMob {
     @Override
     public boolean isMob(LivingEntity entity) {
         String value = entity.getPersistentDataContainer().get(mobKey, PersistentDataType.STRING);
-        return ID.equals(value);
+        return com.roguelike.mob.MobManager.matchesInternalMobValue(this, value);
     }
 }
