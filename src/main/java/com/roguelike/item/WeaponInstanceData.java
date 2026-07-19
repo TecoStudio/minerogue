@@ -118,8 +118,7 @@ public class WeaponInstanceData {
     }
 
     public boolean hasOpenRandomAffixSlot(CustomWeapon template) {
-        if (template != null && template.allowsOverflowAffixes()) return true;
-        return getRandomAffixCount() < getRandomAffixSlotLimit(template);
+        return true;
     }
 
     public boolean isOverflowingRandomAffixSlots(CustomWeapon template) {
