@@ -9,15 +9,25 @@ import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class ConfigManager {
     private static RoguelikePlugin plugin;
     private static File weaponsFile;
     private static File itemsFile;
+    private static File contentDirectory;
     private static File mobsFile;
     private static File sidebarFile;
     private static String sidebarTitle = "&6统计信息";
@@ -27,45 +37,59 @@ public class ConfigManager {
     private static SkeletonEliteConfig skeletonEliteConfig = DefaultMobs.skeletonElite();
     private static ZombieEliteConfig zombieEliteConfig = DefaultMobs.zombieElite();
     private static SpiderEliteConfig spiderEliteConfig = DefaultMobs.spiderElite();
-    private static BossConfig conciergeBossConfig = DefaultMobs.conciergeBoss();
-    private static BossConfig timeKeeperBossConfig = DefaultMobs.timeKeeperBoss();
+    private static ScriptedMobConfig scriptedMobConfig = DefaultMobs.scriptedMob();
 
     private static final Map<String, CustomWeapon> weapons = new LinkedHashMap<>();
     private static final Map<String, CustomItem> items = new LinkedHashMap<>();
+    private static final Map<String, ArmorDefinition> armorDefinitions = new LinkedHashMap<>();
     private static final Map<String, MobConfig> mobs = new LinkedHashMap<>();
+    private static final Map<String, InternalMobDefinition> internalMobDefinitions = new LinkedHashMap<>();
+    private static final Map<String, SkeletonEliteConfig> skeletonEliteConfigs = new LinkedHashMap<>();
+    private static final Map<String, ZombieEliteConfig> zombieEliteConfigs = new LinkedHashMap<>();
+    private static final Map<String, SpiderEliteConfig> spiderEliteConfigs = new LinkedHashMap<>();
+    private static final Map<String, ScriptedMobConfig> scriptedMobConfigs = new LinkedHashMap<>();
 
     public static void loadAll(RoguelikePlugin plugin) {
         ConfigManager.plugin = plugin;
         File data = plugin.getDataFolder();
         weaponsFile = new File(data, "weapons.yml");
         itemsFile = new File(data, "items.yml");
+        contentDirectory = new File(data, "content");
         mobsFile = new File(data, "mobs.yml");
         sidebarFile = new File(data, "sidebar.yml");
 
         loadBuiltIns();
         exportYamlDefaults();
+        syncGithubContentIfEnabled();
         loadWeapons();
         loadItems();
         loadMobs();
+        loadContentDirectory(contentDirectory);
         loadSidebar();
 
-        plugin.getLogger().info("加载了 " + weapons.size() + " 个武器模板, " + items.size() + " 个物品, " + mobs.size() + " 个怪物配置。");
+        plugin.getLogger().info("加载了 " + weapons.size() + " 个武器模板, " + items.size() + " 个物品, " + armorDefinitions.size() + " 个防具定义, " + mobs.size() + " 个怪物配置。");
     }
 
     private static void loadBuiltIns() {
         weapons.clear();
         items.clear();
+        armorDefinitions.clear();
         mobs.clear();
+        internalMobDefinitions.clear();
+        skeletonEliteConfigs.clear();
+        zombieEliteConfigs.clear();
+        spiderEliteConfigs.clear();
+        scriptedMobConfigs.clear();
         MobExperienceConfig.clear();
 
         weapons.putAll(DefaultWeapons.create());
         items.putAll(DefaultItems.create());
+        armorDefinitions.putAll(DefaultArmor.create());
         internalMonsterSystemEnabled = DefaultMobs.internalSystemEnabled();
         skeletonEliteConfig = DefaultMobs.skeletonElite();
         zombieEliteConfig = DefaultMobs.zombieElite();
         spiderEliteConfig = DefaultMobs.spiderElite();
-        conciergeBossConfig = DefaultMobs.conciergeBoss();
-        timeKeeperBossConfig = DefaultMobs.timeKeeperBoss();
+        scriptedMobConfig = DefaultMobs.scriptedMob();
         skeletonEliteSpawnChance = skeletonEliteConfig.spawnChance();
         MobExperienceConfig.setDefaultExp(DefaultMobs.defaultExperience());
         DefaultMobs.experience().forEach(MobExperienceConfig::setMobExp);
@@ -74,11 +98,90 @@ public class ConfigManager {
 
     private static void loadWeapons() {
         YamlConfiguration config = YamlConfiguration.loadConfiguration(weaponsFile);
-        ConfigurationSection section = config.getConfigurationSection("weapons");
-        if (section == null) return;
-        for (String id : section.getKeys(false)) {
-            addWeapon(parseWeapon(id, section.getConfigurationSection(id)));
+        loadWeaponsFromConfiguration(config);
+    }
+
+    public static void loadContentDirectory(File directory) {
+        if (directory == null || !directory.exists() || !directory.isDirectory()) return;
+        loadYamlFiles(new File(directory, "weapons"), ConfigManager::loadWeaponsFromFile);
+        loadYamlFiles(new File(directory, "items"), ConfigManager::loadItemsFromFile);
+        loadYamlFiles(new File(directory, "armor"), ConfigManager::loadArmorFromFile);
+        loadYamlFiles(new File(directory, "mobs"), ConfigManager::loadMobsFromFile);
+    }
+
+    private static void loadYamlFiles(File directory, YamlFileLoader loader) {
+        if (directory == null || !directory.exists() || !directory.isDirectory()) return;
+        try (var stream = Files.walk(directory.toPath())) {
+            List<Path> files = stream
+                    .filter(Files::isRegularFile)
+                    .filter(ConfigManager::isYamlFile)
+                    .sorted(Comparator.comparing(path -> path.toString().toLowerCase(Locale.ROOT)))
+                    .toList();
+            for (Path path : files) loader.load(path.toFile());
+        } catch (IOException e) {
+            if (plugin != null) plugin.getLogger().warning("读取内容目录失败 " + directory.getAbsolutePath() + ": " + e.getMessage());
         }
+    }
+
+    private static boolean isYamlFile(Path path) {
+        String name = path.getFileName().toString().toLowerCase(Locale.ROOT);
+        return name.endsWith(".yml") || name.endsWith(".yaml");
+    }
+
+    private static void loadWeaponsFromFile(File file) {
+        loadWeaponsFromConfiguration(YamlConfiguration.loadConfiguration(file), contentId(file));
+    }
+
+    private static void loadWeaponsFromConfiguration(YamlConfiguration config) {
+        loadWeaponsFromConfiguration(config, null);
+    }
+
+    private static void loadWeaponsFromConfiguration(YamlConfiguration config, String defaultId) {
+        ConfigurationSection section = config.getConfigurationSection("weapons");
+        if (section != null) {
+            for (String id : section.getKeys(false)) {
+                CustomWeapon weapon = parseWeapon(id, section.getConfigurationSection(id));
+                if (weapon != null) addWeapon(weapon);
+            }
+            return;
+        }
+        String id = config.getString("id", defaultId);
+        if (id != null && !id.isBlank()) {
+            CustomWeapon weapon = parseWeapon(id, config);
+            if (weapon != null) addWeapon(weapon);
+        }
+    }
+
+    private static void loadItemsFromFile(File file) {
+        loadItemsFromConfiguration(YamlConfiguration.loadConfiguration(file), contentId(file));
+    }
+
+    private static void loadArmorFromFile(File file) {
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+        ConfigurationSection section = config.getConfigurationSection("armor");
+        if (section != null) {
+            for (String id : section.getKeys(false)) {
+                ArmorDefinition definition = parseArmorDefinition(id, section.getConfigurationSection(id));
+                if (definition != null) armorDefinitions.put(id.toLowerCase(Locale.ROOT), definition);
+            }
+            return;
+        }
+        String id = config.getString("id", contentId(file));
+        if (id != null && !id.isBlank()) {
+            ArmorDefinition definition = parseArmorDefinition(id, config);
+            if (definition != null) armorDefinitions.put(id.toLowerCase(Locale.ROOT), definition);
+        }
+    }
+
+    private static void loadMobsFromFile(File file) {
+        loadMobsFromConfiguration(YamlConfiguration.loadConfiguration(file), contentId(file));
+    }
+
+    private static String contentId(File file) {
+        if (file == null) return null;
+        String name = file.getName();
+        int dot = name.lastIndexOf('.');
+        return dot <= 0 ? name : name.substring(0, dot);
     }
 
     private static void addWeapon(CustomWeapon weapon) {
@@ -104,10 +207,26 @@ public class ConfigManager {
 
     private static void loadItems() {
         YamlConfiguration config = YamlConfiguration.loadConfiguration(itemsFile);
+        loadItemsFromConfiguration(config);
+    }
+
+    private static void loadItemsFromConfiguration(YamlConfiguration config) {
+        loadItemsFromConfiguration(config, null);
+    }
+
+    private static void loadItemsFromConfiguration(YamlConfiguration config, String defaultId) {
         ConfigurationSection section = config.getConfigurationSection("items");
-        if (section == null) return;
-        for (String id : section.getKeys(false)) {
-            addItem(parseItem(id, section.getConfigurationSection(id)));
+        if (section != null) {
+            for (String id : section.getKeys(false)) {
+                CustomItem item = parseItem(id, section.getConfigurationSection(id));
+                if (item != null) addItem(item);
+            }
+            return;
+        }
+        String id = config.getString("id", defaultId);
+        if (id != null && !id.isBlank()) {
+            CustomItem item = parseItem(id, config);
+            if (item != null) addItem(item);
         }
     }
 
@@ -131,14 +250,28 @@ public class ConfigManager {
         return "minecraft:paper";
     }
 
+    private static ArmorDefinition parseArmorDefinition(String id, ConfigurationSection section) {
+        if (section == null) return null;
+        String name = section.getString("name", id);
+        String desc = section.getString("description", "");
+        String rarity = section.getString("rarity", "common");
+        return new ArmorDefinition(name, desc, rarity);
+    }
+
     private static void loadMobs() {
         YamlConfiguration config = YamlConfiguration.loadConfiguration(mobsFile);
+        loadMobsFromConfiguration(config);
+    }
+
+    private static void loadMobsFromConfiguration(YamlConfiguration config) {
+        loadMobsFromConfiguration(config, null);
+    }
+
+    private static void loadMobsFromConfiguration(YamlConfiguration config, String defaultId) {
         internalMonsterSystemEnabled = config.getBoolean("internal.enabled", internalMonsterSystemEnabled);
         skeletonEliteConfig = parseSkeletonEliteConfig(config.getConfigurationSection("internal.skeleton-elite"));
         zombieEliteConfig = parseZombieEliteConfig(config.getConfigurationSection("internal.zombie-elite"));
         spiderEliteConfig = parseSpiderEliteConfig(config.getConfigurationSection("internal.spider-elite"));
-        conciergeBossConfig = parseBossConfig(config.getConfigurationSection("internal.concierge-boss"), conciergeBossConfig);
-        timeKeeperBossConfig = parseBossConfig(config.getConfigurationSection("internal.time-keeper-boss"), timeKeeperBossConfig);
         skeletonEliteSpawnChance = skeletonEliteConfig.spawnChance();
         MobExperienceConfig.setDefaultExp(config.getInt("default-experience", MobExperienceConfig.getDefaultExp()));
         ConfigurationSection experience = config.getConfigurationSection("experience");
@@ -154,6 +287,80 @@ public class ConfigManager {
                 mobs.put(id.toLowerCase(), parseMobConfig(modifiers.getConfigurationSection(id)));
             }
         }
+
+        String type = config.getString("type", "").toLowerCase(Locale.ROOT);
+        String id = config.getString("id", defaultId);
+        if (id == null || id.isBlank()) return;
+        switch (type) {
+            case "experience" -> {
+                MobExperienceConfig.setMobExp(id, config.getInt("experience", config.getInt("value", MobExperienceConfig.getMobExp(id))));
+            }
+            case "modifier" -> mobs.put(id.toLowerCase(Locale.ROOT), parseMobConfig(config));
+            case "internal" -> applyInternalMobConfig(id, config);
+            case "settings" -> {
+                internalMonsterSystemEnabled = config.getBoolean("internal-system-enabled", internalMonsterSystemEnabled);
+                MobExperienceConfig.setDefaultExp(config.getInt("default-experience", MobExperienceConfig.getDefaultExp()));
+            }
+            default -> {
+                if (config.isSet("health-multiplier") || config.isSet("damage-multiplier") || config.isSet("speed-multiplier")) {
+                    mobs.put(id.toLowerCase(Locale.ROOT), parseMobConfig(config));
+                }
+            }
+        }
+    }
+
+    private static void applyInternalMobConfig(String id, ConfigurationSection section) {
+        String normalized = id.toLowerCase(Locale.ROOT).replace('_', '-');
+        String logic = section.getString("logic", legacyInternalMobLogic(normalized));
+        if (logic == null || logic.isBlank()) return;
+        String logicKind = internalLogicKind(logic);
+        List<String> aliases = section.getStringList("aliases");
+        boolean spawnable = section.getBoolean("spawnable", true);
+        internalMobDefinitions.put(id.toLowerCase(Locale.ROOT), new InternalMobDefinition(id, logic, aliases, spawnable));
+        switch (logicKind) {
+            case "scripted" -> {
+                ScriptedMobConfig config = parseScriptedMobConfig(section);
+                scriptedMobConfigs.put(id.toLowerCase(Locale.ROOT), config);
+                scriptedMobConfig = config;
+            }
+            case "skeleton-elite" -> {
+                SkeletonEliteConfig config = parseSkeletonEliteConfig(section);
+                skeletonEliteConfigs.put(id.toLowerCase(Locale.ROOT), config);
+                skeletonEliteConfig = config;
+                skeletonEliteSpawnChance = config.spawnChance();
+            }
+            case "zombie-elite" -> {
+                ZombieEliteConfig config = parseZombieEliteConfig(section);
+                zombieEliteConfigs.put(id.toLowerCase(Locale.ROOT), config);
+                zombieEliteConfig = config;
+            }
+            case "spider-elite" -> {
+                SpiderEliteConfig config = parseSpiderEliteConfig(section);
+                spiderEliteConfigs.put(id.toLowerCase(Locale.ROOT), config);
+                spiderEliteConfig = config;
+            }
+            default -> {
+            }
+        }
+    }
+
+    private static String legacyInternalMobLogic(String normalizedId) {
+        return switch (normalizedId) {
+            case "skeleton-elite" -> "skeleton-elite";
+            case "zombie-elite" -> "zombie-elite";
+            case "spider-elite" -> "spider-elite";
+            case "blood-zombie" -> "use template zombie\nif target_far then leap\nelse shockwave";
+            case "vagrant" -> "use template skeleton\nif target_detected then blink\nif target_close then blade-storm";
+            default -> null;
+        };
+    }
+
+    private static String internalLogicKind(String logic) {
+        String normalized = logic.toLowerCase(Locale.ROOT).replace('_', '-').trim();
+        return switch (normalized) {
+            case "skeleton-elite", "zombie-elite", "spider-elite" -> normalized;
+            default -> "scripted";
+        };
     }
 
     private static MobConfig parseMobConfig(ConfigurationSection section) {
@@ -186,7 +393,8 @@ public class ConfigManager {
                 Math.max(0.1, section.getDouble("behavior.arrow-speed", defaults.arrowSpeed())),
                 Math.max(0.0, section.getDouble("behavior.retreat-speed", defaults.retreatSpeed())),
                 Math.max(0.0, section.getDouble("behavior.lunge-speed", defaults.lungeSpeed())),
-                Math.max(0.0, section.getDouble("behavior.post-burst-retreat-speed", defaults.postBurstRetreatSpeed()))
+                Math.max(0.0, section.getDouble("behavior.post-burst-retreat-speed", defaults.postBurstRetreatSpeed())),
+                readCombatScript(section, defaults.combatScript())
         );
     }
 
@@ -199,7 +407,8 @@ public class ConfigManager {
                 section.getString("name", defaults.name()),
                 section.getDouble("health", defaults.health()),
                 section.getDouble("damage", defaults.damage()),
-                section.getString("weapon-template", defaults.weaponTemplate())
+                section.getString("weapon-template", defaults.weaponTemplate()),
+                readCombatScript(section, defaults.combatScript())
         );
     }
 
@@ -214,13 +423,15 @@ public class ConfigManager {
                 Math.max(0.0, section.getDouble("speed-multiplier", defaults.speedMultiplier())),
                 clampChance(section.getDouble("slow-chance", defaults.slowChance())),
                 Math.max(0.0, section.getDouble("slow-duration-seconds", defaults.slowDurationSeconds())),
-                Math.max(1, section.getInt("slow-level", section.getInt("slow-amplifier", defaults.slowLevel())))
+                Math.max(1, section.getInt("slow-level", section.getInt("slow-amplifier", defaults.slowLevel()))),
+                readCombatScript(section, defaults.combatScript())
         );
     }
 
-    private static BossConfig parseBossConfig(ConfigurationSection section, BossConfig defaults) {
+    private static ScriptedMobConfig parseScriptedMobConfig(ConfigurationSection section) {
+        ScriptedMobConfig defaults = scriptedMobConfig;
         if (section == null) return defaults;
-        return new BossConfig(
+        return new ScriptedMobConfig(
                 section.getBoolean("enabled", defaults.enabled()),
                 section.getString("name", defaults.name()),
                 Math.max(1.0, section.getDouble("health", defaults.health())),
@@ -231,6 +442,13 @@ public class ConfigManager {
                 Math.max(1L, section.getLong("skill-cooldown-ticks", defaults.skillCooldownTicks())),
                 Math.max(0.0, section.getDouble("skill-damage", defaults.skillDamage()))
         );
+    }
+
+    private static String readCombatScript(ConfigurationSection section, String fallback) {
+        String script = section.getString("combat-script", null);
+        if (script != null) return script;
+        List<String> lines = section.getStringList("combat-script");
+        return lines.isEmpty() ? fallback : String.join("\n", lines);
     }
 
     private static Map<String, Double> readDoubleMap(ConfigurationSection section) {
@@ -260,8 +478,45 @@ public class ConfigManager {
     public static void exportEditableYaml() throws IOException {
         saveWeaponsYaml(weaponsFile, weapons);
         saveItemsYaml(itemsFile, items);
+        saveArmorYaml(new File(plugin.getDataFolder(), "armor.yml"), armorDefinitions);
         saveMobsYaml(mobsFile);
         saveSidebarYaml(sidebarFile);
+    }
+
+    private static void syncGithubContentIfEnabled() {
+        if (plugin == null || !plugin.getConfig().getBoolean("content.github-sync.enabled", true)) return;
+        String baseUrl = plugin.getConfig().getString("content.github-sync.base-url", "");
+        List<String> files = plugin.getConfig().getStringList("content.github-sync.files");
+        if (baseUrl == null || baseUrl.isBlank() || files.isEmpty()) return;
+        boolean overwrite = plugin.getConfig().getBoolean("content.github-sync.overwrite-existing", true);
+        HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
+        for (String relative : files) {
+            if (relative == null || relative.isBlank() || relative.contains("..")) continue;
+            Path target = contentDirectory.toPath().resolve(relative.replace('\\', '/')).normalize();
+            if (!target.startsWith(contentDirectory.toPath())) continue;
+            if (!overwrite && Files.exists(target)) continue;
+            try {
+                Files.createDirectories(target.getParent());
+                HttpRequest request = HttpRequest.newBuilder(URI.create(joinUrl(baseUrl, relative.replace('\\', '/'))))
+                        .timeout(Duration.ofSeconds(20))
+                        .GET()
+                        .build();
+                HttpResponse<byte[]> response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+                if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                    Files.write(target, response.body());
+                } else {
+                    plugin.getLogger().warning("拉取内容 YAML 失败 " + relative + ": HTTP " + response.statusCode());
+                }
+            } catch (Exception e) {
+                plugin.getLogger().warning("拉取内容 YAML 失败 " + relative + ": " + e.getMessage());
+            }
+        }
+    }
+
+    private static String joinUrl(String baseUrl, String relative) {
+        String base = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+        String path = relative.startsWith("/") ? relative.substring(1) : relative;
+        return base + "/" + path;
     }
 
     private static void loadSidebar() {
@@ -327,6 +582,19 @@ public class ConfigManager {
         saveYaml(config, file);
     }
 
+    private static void saveArmorYaml(File file, Map<String, ArmorDefinition> source) throws IOException {
+        YamlConfiguration config = new YamlConfiguration();
+        config.options().header("Roguelike 防具定义配置。修改后使用 /rw reload 重载。");
+        for (Map.Entry<String, ArmorDefinition> entry : source.entrySet()) {
+            String path = "armor." + entry.getKey() + ".";
+            ArmorDefinition definition = entry.getValue();
+            config.set(path + "name", definition.name());
+            config.set(path + "description", definition.description());
+            config.set(path + "rarity", definition.rarity());
+        }
+        saveYaml(config, file);
+    }
+
     private static void saveMobsYaml(File file) throws IOException {
         YamlConfiguration config = new YamlConfiguration();
         config.options().header("""
@@ -335,19 +603,13 @@ public class ConfigManager {
                 概率字段使用 0.0 - 1.0：0.12 = 12%，0.35 = 35%。
                 药水等级字段使用游戏内显示等级：1 = I，2 = II，3 = III。
                 MythicMobs 集成开启时，本插件内置怪物不会自然生成。
-                /rw monster spawn 只生成插件自定义怪物，例如 skeleton_elite、zombie_elite、spider_elite、concierge、time_keeper。
+                /rw monster spawn 只生成 content/mobs/*.yml 中 type: internal 且 spawnable: true 的怪物。
                 """);
         config.setComments("internal", List.of("是否启用本插件内置怪物系统。"));
         config.set("internal.enabled", internalMonsterSystemEnabled);
         saveSkeletonEliteConfig(config, "internal.skeleton-elite", skeletonEliteConfig);
         saveZombieEliteConfig(config, "internal.zombie-elite", zombieEliteConfig);
         saveSpiderEliteConfig(config, "internal.spider-elite", spiderEliteConfig);
-        saveBossConfig(config, "internal.concierge-boss", conciergeBossConfig,
-                "沸血僵尸 Boss：参考死亡细胞 Concierge，重甲近战，跃击接范围震地。",
-                "震地范围。范围内目标受到伤害并被击退。");
-        saveBossConfig(config, "internal.time-keeper-boss", timeKeeperBossConfig,
-                "流浪者 Boss：参考死亡细胞 Time Keeper，瞬移背刺，范围刀阵附加缓慢。",
-                "刀阵范围。范围内目标受到伤害并被缓慢。");
         config.set("default-experience", MobExperienceConfig.getDefaultExp());
         MobExperienceConfig.getAllMobExp().forEach((key, value) -> config.set("experience." + key, value));
         mobs.forEach((key, value) -> {
@@ -428,42 +690,12 @@ public class ConfigManager {
         config.set(path + ".slow-level", value.slowLevel());
     }
 
-    private static void saveBossConfig(YamlConfiguration config, String path, BossConfig value, String title, String skillRangeComment) {
-        config.setComments(path, List.of(title, "Boss 不会自然生成，可用 /rw monster spawn <id> 生成。名称默认不强制显示，避免隔墙看到名字。"));
-        config.setComments(path + ".enabled", List.of("是否启用该 Boss。"));
-        config.set(path + ".enabled", value.enabled());
-        config.setComments(path + ".name", List.of("Boss 显示名，支持 & 颜色代码。"));
-        config.set(path + ".name", value.name());
-        config.setComments(path + ".health", List.of("最大生命值。"));
-        config.set(path + ".health", value.health());
-        config.setComments(path + ".damage", List.of("基础近战伤害。"));
-        config.set(path + ".damage", value.damage());
-        config.setComments(path + ".speed-multiplier", List.of("移动速度倍率。"));
-        config.set(path + ".speed-multiplier", value.speedMultiplier());
-        config.setComments(path + ".detect-range", List.of("索敌和主动技能检测距离。"));
-        config.set(path + ".detect-range", value.detectRange());
-        config.setComments(path + ".skill-range", List.of(skillRangeComment));
-        config.set(path + ".skill-range", value.skillRange());
-        config.setComments(path + ".skill-cooldown-ticks", List.of("核心技能冷却，20 tick = 1 秒。"));
-        config.set(path + ".skill-cooldown-ticks", value.skillCooldownTicks());
-        config.setComments(path + ".skill-damage", List.of("核心技能伤害。"));
-        config.set(path + ".skill-damage", value.skillDamage());
-    }
-
-    private static void saveYaml(YamlConfiguration config, File file) throws IOException {
-        File parent = file.getParentFile();
-        if (parent != null && !parent.exists() && !parent.mkdirs()) {
-            throw new IOException("无法创建目录: " + parent.getAbsolutePath());
-        }
-        config.save(file);
+    public static CustomWeapon getWeapon(String id) {
+        return id == null ? null : weapons.get(id.toLowerCase());
     }
 
     public static List<CustomWeapon> getWeapons() {
         return new ArrayList<>(weapons.values());
-    }
-
-    public static CustomWeapon getWeapon(String id) {
-        return id == null ? null : weapons.get(id.toLowerCase());
     }
 
     public static List<CustomItem> getItems() {
@@ -472,6 +704,35 @@ public class ConfigManager {
 
     public static CustomItem getItem(String id) {
         return id == null ? null : items.get(id.toLowerCase());
+    }
+
+    public static Map<String, ArmorDefinition> getArmorDefinitions() {
+        return new LinkedHashMap<>(armorDefinitions);
+    }
+
+    public static List<InternalMobDefinition> getInternalMobDefinitions() {
+        return new ArrayList<>(internalMobDefinitions.values());
+    }
+
+    public static SkeletonEliteConfig getSkeletonEliteConfig(String id) {
+        return configOrDefault(skeletonEliteConfigs, id, skeletonEliteConfig);
+    }
+
+    public static ZombieEliteConfig getZombieEliteConfig(String id) {
+        return configOrDefault(zombieEliteConfigs, id, zombieEliteConfig);
+    }
+
+    public static SpiderEliteConfig getSpiderEliteConfig(String id) {
+        return configOrDefault(spiderEliteConfigs, id, spiderEliteConfig);
+    }
+
+    public static ScriptedMobConfig getScriptedMobConfig(String id) {
+        return configOrDefault(scriptedMobConfigs, id, scriptedMobConfig);
+    }
+
+    private static <T> T configOrDefault(Map<String, T> source, String id, T fallback) {
+        if (id == null) return fallback;
+        return source.getOrDefault(id.toLowerCase(Locale.ROOT), fallback);
     }
 
     public static MobConfig getMobConfig(String entityType) {
@@ -536,12 +797,9 @@ public class ConfigManager {
         return spiderEliteConfig;
     }
 
-    public static BossConfig getConciergeBossConfig() {
-        return conciergeBossConfig;
-    }
-
-    public static BossConfig getTimeKeeperBossConfig() {
-        return timeKeeperBossConfig;
+    private static void saveYaml(YamlConfiguration config, File file) throws IOException {
+        Files.createDirectories(file.toPath().getParent());
+        config.save(file);
     }
 
     public static RoguelikePlugin getPlugin() {
@@ -551,23 +809,35 @@ public class ConfigManager {
     public record MobConfig(double healthMultiplier, double damageMultiplier, double speedMultiplier, String weaponTemplate) {
     }
 
+    public record InternalMobDefinition(String id, String logic, List<String> aliases, boolean spawnable) {
+        public InternalMobDefinition {
+            aliases = aliases == null ? List.of() : List.copyOf(aliases);
+        }
+    }
+
     public record SkeletonEliteConfig(boolean enabled, double spawnChance, String name, double health, double damage,
                                       double poisonChance, double poisonedDamageBonus, double poisonDurationSeconds,
                                       String weaponTemplate, double detectRange, double keepDistance, double meleeRange,
                                       long shotCooldownTicks, long burstCooldownTicks, double arrowSpeed,
-                                      double retreatSpeed, double lungeSpeed, double postBurstRetreatSpeed) {
+                                      double retreatSpeed, double lungeSpeed, double postBurstRetreatSpeed,
+                                      String combatScript) {
     }
 
     public record ZombieEliteConfig(boolean enabled, double spawnChance, String name, double health, double damage,
-                                    String weaponTemplate) {
+                                    String weaponTemplate, String combatScript) {
     }
 
     public record SpiderEliteConfig(boolean enabled, double spawnChance, String name, double health,
                                     double speedMultiplier, double slowChance, double slowDurationSeconds,
-                                    int slowLevel) {
+                                    int slowLevel, String combatScript) {
     }
 
-    public record BossConfig(boolean enabled, String name, double health, double damage, double speedMultiplier,
-                             double detectRange, double skillRange, long skillCooldownTicks, double skillDamage) {
+    public record ScriptedMobConfig(boolean enabled, String name, double health, double damage, double speedMultiplier,
+                                    double detectRange, double skillRange, long skillCooldownTicks, double skillDamage) {
+    }
+
+    @FunctionalInterface
+    private interface YamlFileLoader {
+        void load(File file);
     }
 }
