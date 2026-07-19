@@ -1,0 +1,14 @@
+id: glass_cannon_hammer
+item: minecraft:netherite_axe
+name: 玻璃重锤
+description: 攻速很慢但爆发极高的重锤
+base-damage: 20
+attack-speed: 0.7
+durability: 1600
+rarity: legendary
+effects:
+  attack_range: 3.1
+  crit_chance: 0.20
+  crit_damage: 2.4
+  damage_store_percent: 0.20
+  damage_store_hit_reduction: 4.0
