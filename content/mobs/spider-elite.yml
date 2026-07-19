@@ -1,0 +1,16 @@
+type: internal
+id: spider-elite
+logic: spider-elite
+aliases:
+  - spider_elite
+enabled: true
+spawnable: true
+spawn-chance: 0.12
+name: '&5精英蜘蛛'
+health: 35.0
+speed-multiplier: 1.2
+slow-chance: 0.35
+slow-duration-seconds: 8.0
+slow-level: 1
+combat-script: |
+  slow-on-hit
