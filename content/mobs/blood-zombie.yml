@@ -1,0 +1,18 @@
+type: internal
+id: blood-zombie
+logic: |
+  use template zombie
+  if target_far then leap
+  else shockwave
+aliases:
+  - blood_zombie
+enabled: true
+spawnable: true
+name: '&4沸血僵尸'
+health: 180.0
+damage: 9.0
+speed-multiplier: 0.95
+detect-range: 24.0
+skill-range: 5.0
+skill-cooldown-ticks: 120
+skill-damage: 8.0
