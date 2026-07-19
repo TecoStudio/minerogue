@@ -7,4 +7,5 @@ sources.txt
 mbopencode.bat
 /.omo
 server
+network/
 .hermes/*
