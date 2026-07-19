@@ -2,6 +2,8 @@ package com.roguelike.armor;
 
 import com.roguelike.RoguelikePlugin;
 import com.roguelike.combat.CombatHandler;
+import com.roguelike.config.ArmorDefinition;
+import com.roguelike.config.ConfigManager;
 import com.roguelike.item.CustomItem;
 import com.roguelike.util.Message;
 import net.kyori.adventure.text.Component;
@@ -205,23 +207,7 @@ public final class ArmorSetManager {
     }
 
     public static Map<String, ArmorDefinition> armorDefinitions() {
-        Map<String, ArmorDefinition> values = new LinkedHashMap<>();
-        values.put("thorns_helmet", new ArmorDefinition("荆棘头盔", "锁链荆棘套部件", "common"));
-        values.put("thorns_chestplate", new ArmorDefinition("荆棘胸甲", "锁链荆棘套部件", "common"));
-        values.put("thorns_leggings", new ArmorDefinition("荆棘护腿", "锁链荆棘套部件", "common"));
-        values.put("thorns_boots", new ArmorDefinition("荆棘靴子", "锁链荆棘套部件", "common"));
-        values.put("swift_helmet", new ArmorDefinition("神速头盔", "黄金神速套部件", "rare"));
-        values.put("swift_chestplate", new ArmorDefinition("神速胸甲", "黄金神速套部件", "rare"));
-        values.put("swift_leggings", new ArmorDefinition("神速护腿", "黄金神速套部件", "rare"));
-        values.put("swift_boots", new ArmorDefinition("神速靴子", "黄金神速套部件", "rare"));
-        values.put("explosive_helmet", new ArmorDefinition("炸药头盔", "铜质炸药套部件", "epic"));
-        values.put("explosive_chestplate", new ArmorDefinition("炸药胸甲", "铜质炸药套部件", "epic"));
-        values.put("explosive_leggings", new ArmorDefinition("炸药护腿", "铜质炸药套部件", "epic"));
-        values.put("explosive_boots", new ArmorDefinition("炸药靴子", "铜质炸药套部件", "epic"));
-        return values;
-    }
-
-    public record ArmorDefinition(String name, String description, String rarity) {
+        return ConfigManager.getArmorDefinitions();
     }
 
     private enum ArmorSet {
