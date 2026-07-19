@@ -102,7 +102,7 @@ public class PlayerData {
         switch (ticketId) {
             case "ticket_a" -> ticketAUses++;
             case "super_ticket_a" -> superTicketAUses++;
-            case "ticket_b", "weapon_development" -> ticketBUses++;
+            case "ticket_b", "tool_ticket_b", "weapon_development" -> ticketBUses++;
             case "ticket_c" -> ticketCUses++;
             default -> {
             }
