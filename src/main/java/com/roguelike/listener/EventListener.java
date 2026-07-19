@@ -21,12 +21,15 @@ import com.roguelike.equipment.EquipmentTypeResolver;
 import com.roguelike.forge.ForgeTableManager;
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.item.WeaponInstanceData;
+import com.roguelike.mana.ManaManager;
 import com.roguelike.weapon.ToolAbilityManager;
+import com.roguelike.weapon.BowAbilityManager;
 import com.roguelike.weapon.WeaponAbilityManager;
 import com.roguelike.weapon.WeaponManager;
 import org.bukkit.Material;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -47,10 +50,12 @@ public class EventListener implements Listener {
         Player player = event.getPlayer();
         PlayerDataManager.get(player);
         LevelManager.updateExpBar(player);
+        ManaManager.track(player);
         player.getServer().getScheduler().runTaskLater(RoguelikePlugin.getInstance(), () -> {
             WeaponManager.refreshHeldWeapon(player);
             ArmorSetManager.applyPassiveEffects(player);
             RoguelikeScoreboard.updatePlayer(player);
+            ManaManager.track(player);
         }, 1L);
     }
 
@@ -59,6 +64,13 @@ public class EventListener implements Listener {
         PlayerDataManager.unload(event.getPlayer());
         RoguelikeScoreboard.clearPlayer(event.getPlayer());
         WeaponManager.clearAttributes(event.getPlayer());
+        ManaManager.untrack(event.getPlayer());
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onExperienceChange(PlayerExpChangeEvent event) {
+        event.setAmount(0);
+        ManaManager.track(event.getPlayer());
     }
 
     @EventHandler
@@ -85,6 +97,11 @@ public class EventListener implements Listener {
         ItemStack main = player.getInventory().getItemInMainHand();
         ItemStack off = player.getInventory().getItemInOffHand();
 
+        if (applyDirectUseCustomItem(player, main)) {
+            event.setCancelled(true);
+            return;
+        }
+
         TicketType mainTicket = TicketManager.getTicketType(main);
         TicketType offTicket = TicketManager.getTicketType(off);
 
@@ -98,10 +115,26 @@ public class EventListener implements Listener {
         // 副手持券，主手持目标物品。开发券允许目标是任意非空气物品。
         else if (offTicket != null) {
             if (canTargetAnyItem(offTicket) || canTargetEquipment(main)) {
+                denyMainHandUseIfNeeded(event, player, main);
                 event.setCancelled(true);
                 TicketManager.applyTicket(player, off, main);
             }
         }
+    }
+
+    private void denyMainHandUseIfNeeded(PlayerInteractEvent event, Player player, ItemStack main) {
+        if (!shouldDenyMainHandUseForOffhandTicket(main)) return;
+        event.setUseItemInHand(Event.Result.DENY);
+        player.clearActiveItem();
+        player.getServer().getScheduler().runTaskLater(RoguelikePlugin.getInstance(), player::clearActiveItem, 1L);
+    }
+
+    static boolean shouldDenyMainHandUseForOffhandTicket(ItemStack main) {
+        return main != null && shouldDenyMainHandUseForOffhandTicket(main.getType());
+    }
+
+    static boolean shouldDenyMainHandUseForOffhandTicket(Material material) {
+        return material == Material.TRIDENT;
     }
 
     private boolean canTargetEquipment(ItemStack stack) {
@@ -112,6 +145,37 @@ public class EventListener implements Listener {
         return ticket == TicketType.TICKET_B;
     }
 
+    private boolean applyDirectUseCustomItem(Player player, ItemStack stack) {
+        String id = CustomItemStackFactory.getCustomItemId(stack);
+        if (id == null) return false;
+        CustomItem item = ConfigManager.getItem(id);
+        if (item == null || !"food".equalsIgnoreCase(item.getItemType())) return false;
+
+        double healPercent = item.getEffect("heal_percent", 0.0);
+        double healAmount = item.getEffect("heal_amount", 0.0);
+        var maxHealth = player.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+        double maximum = maxHealth == null ? player.getHealth() : maxHealth.getValue();
+        double heal = healPercent > 0.0 ? maximum * healPercent : healAmount;
+        if (heal > 0.0) {
+            player.setHealth(healedHealth(player.getHealth(), maximum, heal));
+        }
+        if (item.getEffect("full_saturation", 0.0) > 0.0) {
+            player.setFoodLevel(20);
+            player.setSaturation(20.0f);
+        }
+        consumeOne(stack);
+        Message.send(player, "&a你食用了 " + item.getName() + "。");
+        return true;
+    }
+
+    private void consumeOne(ItemStack stack) {
+        if (stack.getAmount() <= 1) {
+            stack.setAmount(0);
+        } else {
+            stack.setAmount(stack.getAmount() - 1);
+        }
+    }
+
     @EventHandler
     public void onToggleSneak(PlayerToggleSneakEvent event) {
         WeaponAbilityManager.handleSneak(event);
@@ -119,6 +183,7 @@ public class EventListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onDamage(EntityDamageByEntityEvent event) {
+        if (BowAbilityManager.handleArrowDamage(event)) return;
         if (!(event.getDamager() instanceof Player player)) return;
         if (!(event.getEntity() instanceof LivingEntity target)) return;
 
@@ -137,6 +202,7 @@ public class EventListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPlayerDamaged(EntityDamageEvent event) {
+        if (CombatHandler.cancelLightningDamageForImmunePlayer(event)) return;
         if (event.getEntity() instanceof Player player && !CombatHandler.isInternalDamage()) {
             event.setDamage(CombatHandler.applyIncomingNeutralDamage(player, event.getDamage()));
         }
@@ -207,6 +273,11 @@ public class EventListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onItemDamage(PlayerItemDamageEvent event) {
         ToolAbilityManager.handleItemDamage(event);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onBowShoot(EntityShootBowEvent event) {
+        BowAbilityManager.handleShoot(event);
     }
 
     @EventHandler(ignoreCancelled = true)
