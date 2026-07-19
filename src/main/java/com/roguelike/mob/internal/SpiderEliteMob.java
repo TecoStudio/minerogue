@@ -21,22 +21,32 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class SpiderEliteMob implements InternalMob {
     private static final Random RANDOM = ThreadLocalRandom.current();
-    private static final String ID = "spider_elite";
-
+    private final ConfigManager.InternalMobDefinition definition;
     private final NamespacedKey mobKey;
 
-    public SpiderEliteMob(RoguelikePlugin plugin) {
+    public SpiderEliteMob(RoguelikePlugin plugin, ConfigManager.InternalMobDefinition definition) {
+        this.definition = definition;
         this.mobKey = new NamespacedKey(plugin, "internal_mob");
     }
 
     @Override
     public String id() {
-        return ID;
+        return definition.id();
+    }
+
+    @Override
+    public java.util.List<String> aliases() {
+        return definition.aliases();
+    }
+
+    @Override
+    public boolean spawnable() {
+        return definition.spawnable();
     }
 
     @Override
     public void onSpawn(LivingEntity entity) {
-        ConfigManager.SpiderEliteConfig config = ConfigManager.getSpiderEliteConfig();
+        ConfigManager.SpiderEliteConfig config = ConfigManager.getSpiderEliteConfig(id());
         if (!config.enabled()) return;
         if (!(entity instanceof Spider spider)) return;
         if (spider.getEntitySpawnReason() != CreatureSpawnEvent.SpawnReason.NATURAL) return;
@@ -48,12 +58,12 @@ public class SpiderEliteMob implements InternalMob {
     @Override
     public LivingEntity spawn(Location location) {
         Spider spider = (Spider) location.getWorld().spawnEntity(location, EntityType.SPIDER);
-        apply(spider, ConfigManager.getSpiderEliteConfig());
+        apply(spider, ConfigManager.getSpiderEliteConfig(id()));
         return spider;
     }
 
     private void apply(Spider spider, ConfigManager.SpiderEliteConfig config) {
-        spider.getPersistentDataContainer().set(mobKey, PersistentDataType.STRING, ID);
+        spider.getPersistentDataContainer().set(mobKey, PersistentDataType.STRING, id());
         spider.customName(Message.toComponent(config.name()));
         spider.setCustomNameVisible(false);
         spider.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, PotionEffect.INFINITE_DURATION, 0, false, false));
@@ -75,7 +85,8 @@ public class SpiderEliteMob implements InternalMob {
         if (!(event.getDamager() instanceof LivingEntity attacker) || !isMob(attacker)) return;
         if (!(event.getEntity() instanceof LivingEntity target)) return;
 
-        ConfigManager.SpiderEliteConfig config = ConfigManager.getSpiderEliteConfig();
+        ConfigManager.SpiderEliteConfig config = ConfigManager.getSpiderEliteConfig(id());
+        if (!MobCombatScript.actionEnabled(config.combatScript(), "slow-on-hit", true)) return;
         if (RANDOM.nextDouble() < config.slowChance()) {
             int amplifier = Math.max(0, config.slowLevel() - 1);
             target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS,
@@ -90,6 +101,6 @@ public class SpiderEliteMob implements InternalMob {
     @Override
     public boolean isMob(LivingEntity entity) {
         String value = entity.getPersistentDataContainer().get(mobKey, PersistentDataType.STRING);
-        return ID.equals(value);
+        return com.roguelike.mob.MobManager.matchesInternalMobValue(this, value);
     }
 }
