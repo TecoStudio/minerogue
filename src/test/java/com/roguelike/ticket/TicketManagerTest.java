@@ -6,18 +6,19 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TicketManagerTest {
     @Test
-    void normalWeaponsCannotDevelopWhenRandomAffixSlotsAreFull() {
+    void normalWeaponsCanDevelopPastFormerRandomAffixSlotLimit() {
         CustomWeapon template = weapon("wooden_sword", "common", 0, false);
         WeaponInstanceData data = new WeaponInstanceData("wooden_sword");
         data.setQuality("base");
         data.setEffectBonus("crit_chance", 0.10);
 
-        assertFalse(TicketManager.canDevelopWeaponAffix(template, data));
+        assertTrue(TicketManager.canDevelopWeaponAffix(template, data));
     }
 
     @Test
@@ -29,6 +30,16 @@ class TicketManagerTest {
         data.setEffectBonus("bleed_chance", 0.10);
 
         assertTrue(TicketManager.canDevelopWeaponAffix(template, data));
+    }
+
+    @Test
+    void strengtheningSuccessRateDropsHarderAtHigherUseCounts() {
+        assertEquals(1.00, TicketManager.calculateSuccessRate(0), 0.001);
+        assertEquals(0.90, TicketManager.calculateSuccessRate(2), 0.001);
+        assertEquals(0.50, TicketManager.calculateSuccessRate(5), 0.001);
+        assertEquals(0.10, TicketManager.calculateSuccessRate(8), 0.001);
+        assertEquals(0.05, TicketManager.calculateSuccessRate(9), 0.001);
+        assertEquals(0.01, TicketManager.calculateSuccessRate(20), 0.001);
     }
 
     private static CustomWeapon weapon(String id, String rarity, int bonusSlots, boolean allowOverflow) {
