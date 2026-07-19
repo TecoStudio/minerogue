@@ -1,0 +1,14 @@
+id: flame_sword
+item: minecraft:diamond_sword
+name: 烈焰之剑
+description: 燃烧敌人的剑
+base-damage: 10
+attack-speed: 1.4
+durability: 800
+rarity: epic
+effects:
+  attack_range: 3.2
+  fire_damage: 4.0
+  fire_duration: 3.0
+  crit_chance: 0.1
+  crit_damage: 1.75
