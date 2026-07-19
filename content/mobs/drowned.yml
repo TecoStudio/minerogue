@@ -1,0 +1,6 @@
+type: modifier
+id: drowned
+health-multiplier: 1.10
+damage-multiplier: 1.05
+speed-multiplier: 1.05
+weapon-template: storm_spear
