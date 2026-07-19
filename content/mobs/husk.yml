@@ -1,0 +1,6 @@
+type: modifier
+id: husk
+health-multiplier: 1.25
+damage-multiplier: 1.10
+speed-multiplier: 0.95
+weapon-template: frost_cleaver
