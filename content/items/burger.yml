@@ -1,0 +1,9 @@
+id: burger
+item: minecraft:player_head
+name: 汉堡
+description: 右键直接食用，回复30%最大生命值并补满饱食度
+item-type: food
+rarity: rare
+effects:
+  heal_percent: 0.30
+  full_saturation: 1.0
