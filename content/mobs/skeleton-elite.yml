@@ -1,0 +1,28 @@
+type: internal
+id: skeleton-elite
+logic: skeleton-elite
+aliases:
+  - skeleton_elite
+enabled: true
+spawnable: true
+spawn-chance: 0.12
+name: '&c骷髅精英'
+health: 30.0
+damage: 5.0
+poison-chance: 0.30
+poisoned-damage-bonus: 0.10
+poison-duration-seconds: 5.0
+weapon-template: rusty_iron_sword
+behavior:
+  detect-range: 18.0
+  keep-distance: 8.0
+  melee-range: 3.2
+  shot-cooldown-ticks: 35
+  burst-cooldown-ticks: 100
+  arrow-speed: 1.9
+  retreat-speed: 0.22
+  lunge-speed: 0.75
+  post-burst-retreat-speed: 0.65
+combat-script: |
+  ranged-shot
+  melee-burst
