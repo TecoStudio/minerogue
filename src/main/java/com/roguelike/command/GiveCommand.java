@@ -2,6 +2,7 @@ package com.roguelike.command;
 
 import com.roguelike.armor.ArmorSetManager;
 import com.roguelike.RoguelikePlugin;
+import com.roguelike.config.ArmorDefinition;
 import com.roguelike.config.ConfigManager;
 import com.roguelike.item.CustomItem;
 import com.roguelike.item.CustomItemStackFactory;
@@ -94,7 +95,8 @@ public class GiveCommand {
                     Message.send(sender, "&c找不到防具: " + id);
                     return true;
                 }
-                String name = ArmorSetManager.armorDefinitions().get(id.toLowerCase()).name();
+                ArmorDefinition definition = ArmorSetManager.armorDefinitions().get(id.toLowerCase());
+                String name = definition == null ? id : definition.name();
                 giveCopies(target, stack, amount);
                 Message.send(sender, "&a已给予 " + target.getName() + " " + amount + " 个 " + name);
             }
@@ -159,11 +161,8 @@ public class GiveCommand {
         int end = Math.min(entries.size(), start + PAGE_SIZE);
         for (int i = start; i < end; i++) {
             GiveEntry entry = entries.get(i);
-            inventory.setItem(i - start, guiItem(entry.icon, "&e" + entry.name, List.of(
-                    "&7ID: &f" + entry.id,
-                    "&7类型: &f" + type.displayName,
-                    "&e点击给予自己 1 个"
-            )));
+            inventory.setItem(i - start, previewItem(entry.preview, "&e" + entry.name,
+                    List.of("&7ID: &f" + entry.id, "&7类型: &f" + type.displayName, "&e点击给予自己 1 个")));
         }
         inventory.setItem(PREV_SLOT, guiItem(Material.ARROW, "&e上一页", List.of("&7第 " + (clamped + 1) + " 页")));
         inventory.setItem(INFO_SLOT, guiItem(Material.BOOK, "&6" + type.displayName, List.of(
@@ -180,16 +179,16 @@ public class GiveCommand {
         switch (type) {
             case WEAPON -> ConfigManager.getWeapons().stream()
                     .sorted(Comparator.comparing(CustomWeapon::getId))
-                    .forEach(w -> entries.add(new GiveEntry(w.getId(), w.getName(), material(w.getItem(), Material.IRON_SWORD))));
+                    .forEach(w -> entries.add(new GiveEntry(w.getId(), w.getName(), WeaponManager.createWeaponStack(w, null))));
             case ITEM -> ConfigManager.getItems().stream()
                     .sorted(Comparator.comparing(CustomItem::getId))
-                    .forEach(i -> entries.add(new GiveEntry(i.getId(), i.getName(), material(i.getItem(), Material.PAPER))));
+                    .forEach(i -> entries.add(new GiveEntry(i.getId(), i.getName(), CustomItemStackFactory.createItemStack(i))));
             case ARMOR -> ArmorSetManager.armorDefinitions().entrySet().stream()
                     .sorted(Comparator.comparing(e -> e.getKey()))
-                    .forEach(e -> entries.add(new GiveEntry(e.getKey(), e.getValue().name(), Material.IRON_CHESTPLATE)));
+                    .forEach(e -> entries.add(new GiveEntry(e.getKey(), e.getValue().name(), ArmorSetManager.createSetItem(e.getKey()))));
             case TICKET -> Arrays.stream(TicketType.values())
                     .sorted(Comparator.comparing(TicketType::getId))
-                    .forEach(t -> entries.add(new GiveEntry(t.getId(), t.getPlainDisplayName(), t.getMaterial())));
+                    .forEach(t -> entries.add(new GiveEntry(t.getId(), t.getPlainDisplayName(), TicketManager.createTicket(t))));
             default -> {
             }
         }
@@ -219,16 +218,24 @@ public class GiveCommand {
         return true;
     }
 
-    private static Material material(String key, Material fallback) {
-        if (key == null || key.isBlank()) return fallback;
-        String normalized = key.toUpperCase().replace("MINECRAFT:", "").replace(':', '_');
-        Material material = Material.matchMaterial(normalized);
-        return material == null ? fallback : material;
-    }
-
     private static void fill(Inventory inventory) {
         ItemStack filler = guiItem(Material.BLACK_STAINED_GLASS_PANE, " ", List.of());
         for (int i = 0; i < inventory.getSize(); i++) inventory.setItem(i, filler);
+    }
+
+    private static ItemStack previewItem(ItemStack base, String fallbackName, List<String> extraLoreLines) {
+        ItemStack stack = base == null || base.getType().isAir() ? guiItem(Material.BARRIER, fallbackName, List.of()) : base.clone();
+        stack.setAmount(1);
+        ItemMeta meta = stack.getItemMeta();
+        if (meta != null) {
+            if (!meta.hasDisplayName()) meta.displayName(Message.toComponent(fallbackName));
+            List<Component> lore = meta.lore() == null ? new ArrayList<>() : new ArrayList<>(meta.lore());
+            if (!lore.isEmpty()) lore.add(Message.toComponent("&7─────────────────"));
+            for (String line : extraLoreLines) lore.add(Message.toComponent(line));
+            meta.lore(lore);
+            stack.setItemMeta(meta);
+        }
+        return stack;
     }
 
     private static ItemStack guiItem(Material material, String name, List<String> loreLines) {
@@ -260,7 +267,7 @@ public class GiveCommand {
         }
     }
 
-    private record GiveEntry(String id, String name, Material icon) {
+    private record GiveEntry(String id, String name, ItemStack preview) {
     }
 
     private record GiveGuiHolder(GiveGuiType type, int page) implements InventoryHolder {
