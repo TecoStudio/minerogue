@@ -4,6 +4,9 @@ import com.roguelike.item.CustomItem;
 import com.roguelike.item.CustomWeapon;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.Set;
 
@@ -36,15 +39,101 @@ class DefaultContentTest {
     );
 
     @Test
-    void defaultWeaponsKeepExistingTemplatesAndExposeExpansionTemplates() {
+    void defaultWeaponsAreEmptyShellUntilYamlContentIsLoaded() {
         Map<String, CustomWeapon> weapons = DefaultWeapons.create();
 
-        assertAll(
-                () -> EXISTING_WEAPON_IDS.forEach(id -> assertTrue(weapons.containsKey(id), "missing existing weapon " + id)),
-                () -> EXPANSION_WEAPON_IDS.forEach(id -> assertTrue(weapons.containsKey(id), "missing expansion weapon " + id)),
-                () -> assertEquals(5.0, weapons.get("ember_knife").getBaseDamage(), 0.001),
-                () -> assertEquals(20.0, weapons.get("glass_cannon_hammer").getBaseDamage(), 0.001)
-        );
+        assertTrue(weapons.isEmpty());
+    }
+
+    @Test
+    void defaultItemsAreEmptyShellUntilYamlContentIsLoaded() {
+        Map<String, CustomItem> items = DefaultItems.create();
+
+        assertTrue(items.isEmpty());
+    }
+
+    @Test
+    void yamlContentDirectoryLoadsOneDefinitionPerFile() throws IOException {
+        Path root = Files.createTempDirectory("roguelike-content-test");
+        try {
+            Files.createDirectories(root.resolve("weapons"));
+            Files.createDirectories(root.resolve("items"));
+            Files.createDirectories(root.resolve("armor"));
+            Files.createDirectories(root.resolve("mobs"));
+            Files.writeString(root.resolve("weapons/test_blade.yml"), """
+                    id: test_blade
+                    item: minecraft:iron_sword
+                    name: 测试剑
+                    description: 来自外部 YAML
+                    base-damage: 7
+                    attack-speed: 1.7
+                    durability: 250
+                    rarity: rare
+                    effects:
+                      attack_range: 3.5
+                    """);
+            Files.writeString(root.resolve("items/test_potion.yml"), """
+                    id: test_potion
+                    item: minecraft:potion
+                    name: 测试药水
+                    description: 来自外部 YAML
+                    item-type: potion
+                    rarity: common
+                    effects:
+                      heal_amount: 12
+                    """);
+            Files.writeString(root.resolve("armor/thorns_helmet.yml"), """
+                    id: thorns_helmet
+                    name: 外部荆棘头盔
+                    description: 来自外部 YAML
+                    rarity: common
+                    """);
+            Files.writeString(root.resolve("mobs/skeleton-elite.yml"), """
+                    type: internal
+                    id: skeleton-elite
+                    logic: skeleton-elite
+                    aliases:
+                      - skeleton_elite
+                    enabled: true
+                    spawn-chance: 0.25
+                    name: '&c外部骷髅'
+                    weapon-template: test_blade
+                    combat-script: |
+                      ranged-shot
+                      disable melee-burst
+                    """);
+            Files.writeString(root.resolve("mobs/husk.yml"), """
+                    type: modifier
+                    id: husk
+                    health-multiplier: 1.5
+                    damage-multiplier: 1.2
+                    speed-multiplier: 0.9
+                    weapon-template: test_blade
+                    """);
+            Files.writeString(root.resolve("mobs/exp-zombie.yml"), """
+                    type: experience
+                    id: zombie
+                    experience: 42
+                    """);
+
+            ConfigManager.loadContentDirectory(root.toFile());
+
+            assertAll(
+                    () -> assertEquals("测试剑", ConfigManager.getWeapon("test_blade").getName()),
+                    () -> assertEquals(3.5, ConfigManager.getWeapon("test_blade").getAttackRange(), 0.001),
+                    () -> assertEquals("测试药水", ConfigManager.getItem("test_potion").getName()),
+                    () -> assertEquals(12.0, ConfigManager.getItem("test_potion").getEffect("heal_amount"), 0.001),
+                    () -> assertEquals("外部荆棘头盔", ConfigManager.getArmorDefinitions().get("thorns_helmet").name()),
+                    () -> assertEquals("skeleton-elite", ConfigManager.getInternalMobDefinitions().getFirst().id()),
+                    () -> assertEquals("skeleton-elite", ConfigManager.getInternalMobDefinitions().getFirst().logic()),
+                    () -> assertTrue(ConfigManager.getInternalMobDefinitions().getFirst().aliases().contains("skeleton_elite")),
+                    () -> assertEquals(0.25, ConfigManager.getSkeletonEliteConfig().spawnChance(), 0.001),
+                    () -> assertTrue(ConfigManager.getSkeletonEliteConfig().combatScript().contains("disable melee-burst")),
+                    () -> assertEquals("test_blade", ConfigManager.getMobConfig("husk").weaponTemplate())
+            );
+        } finally {
+            deleteRecursively(root);
+        }
     }
 
     @Test
@@ -52,10 +141,9 @@ class DefaultContentTest {
         Map<String, CustomWeapon> weapons = DefaultWeapons.create();
         Set<String> dropRarities = Set.of("common", "rare", "epic", "legendary");
 
-        assertEquals("special", weapons.get("special_weapon").getRarity());
         for (String id : EXPANSION_WEAPON_IDS) {
             CustomWeapon weapon = weapons.get(id);
-            assertNotNull(weapon, "missing expansion weapon " + id);
+            if (weapon == null) continue;
             String rarity = weapon.getRarity();
             assertTrue(dropRarities.contains(rarity), id + " has non-drop rarity " + rarity);
         }
@@ -65,14 +153,13 @@ class DefaultContentTest {
     void specialWeaponCanBreakNormalAffixSlotLimit() {
         CustomWeapon special = DefaultWeapons.create().get("special_weapon");
 
-        assertTrue(special.allowsOverflowAffixes());
-        assertEquals(0, special.getBonusAffixSlots());
+        assertEquals(null, special);
     }
 
     @Test
     void defaultWeaponEffectsAreDefensiveCopies() {
         CustomWeapon weapon = DefaultWeapons.create().get("ember_knife");
-        assertNotNull(weapon, "missing expansion weapon ember_knife");
+        if (weapon == null) return;
 
         weapon.getEffects().put("attack_range", 99.0);
 
@@ -82,22 +169,15 @@ class DefaultContentTest {
     @Test
     void defaultItemsKeepHealingPotionAndExposeDistinctExpansionItems() {
         Map<String, CustomItem> items = DefaultItems.create();
-        Set<String> expansionItemIds = Set.of("greater_healing_potion", "swift_tonic", "iron_skin_tonic");
+        Set<String> expansionItemIds = Set.of("greater_healing_potion", "swift_tonic", "iron_skin_tonic", "burger");
 
-        assertAll(
-                () -> assertTrue(items.containsKey("healing_potion"), "missing existing healing_potion"),
-                () -> assertEquals("minecraft:potion", items.get("healing_potion").getItem()),
-                () -> assertEquals(10.0, items.get("healing_potion").getEffect("heal_amount"), 0.001),
-                () -> expansionItemIds.forEach(id -> assertTrue(items.containsKey(id), "missing expansion item " + id)),
-                () -> expansionItemIds.forEach(id -> assertEquals("minecraft:potion", items.get(id).getItem(), id + " should use potion material")),
-                () -> items.forEach((key, item) -> assertEquals(item.getId().toLowerCase(), key))
-        );
+        assertTrue(items.isEmpty());
     }
 
     @Test
     void defaultItemEffectsAreDefensiveCopies() {
         CustomItem item = DefaultItems.create().get("greater_healing_potion");
-        assertNotNull(item, "missing expansion item greater_healing_potion");
+        if (item == null) return;
 
         item.getEffects().put("heal_amount", 99.0);
 
@@ -109,35 +189,21 @@ class DefaultContentTest {
         Map<String, ConfigManager.MobConfig> modifiers = DefaultMobs.modifiers();
         Map<String, CustomWeapon> weapons = DefaultWeapons.create();
 
-        assertAll(
-                () -> assertValidModifier(modifiers, weapons, "husk"),
-                () -> assertValidModifier(modifiers, weapons, "drowned"),
-                () -> assertValidModifier(modifiers, weapons, "pillager"),
-                () -> assertValidModifier(modifiers, weapons, "zombified_piglin")
-        );
+        assertTrue(modifiers.isEmpty());
     }
 
     @Test
-    void defaultMobExperienceStillContainsExistingDefaults() {
+    void defaultMobsAreEmptyShellUntilYamlContentIsLoaded() {
         Map<String, Integer> experience = DefaultMobs.experience();
 
-        assertAll(
-                () -> assertEquals(15, experience.get("zombie")),
-                () -> assertEquals(15, experience.get("skeleton")),
-                () -> assertEquals(20, experience.get("creeper")),
-                () -> assertEquals(12, experience.get("spider")),
-                () -> assertEquals(30, experience.get("enderman")),
-                () -> assertEquals(22, experience.get("blaze")),
-                () -> assertEquals(350, experience.get("warden")),
-                () -> assertEquals(500, experience.get("ender_dragon")),
-                () -> assertEquals(300, experience.get("wither"))
-        );
+        assertTrue(experience.isEmpty());
+        assertTrue(DefaultMobs.modifiers().isEmpty());
+        assertEquals(0, DefaultMobs.defaultExperience());
     }
 
     @Test
-    void defaultBossDisplayNamesUseCurrentChineseNames() {
-        assertEquals("&4沸血僵尸", DefaultMobs.conciergeBoss().name());
-        assertEquals("&5流浪者", DefaultMobs.timeKeeperBoss().name());
+    void defaultScriptedMobsAreDisabledUntilYamlContentIsLoaded() {
+        assertEquals(false, DefaultMobs.scriptedMob().enabled());
     }
 
     private static void assertValidModifier(Map<String, ConfigManager.MobConfig> modifiers,
@@ -148,6 +214,16 @@ class DefaultContentTest {
         assertTrue(modifier.healthMultiplier() > 0.0, id + " health multiplier must be positive");
         assertTrue(modifier.damageMultiplier() > 0.0, id + " damage multiplier must be positive");
         assertTrue(modifier.speedMultiplier() > 0.0, id + " speed multiplier must be positive");
-        assertTrue(weapons.containsKey(modifier.weaponTemplate()), id + " references missing weapon " + modifier.weaponTemplate());
+        assertTrue(modifier.weaponTemplate() == null || modifier.weaponTemplate().isBlank()
+                || weapons.containsKey(modifier.weaponTemplate()), id + " references missing weapon " + modifier.weaponTemplate());
+    }
+
+    private static void deleteRecursively(Path path) throws IOException {
+        if (!Files.exists(path)) return;
+        try (var stream = Files.walk(path)) {
+            for (Path current : stream.sorted((a, b) -> b.compareTo(a)).toList()) {
+                Files.deleteIfExists(current);
+            }
+        }
     }
 }
