@@ -57,6 +57,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\build-script-check.p
 - Keep command docs aligned with `/rl`, `/rw`, alias `/roguelike`, and permission `roguelike.admin`.
 - Keep optional integrations described as optional soft dependencies.
 
+## Documentation-First Implementation Workflow
+
+The user may intentionally edit `docs/` first and then ask agents to implement the plugin from the documented design. When they say “按文档实现” or otherwise ask to build from docs:
+
+1. Read the changed or relevant docs before editing code.
+2. Treat the latest docs as the product intent, then inspect the matching Java/config/test files to map that intent onto the current implementation.
+3. If docs and current code conflict, implement the documented behavior and keep source defaults, command help, tests, and public docs synchronized.
+4. Do not invent undocumented systems; ask only when the docs leave a behavior-changing ambiguity that cannot be resolved from surrounding docs/code.
+5. Verify with focused tests plus `./gradlew.bat build`; for gameplay behavior, also request or perform local in-game smoke testing according to the server safety rules below.
+
 ## Local Paper Test Server
 
 The local Paper server, when present, lives at:
