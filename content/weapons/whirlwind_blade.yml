@@ -1,0 +1,14 @@
+id: whirlwind_blade
+item: minecraft:iron_sword
+name: 旋风之刃
+description: 攻击会波及周围敌人
+base-damage: 9
+attack-speed: 1.3
+durability: 1000
+rarity: epic
+effects:
+  attack_range: 3.1
+  chain_targets: 3.0
+  chain_range: 3.0
+  chain_damage_percent: 0.5
+  crit_chance: 0.1
