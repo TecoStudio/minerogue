@@ -21,7 +21,7 @@ public class WeaponAffixManager {
     private static final Map<String, String> CATEGORIES = new LinkedHashMap<>();
     private static final Map<String, String> SYNERGY_HINTS = new LinkedHashMap<>();
 
-    private enum Target { WEAPON, TOOL, ALL }
+    private enum Target { WEAPON, BOW, TOOL, ALL }
 
     static {
         register(percent("lifesteal_percent", "吸血百分比", 0.10, 0.20, (lore, template, data) -> {
@@ -134,6 +134,18 @@ public class WeaponAffixManager {
             if (level > 0) lore.add(Message.toComponent("§a✦ 用不坏: §f" + level + "级 (" + WeaponManager.format(durabilityRestoreChance(level) * 100, 0) + "%返还3耐久)"));
         }), Target.ALL);
         register(toggle("ore_highlight", "高亮矿物", "§e✦ 高亮矿物: §f挖掘时10%概率高亮附近矿物1秒", false), Target.TOOL);
+        register(level("scatter_shot", "散射", 1, 5, (lore, template, data) -> {
+            int level = (int) total(template, data, "scatter_shot", 0.0);
+            if (level > 0) lore.add(Message.toComponent("§b➹ 散射: §f额外发射 " + level + " 支箭"));
+        }), Target.BOW);
+        register(level("rapid_shot", "连发", 1, 5, (lore, template, data) -> {
+            int level = (int) total(template, data, "rapid_shot", 0.0);
+            if (level > 0) lore.add(Message.toComponent("§b➹ 连发: §f短延迟追加 " + level + " 支箭"));
+        }), Target.BOW);
+        register(level("charge_power", "蓄能", 1, 5, (lore, template, data) -> {
+            int level = (int) total(template, data, "charge_power", 0.0);
+            if (level > 0) lore.add(Message.toComponent("§d➹ 蓄能: §f满弓后继续蓄力提高伤害，等级 " + level));
+        }), Target.BOW);
         register(neutral("neutral_damage_200", "狂战契约", "§6⚖ 狂战契约: §f对敌伤害 200%，受到伤害 200%"), Target.ALL);
         register(neutral("neutral_speed_200", "疾行契约", "§6⚖ 疾行契约: §f移动速度 200%，受到伤害 200%"), Target.ALL);
         register(neutral("neutral_attack_speed_200", "急速契约", "§6⚖ 急速契约: §f攻击速度 200%，受到伤害 200%"), Target.ALL);
@@ -152,6 +164,18 @@ public class WeaponAffixManager {
 
     public static List<String> rollableEffectIds() {
         return effectIds();
+    }
+
+    public static List<String> toolOnlyEffectIds() {
+        List<String> ids = new ArrayList<>();
+        for (String id : AFFIXES.keySet()) {
+            if (isToolOnly(id)) ids.add(id);
+        }
+        return ids;
+    }
+
+    public static boolean isToolOnly(String id) {
+        return TARGETS.getOrDefault(id, Target.WEAPON) == Target.TOOL;
     }
 
     public static WeaponAffix get(String id) {
@@ -227,7 +251,10 @@ public class WeaponAffixManager {
         Target target = TARGETS.getOrDefault(id, Target.WEAPON);
         // Pickaxes and axes are intentionally both tools and weapons in this plugin.
         // Target.WEAPON therefore applies to tools too; Target.TOOL only gates mining-only affixes.
-        return target == Target.ALL || target == Target.WEAPON || kind == EquipmentKind.TOOL;
+        return target == Target.ALL
+                || (target == Target.WEAPON && kind != EquipmentKind.BOW)
+                || (target == Target.TOOL && kind == EquipmentKind.TOOL)
+                || (target == Target.BOW && kind == EquipmentKind.BOW);
     }
 
     public static boolean isStrengthenable(CustomWeapon template, WeaponInstanceData data, String id) {
