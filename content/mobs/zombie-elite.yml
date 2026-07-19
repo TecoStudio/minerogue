@@ -1,0 +1,14 @@
+type: internal
+id: zombie-elite
+logic: zombie-elite
+aliases:
+  - zombie_elite
+enabled: true
+spawnable: true
+spawn-chance: 0.12
+name: '&2僵尸精英'
+health: 35.0
+damage: 5.0
+weapon-template: excited_stone_sword
+combat-script: |
+  melee
