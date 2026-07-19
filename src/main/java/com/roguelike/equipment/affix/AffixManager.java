@@ -19,7 +19,7 @@ public final class AffixManager {
 
     public static List<String> effectIds(EquipmentKind kind) {
         return switch (kind) {
-            case WEAPON, TOOL -> weaponEffectIds(kind);
+            case WEAPON, BOW, TOOL -> weaponEffectIds(kind);
             case ARMOR -> ArmorAffixManager.effectIds();
         };
     }
@@ -34,6 +34,10 @@ public final class AffixManager {
             if (WeaponAffixManager.isApplicable(id, kind)) ids.add(id);
         }
         return ids;
+    }
+
+    public static List<String> toolOnlyEffectIds() {
+        return WeaponAffixManager.toolOnlyEffectIds();
     }
 
     public static List<String> armorEffectIds() {
@@ -66,6 +70,10 @@ public final class AffixManager {
 
     public static boolean isWeaponAffixStrengthenable(CustomWeapon template, WeaponInstanceData data, String id, Material material) {
         return WeaponAffixManager.isStrengthenable(template, data, id, material);
+    }
+
+    public static boolean isToolOnlyWeaponAffixAvailable(CustomWeapon template, WeaponInstanceData data, String id) {
+        return WeaponAffixManager.isToolOnly(id) && WeaponAffixManager.isAvailable(template, data, id);
     }
 
     public static double strengthenWeapon(String id, double currentValue, int useCount, Random random) {
