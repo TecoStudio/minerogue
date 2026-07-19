@@ -1,0 +1,9 @@
+id: swift_tonic
+item: minecraft:potion
+name: 迅捷药剂
+description: 可配置为短时间提升移动节奏的模板物品
+item-type: tonic
+rarity: rare
+effects:
+  speed_level: 1.0
+  duration_seconds: 12.0
