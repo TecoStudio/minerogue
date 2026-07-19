@@ -4,10 +4,9 @@ import com.roguelike.RoguelikePlugin;
 import com.roguelike.config.ConfigManager;
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.integration.IntegrationManager;
-import com.roguelike.mob.internal.ConciergeBossMob;
 import com.roguelike.mob.internal.SkeletonEliteMob;
+import com.roguelike.mob.internal.ScriptedInternalMob;
 import com.roguelike.mob.internal.SpiderEliteMob;
-import com.roguelike.mob.internal.TimeKeeperBossMob;
 import com.roguelike.mob.internal.ZombieEliteMob;
 import com.roguelike.weapon.WeaponManager;
 import org.bukkit.Location;
@@ -35,12 +34,30 @@ public class MobManager {
     public static void init(RoguelikePlugin plugin) {
         MobManager.plugin = plugin;
         internalMobs.clear();
-        internalMobs.add(new SkeletonEliteMob(plugin));
-        internalMobs.add(new ZombieEliteMob(plugin));
-        internalMobs.add(new SpiderEliteMob(plugin));
-        internalMobs.add(new ConciergeBossMob(plugin));
-        internalMobs.add(new TimeKeeperBossMob(plugin));
+        for (ConfigManager.InternalMobDefinition definition : ConfigManager.getInternalMobDefinitions()) {
+            InternalMob mob = createInternalMob(plugin, definition);
+            if (mob != null) internalMobs.add(mob);
+        }
         behaviorTask = plugin.getServer().getScheduler().runTaskTimer(plugin, MobManager::tickInternalMobs, 20L, 10L);
+    }
+
+    private static InternalMob createInternalMob(RoguelikePlugin plugin, ConfigManager.InternalMobDefinition definition) {
+        return switch (internalLogicKind(definition.logic())) {
+            case "skeleton-elite" -> new SkeletonEliteMob(plugin, definition);
+            case "zombie-elite" -> new ZombieEliteMob(plugin, definition);
+            case "spider-elite" -> new SpiderEliteMob(plugin, definition);
+            case "scripted" -> new ScriptedInternalMob(plugin, definition);
+            default -> null;
+        };
+    }
+
+    private static String internalLogicKind(String logic) {
+        if (logic == null) return "";
+        String normalized = logic.toLowerCase(Locale.ROOT).replace('_', '-').trim();
+        return switch (normalized) {
+            case "skeleton-elite", "zombie-elite", "spider-elite" -> normalized;
+            default -> "scripted";
+        };
     }
 
     public static void shutdown() {
@@ -108,7 +125,7 @@ public class MobManager {
     public static List<String> getSpawnableMobIds() {
         List<String> ids = new ArrayList<>();
         for (InternalMob mob : internalMobs) {
-            ids.add(mob.id());
+            if (mob.spawnable()) ids.add(mob.id());
         }
         return ids;
     }
@@ -123,7 +140,10 @@ public class MobManager {
     }
 
     public static List<String> defaultInternalMobIds() {
-        return List.of("skeleton_elite", "zombie_elite", "spider_elite", "concierge", "time_keeper");
+        return ConfigManager.getInternalMobDefinitions().stream()
+                .filter(ConfigManager.InternalMobDefinition::spawnable)
+                .map(ConfigManager.InternalMobDefinition::id)
+                .toList();
     }
 
     public static boolean shouldForceInternalMobNameVisible() {
