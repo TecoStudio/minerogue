@@ -1,0 +1,13 @@
+id: frost_cleaver
+item: minecraft:iron_axe
+name: 霜裂斧
+description: 减缓敌人的沉重战斧
+base-damage: 11
+attack-speed: 0.9
+durability: 520
+rarity: rare
+effects:
+  attack_range: 3.0
+  slow_duration: 2.5
+  slow_level: 1.0
+  crit_damage: 1.8
