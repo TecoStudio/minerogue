@@ -7,7 +7,6 @@ import com.roguelike.equipment.affix.AffixManager;
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.item.WeaponInstanceData;
 import com.roguelike.util.Message;
-import com.roguelike.weapon.affix.WeaponAffixManager;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -153,11 +152,7 @@ public class WeaponManager {
         lore.add(Message.toComponent("§7─────────────────"));
         lore.add(Message.toComponent("§7等级: §f" + toRoman(data.getGearLevel()) + qualitySuffix(data.getQuality())
                 + " §7强度: §f" + data.getGearPower()
-                + " §7随机词条: §f" + data.getRandomAffixCount() + "/" + data.getRandomAffixSlotLimit(template)
-                + (template.allowsOverflowAffixes() ? " §d可突破" : "")));
-        if (data.isOverflowingRandomAffixSlots(template)) {
-            lore.add(Message.toComponent("§d遗留/特殊超槽: §f" + data.getRandomAffixCount() + "/" + data.getRandomAffixSlotLimit(template)));
-        }
+                + " §7随机词条: §f" + data.getRandomAffixCount()));
         lore.add(Message.toComponent("§7─────────────────"));
 
         double totalDamage = data.getTotalDamage(template);
@@ -169,8 +164,6 @@ public class WeaponManager {
         lore.add(Message.toComponent("§a⚔ 基础伤害: §f" + format(totalDamage, 1)));
         lore.add(Message.toComponent("§b⚡ 攻击速度: §f" + format(totalSpeed, 2)));
         lore.add(Message.toComponent("§e⬛ 攻击距离: §f" + format(totalRange, 1) + "格"));
-        lore.add(Message.toComponent("§7─────────────────"));
-        lore.add(Message.toComponent("§7流派: " + formatScalingTags(WeaponAffixManager.scalingTags(template, data))));
 
         appendEffectLore(lore, template, data);
 
@@ -223,18 +216,6 @@ public class WeaponManager {
         AffixManager.appendWeaponLore(lore, template, data);
     }
 
-    private static String formatScalingTags(List<String> tags) {
-        List<String> colored = new ArrayList<>();
-        for (String tag : tags) {
-            colored.add(switch (tag) {
-                case "暴虐" -> "§c暴虐";
-                case "战术" -> "§b战术";
-                case "生存" -> "§a生存";
-                default -> "§f" + tag;
-            });
-        }
-        return String.join("§7 / ", colored);
-    }
 
     private static void appendVanillaEnchantLore(List<Component> lore, ItemMeta meta) {
         if (!meta.hasEnchants()) return;
