@@ -1,0 +1,13 @@
+id: ember_knife
+item: minecraft:stone_sword
+name: 余烬短刃
+description: 快速点燃敌人的轻型短刃
+base-damage: 5
+attack-speed: 2.0
+durability: 180
+rarity: common
+effects:
+  attack_range: 2.7
+  fire_damage: 2.0
+  fire_duration: 2.0
+  crit_chance: 0.08
