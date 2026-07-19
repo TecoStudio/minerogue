@@ -1,0 +1,13 @@
+id: phase_scythe
+item: minecraft:iron_hoe
+name: 相位之镰
+description: 撕裂相位的史诗镰刀
+base-damage: 7
+attack-speed: 3.2
+durability: 250
+rarity: epic
+effects:
+  attack_range: 3.0
+  dash: 1.0
+  hyper: 1.0
+  crit_chance: 0.30
