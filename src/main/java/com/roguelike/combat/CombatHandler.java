@@ -20,13 +20,17 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class CombatHandler {
     private static final String BLEEDING_METADATA = "roguelike_bleeding_until";
     private static final Random RANDOM = ThreadLocalRandom.current();
+    private static final Map<UUID, Long> lightningImmuneUntil = new HashMap<>();
     private static boolean internalDamage = false;
     private static RoguelikePlugin plugin;
 
@@ -201,6 +205,7 @@ public class CombatHandler {
         // 雷电
         double lightning = chance(data.getTotalEffect(template, "lightning_chance", 0.0) + neutralBonus(template, data, "neutral_thunder_100", 1.0));
         if (lightning > 0 && RANDOM.nextDouble() < lightning) {
+            protectFromOwnLightning(player);
             target.getWorld().strikeLightning(target.getLocation());
             extraParts.add("雷击触发");
         }
@@ -265,6 +270,22 @@ public class CombatHandler {
         if (template == null || data == null) return damage;
         if (hasAnyIncomingDamageDouble(template, data)) return damage * 2.0;
         return damage;
+    }
+
+    public static boolean cancelLightningDamageForImmunePlayer(org.bukkit.event.entity.EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof Player player)) return false;
+        if (event.getCause() != org.bukkit.event.entity.EntityDamageEvent.DamageCause.LIGHTNING) return false;
+        Long until = lightningImmuneUntil.get(player.getUniqueId());
+        if (until == null || until < System.currentTimeMillis()) return false;
+        event.setCancelled(true);
+        return true;
+    }
+
+    private static void protectFromOwnLightning(Player player) {
+        lightningImmuneUntil.put(player.getUniqueId(), System.currentTimeMillis() + 1500L);
+        if (plugin != null) {
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> lightningImmuneUntil.remove(player.getUniqueId()), 40L);
+        }
     }
 
     private static boolean hasAnyIncomingDamageDouble(CustomWeapon template, WeaponInstanceData data) {
