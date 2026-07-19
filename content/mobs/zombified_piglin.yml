@@ -1,0 +1,6 @@
+type: modifier
+id: zombified_piglin
+health-multiplier: 1.20
+damage-multiplier: 1.20
+speed-multiplier: 1.05
+weapon-template: plague_saber
