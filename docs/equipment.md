@@ -29,14 +29,17 @@
 
 ## 内置物品
 
-| ID                     | 名称         | 物品             | 类型   | 品质   | 效果                                     |
-| ---------------------- | ------------ | ---------------- | ------ | ------ | ---------------------------------------- |
-| healing_potion         | 治疗药水     | minecraft:potion | potion | common | heal_amount 10                           |
-| greater_healing_potion | 强效治疗药水 | minecraft:potion | potion | rare   | heal_amount 20                           |
-| swift_tonic            | 迅捷药剂     | minecraft:potion | tonic  | rare   | speed_level 1，duration_seconds 12       |
-| iron_skin_tonic        | 铁肤药剂     | minecraft:potion | tonic  | epic   | resistance_level 1，duration_seconds 10  |
+| ID                     | 名称         | 物品                  | 类型   | 品质   | 效果                                     |
+| ---------------------- | ------------ | --------------------- | ------ | ------ | ---------------------------------------- |
+| healing_potion         | 治疗药水     | minecraft:potion      | potion | common | heal_amount 10                           |
+| greater_healing_potion | 强效治疗药水 | minecraft:potion      | potion | rare   | heal_amount 20                           |
+| swift_tonic            | 迅捷药剂     | minecraft:potion      | tonic  | rare   | speed_level 1，duration_seconds 12       |
+| iron_skin_tonic        | 铁肤药剂     | minecraft:potion      | tonic  | epic   | resistance_level 1，duration_seconds 10  |
+| burger                 | 汉堡         | minecraft:player_head | food   | rare   | heal_percent 0.30，full_saturation 1     |
 
-内置物品当前作为可发放和可配置模板保存。`/rw give item` 会按 `item` 字段创建对应材质；药水和药剂模板默认显示为药水物品，并在 lore 或药水元数据中呈现配置效果。
+内置物品当前作为可发放和可配置模板保存。`/rw give item` 会按 `item` 字段创建对应材质；药水和药剂模板默认显示为药水物品，并在 lore 或药水元数据中呈现配置效果，仍使用原版饮用交互。汉堡使用玩家头颅贴图，右键直接食用，回复最大生命值的 30%，并补满饱食度和饱和度。
+
+物品名称和品质 lore 会按品质染色，`/rw give` 图形界面会使用真实物品预览，因此可以直接在 GUI 中查看武器属性、防具图标、药水颜色和物品 lore。
 
 ## 防具套装
 
