@@ -1,0 +1,12 @@
+id: storm_spear
+item: minecraft:trident
+name: 风暴长矛
+description: 延伸攻击距离并引雷的长矛
+base-damage: 8
+attack-speed: 1.2
+durability: 650
+rarity: rare
+effects:
+  attack_range: 4.0
+  lightning_chance: 0.10
+  crit_chance: 0.08
