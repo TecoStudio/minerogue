@@ -1,0 +1,9 @@
+id: iron_skin_tonic
+item: minecraft:potion
+name: 铁肤药剂
+description: 可配置为短时间提升生存能力的模板物品
+item-type: tonic
+rarity: epic
+effects:
+  resistance_level: 1.0
+  duration_seconds: 10.0
