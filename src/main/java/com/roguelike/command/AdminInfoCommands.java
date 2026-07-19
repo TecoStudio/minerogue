@@ -132,7 +132,7 @@ class AdminInfoCommands {
         Message.send(sender, "&e/rw affixes [held] &7- 查看可用词条/手持武器词条");
         Message.send(sender, "&e/rw reload &7- 重载配置");
         Message.send(sender, "&e/rw give &7- 打开给予 GUI");
-        Message.send(sender, "&e/rw give <weapon|item|armor|ticket> <id> [玩家] [数量] &7- 命令给予");
+        Message.send(sender, "&e/rw give <weapon|item|armor|ticket> <id> [玩家] [数量] &7- 命令给予，ticket 包括工具开发券");
         Message.send(sender, "&e/rw give armor <id> [玩家] [数量] &7- 给予防具");
         Message.send(sender, "&e/rw exp <数量> [玩家] &7- 给予经验");
         Message.send(sender, "&e/rw list <weapons|items|armor> &7- 列出模板");
