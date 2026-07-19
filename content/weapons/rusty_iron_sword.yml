@@ -1,0 +1,12 @@
+id: rusty_iron_sword
+item: minecraft:iron_sword
+name: 生锈的铁剑
+description: 骷髅精英使用的破旧铁剑
+base-damage: 5
+attack-speed: 1.6
+durability: 250
+rarity: common
+effects:
+  attack_range: 3.0
+  poison_chance: 0.30
+  poisoned_target_damage_percent: 0.10
