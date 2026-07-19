@@ -1,0 +1,17 @@
+id: inferno_greatsword
+item: minecraft:netherite_sword
+name: 炼狱巨剑
+description: 大范围火焰伤害
+base-damage: 18
+attack-speed: 0.8
+durability: 2000
+rarity: legendary
+effects:
+  attack_range: 3.5
+  fire_damage: 6.0
+  fire_duration: 4.0
+  chain_targets: 4.0
+  chain_range: 4.0
+  chain_damage_percent: 0.4
+  crit_chance: 0.15
+  crit_damage: 2.0
