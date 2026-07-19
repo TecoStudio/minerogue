@@ -1,0 +1,14 @@
+id: echo_blade
+item: minecraft:diamond_sword
+name: 回响之刃
+description: 攻击会向周围敌人回响
+base-damage: 10
+attack-speed: 1.3
+durability: 900
+rarity: epic
+effects:
+  attack_range: 3.2
+  chain_targets: 4.0
+  chain_range: 3.5
+  chain_damage_percent: 0.45
+  crit_chance: 0.10
