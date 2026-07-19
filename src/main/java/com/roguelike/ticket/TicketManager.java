@@ -67,6 +67,8 @@ public class TicketManager {
             lore.add(Message.toComponent("§7─────────────────"));
             if (type == TicketType.TICKET_B) {
                 lore.add(Message.toComponent("§7手持此券，另一手拿任意物品"));
+            } else if (type == TicketType.TOOL_TICKET_B) {
+                lore.add(Message.toComponent("§7手持此券，另一手拿 Roguelike 工具"));
             } else {
                 lore.add(Message.toComponent("§7手持此券，另一手拿武器"));
             }
@@ -164,6 +166,9 @@ public class TicketManager {
             }
             case TICKET_B -> {
                 return applyTicketB(player, ticketStack, template, data, weaponStack);
+            }
+            case TOOL_TICKET_B -> {
+                return applyToolTicketB(player, ticketStack, template, data, weaponStack);
             }
             case TICKET_C -> {
                 return applyTicketC(player, ticketStack, template, data, weaponStack);
@@ -410,14 +415,27 @@ public class TicketManager {
             Message.send(player, "&c武器已经拥有所有可能的词条！");
             return false;
         }
-        if (!canDevelopWeaponAffix(template, data)) {
-            Message.send(player, "&c随机词条槽已满！请先使用移除券腾出槽位，或使用可突破限制的特殊武器。");
-            return false;
-        }
-
         TicketBChoice choice = new TicketBChoice(false, data.getInstanceId());
         pendingBChoices.put(player.getUniqueId(), choice);
         DevLog.debug(player.getName() + " opened random ticket_b development for " + template.getId() + ", available=" + availableEffects.size());
+        openTicketBChoiceGui(player, choice);
+
+        return false;
+    }
+
+    private static boolean applyToolTicketB(Player player, ItemStack ticketStack, CustomWeapon template, WeaponInstanceData data, ItemStack weaponStack) {
+        if (!EquipmentTypeResolver.isTool(weaponStack.getType())) {
+            Message.send(player, "&c工具开发券只能用于 Roguelike 镐或斧。");
+            return false;
+        }
+        List<String> availableEffects = getAvailableToolEffects(template, data);
+        if (availableEffects.isEmpty()) {
+            Message.send(player, "&c该工具已经拥有所有工具类词条！");
+            return false;
+        }
+        TicketBChoice choice = new TicketBChoice(false, data.getInstanceId(), TicketType.TOOL_TICKET_B);
+        pendingBChoices.put(player.getUniqueId(), choice);
+        DevLog.debug(player.getName() + " opened tool_ticket_b development for " + template.getId() + ", available=" + availableEffects.size());
         openTicketBChoiceGui(player, choice);
 
         return false;
@@ -430,9 +448,9 @@ public class TicketManager {
             inventory.setItem(i, filler);
         }
         inventory.setItem(RANDOM_DEVELOP_SLOT, createGuiItem(Material.PAPER, "&a随机获得一个词条", List.of(
-                choice.armor ? "&7目标: &f防具" : "&7目标: &f武器",
+                choice.armor ? "&7目标: &f防具" : (choice.ticketType == TicketType.TOOL_TICKET_B ? "&7目标: &f工具" : "&7目标: &f武器"),
                 "&7点击后从当前可用词条中随机获得一个",
-                "&7关闭界面不会消耗开发券"
+                "&7关闭界面不会消耗" + choice.ticketType.getPlainDisplayName()
         )));
         player.openInventory(inventory);
     }
@@ -490,14 +508,17 @@ public class TicketManager {
         player.openInventory(inventory);
     }
 
-    private static double calculateSuccessRate(int useCount) {
+    static double calculateSuccessRate(int useCount) {
         if (useCount <= 0) return 1.0;
-        if (useCount <= 5) return 1.0 - (useCount - 1) * 0.05;
-        if (useCount == 6) return 0.70;
-        if (useCount == 7) return 0.60;
-        if (useCount == 8) return 0.50;
-        if (useCount == 9) return 0.25;
-        return Math.pow(0.5, useCount - 8);
+        if (useCount == 1) return 1.0;
+        if (useCount == 2) return 0.90;
+        if (useCount == 3) return 0.80;
+        if (useCount == 4) return 0.65;
+        if (useCount == 5) return 0.50;
+        if (useCount == 6) return 0.35;
+        if (useCount == 7) return 0.20;
+        if (useCount == 8) return 0.10;
+        return Math.max(0.01, 0.10 * Math.pow(0.5, useCount - 8));
     }
 
     private static double calculateSuccessRate(int useCount, String rarity) {
@@ -564,6 +585,16 @@ public class TicketManager {
         List<String> available = new ArrayList<>();
         for (String key : AffixManager.weaponEffectIds()) {
             if (AffixManager.isWeaponAffixAvailable(template, data, key, material)) {
+                available.add(key);
+            }
+        }
+        return available;
+    }
+
+    private static List<String> getAvailableToolEffects(CustomWeapon template, WeaponInstanceData data) {
+        List<String> available = new ArrayList<>();
+        for (String key : AffixManager.toolOnlyEffectIds()) {
+            if (AffixManager.isToolOnlyWeaponAffixAvailable(template, data, key)) {
                 available.add(key);
             }
         }
@@ -674,10 +705,16 @@ public class TicketManager {
     private static class TicketBChoice {
         final boolean armor;
         final String weaponInstanceId;
+        final TicketType ticketType;
 
         TicketBChoice(boolean armor, String weaponInstanceId) {
+            this(armor, weaponInstanceId, TicketType.TICKET_B);
+        }
+
+        TicketBChoice(boolean armor, String weaponInstanceId, TicketType ticketType) {
             this.armor = armor;
             this.weaponInstanceId = weaponInstanceId;
+            this.ticketType = ticketType;
         }
     }
 
@@ -801,21 +838,18 @@ public class TicketManager {
         }
 
         private void confirmWeaponTicketB(Player player, TicketBChoice choice) {
-            ActiveTicketUse active = resolveActiveTicketUse(player, TicketType.TICKET_B, choice.weaponInstanceId);
+            ActiveTicketUse active = resolveActiveTicketUse(player, choice.ticketType, choice.weaponInstanceId);
             if (active == null) {
                 Message.send(player, "&c开发目标已变化，请重新使用开发券。");
                 return;
             }
-            List<String> availableEffects = getAvailableEffects(active.template, active.data, active.weapon.getType());
+            List<String> availableEffects = choice.ticketType == TicketType.TOOL_TICKET_B
+                    ? getAvailableToolEffects(active.template, active.data)
+                    : getAvailableEffects(active.template, active.data, active.weapon.getType());
             if (availableEffects.isEmpty()) {
-                Message.send(player, "&c武器已经拥有所有可能的词条！");
+                Message.send(player, choice.ticketType == TicketType.TOOL_TICKET_B ? "&c该工具已经拥有所有工具类词条！" : "&c武器已经拥有所有可能的词条！");
                 return;
             }
-            if (!canDevelopWeaponAffix(active.template, active.data)) {
-                Message.send(player, "&c随机词条槽已满！请先使用移除券腾出槽位，或使用可突破限制的特殊武器。");
-                return;
-            }
-
             String selectedStat = availableEffects.get(RANDOM.nextInt(availableEffects.size()));
             double baseValue = generateBaseValue(selectedStat);
             active.data.setEffectBonus(selectedStat, baseValue);
@@ -824,9 +858,9 @@ public class TicketManager {
             WeaponManager.updateLore(active.weapon, active.template, active.data);
             WeaponManager.clearAttributes(player);
             consumeTicket(active.ticket);
-            recordTicketUse(player, TicketType.TICKET_B);
+            recordTicketUse(player, choice.ticketType);
 
-            DevLog.debug(player.getName() + " randomly developed ticket_b stat " + selectedStat + "=" + baseValue + " for " + active.template.getId());
+            DevLog.debug(player.getName() + " randomly developed " + choice.ticketType.getId() + " stat " + selectedStat + "=" + baseValue + " for " + active.template.getId());
             Message.send(player, "&a随机获得词条: &f" + statName(selectedStat) + " &e" + format(baseValue, selectedStat));
         }
 
