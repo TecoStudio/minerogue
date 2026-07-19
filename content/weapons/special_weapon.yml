@@ -1,0 +1,11 @@
+id: special_weapon
+item: minecraft:wooden_sword
+name: 特殊武器
+description: 由开发券唤醒的武器胚子
+base-damage: 3
+attack-speed: 1.6
+durability: 250
+rarity: special
+allow-overflow-affixes: true
+effects:
+  attack_range: 3.0
