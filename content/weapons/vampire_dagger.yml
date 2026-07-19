@@ -1,0 +1,13 @@
+id: vampire_dagger
+item: minecraft:iron_sword
+name: 吸血匕首
+description: 从敌人身上吸血
+base-damage: 5
+attack-speed: 2.4
+durability: 600
+rarity: rare
+effects:
+  attack_range: 2.8
+  lifesteal_percent: 0.15
+  crit_chance: 0.08
+  crit_damage: 1.6
