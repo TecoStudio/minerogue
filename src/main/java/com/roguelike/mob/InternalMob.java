@@ -13,6 +13,10 @@ public interface InternalMob {
         return List.of();
     }
 
+    default boolean spawnable() {
+        return true;
+    }
+
     void onSpawn(LivingEntity entity);
 
     LivingEntity spawn(Location location);
