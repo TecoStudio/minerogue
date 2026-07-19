@@ -25,22 +25,32 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class ZombieEliteMob implements InternalMob {
     private static final Random RANDOM = ThreadLocalRandom.current();
-    private static final String ID = "zombie_elite";
-
+    private final ConfigManager.InternalMobDefinition definition;
     private final NamespacedKey mobKey;
 
-    public ZombieEliteMob(RoguelikePlugin plugin) {
+    public ZombieEliteMob(RoguelikePlugin plugin, ConfigManager.InternalMobDefinition definition) {
+        this.definition = definition;
         this.mobKey = new NamespacedKey(plugin, "internal_mob");
     }
 
     @Override
     public String id() {
-        return ID;
+        return definition.id();
+    }
+
+    @Override
+    public java.util.List<String> aliases() {
+        return definition.aliases();
+    }
+
+    @Override
+    public boolean spawnable() {
+        return definition.spawnable();
     }
 
     @Override
     public void onSpawn(LivingEntity entity) {
-        ConfigManager.ZombieEliteConfig config = ConfigManager.getZombieEliteConfig();
+        ConfigManager.ZombieEliteConfig config = ConfigManager.getZombieEliteConfig(id());
         if (!config.enabled()) return;
         if (!(entity instanceof Zombie zombie)) return;
         if (zombie.getEntitySpawnReason() != CreatureSpawnEvent.SpawnReason.NATURAL) return;
@@ -52,12 +62,12 @@ public class ZombieEliteMob implements InternalMob {
     @Override
     public LivingEntity spawn(Location location) {
         Zombie zombie = (Zombie) location.getWorld().spawnEntity(location, EntityType.ZOMBIE);
-        apply(zombie, ConfigManager.getZombieEliteConfig());
+        apply(zombie, ConfigManager.getZombieEliteConfig(id()));
         return zombie;
     }
 
     private void apply(Zombie zombie, ConfigManager.ZombieEliteConfig config) {
-        zombie.getPersistentDataContainer().set(mobKey, PersistentDataType.STRING, ID);
+        zombie.getPersistentDataContainer().set(mobKey, PersistentDataType.STRING, id());
         zombie.customName(Message.toComponent(config.name()));
         zombie.setCustomNameVisible(false);
 
@@ -80,7 +90,7 @@ public class ZombieEliteMob implements InternalMob {
     }
 
     private ItemStack stoneSword(String weaponTemplate) {
-        CustomWeapon template = ConfigManager.getWeapon(weaponTemplate);
+        CustomWeapon template = weaponTemplate == null || weaponTemplate.isBlank() ? null : ConfigManager.getWeapon(weaponTemplate);
         ItemStack sword = template != null
                 ? WeaponManager.createWeaponStack(template, Material.STONE_SWORD)
                 : new ItemStack(Material.STONE_SWORD);
@@ -96,7 +106,7 @@ public class ZombieEliteMob implements InternalMob {
     public void onDamage(EntityDamageByEntityEvent event) {
         LivingEntity attacker = event.getDamager() instanceof LivingEntity living ? living : null;
         if (attacker == null || !isMob(attacker)) return;
-        event.setDamage(ConfigManager.getZombieEliteConfig().damage());
+        event.setDamage(ConfigManager.getZombieEliteConfig(id()).damage());
     }
 
     @Override
@@ -106,6 +116,6 @@ public class ZombieEliteMob implements InternalMob {
     @Override
     public boolean isMob(LivingEntity entity) {
         String value = entity.getPersistentDataContainer().get(mobKey, PersistentDataType.STRING);
-        return ID.equals(value);
+        return com.roguelike.mob.MobManager.matchesInternalMobValue(this, value);
     }
 }
