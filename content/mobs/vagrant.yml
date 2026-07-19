@@ -1,0 +1,18 @@
+type: internal
+id: vagrant
+logic: |
+  use template skeleton
+  if target_detected then blink
+  if target_close then blade-storm
+aliases:
+  - vagrant_skeleton
+enabled: true
+spawnable: true
+name: '&5流浪者'
+health: 150.0
+damage: 7.0
+speed-multiplier: 1.25
+detect-range: 26.0
+skill-range: 4.5
+skill-cooldown-ticks: 90
+skill-damage: 6.0
