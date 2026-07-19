@@ -37,14 +37,14 @@ Boss 不会自然生成，管理员可用 `/rw monster spawn <id>` 生成。
 
 | Boss ID | 名称 | 生命 | 攻击 | 特殊技能 | 装备 |
 | --- | --- | ---: | ---: | --- | --- |
-| `concierge` | 沸血僵尸 | 180 | 9 | 参考死亡细胞 Concierge：中距离跃击，近距离震地冲击波，对范围内目标造成伤害并击退 | 下界合金头盔/胸甲/靴子、钻石护腿、钻石斧 |
-| `time_keeper` | 流浪者 | 150 | 7 | 参考死亡细胞 Time Keeper：瞬移到目标背后，近距离刀阵，对范围内目标造成伤害并附加缓慢 | 钻石胸甲/靴子、锁链头盔/护腿、下界合金剑、时钟 |
+| `blood-zombie` | 沸血僵尸 | 180 | 9 | multiline `logic:`：`use template zombie`；`if target_far then leap`；`else shockwave` | 下界合金头盔/胸甲/靴子、钻石护腿、钻石斧 |
+| `vagrant` | 流浪者 | 150 | 7 | multiline `logic:`：`use template skeleton`；`if target_detected then blink`；`if target_close then blade-storm` | 钻石胸甲/靴子、锁链头盔/护腿、下界合金剑、时钟 |
 
-Boss 名称同样不会强制常显，避免隔墙看到名字。技能数值可在 `mobs.yml` 的 `internal.concierge-boss` 与 `internal.time-keeper-boss` 中调整。旧生成 ID `concierge_boss`、`time_keeper_boss` 仍保留为兼容别名。
+Boss 名称同样不会强制常显，避免隔墙看到名字；玩家靠近检测范围内会看到 Boss 血条。血条使用 YAML 中的中文显示名，不会把逻辑脚本展示给玩家。怪物 ID、别名、技能数值和 `logic:` 均在 `content/mobs/*.yml` 中调整。
 
 ## 普通怪强化规则
 
-`mobs.yml` 的 `modifiers` 可为原版怪物配置生命、攻击、速度倍率和武器模板。内置默认强化如下：
+`content/mobs/<怪物 ID>.yml` 中 `type: modifier` 可为原版怪物配置生命、攻击、速度倍率和武器模板。内置默认强化如下：
 
 | 怪物 ID | 生命倍率 | 攻击倍率 | 速度倍率 | 武器模板 |
 | --- | ---: | ---: | ---: | --- |
