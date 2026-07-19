@@ -1,0 +1,13 @@
+id: thunder_axe
+item: minecraft:diamond_axe
+name: 雷霆战斧
+description: 几率召唤雷电
+base-damage: 14
+attack-speed: 0.9
+durability: 1200
+rarity: legendary
+effects:
+  attack_range: 3.0
+  lightning_chance: 0.15
+  crit_chance: 0.12
+  crit_damage: 2.0
