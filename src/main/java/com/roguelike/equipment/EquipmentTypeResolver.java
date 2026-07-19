@@ -17,6 +17,11 @@ public final class EquipmentTypeResolver {
         return name.endsWith("_PICKAXE") || name.endsWith("_AXE");
     }
 
+    public static boolean isBow(Material material) {
+        if (material == null) return false;
+        return material == Material.BOW || material == Material.CROSSBOW;
+    }
+
     public static boolean isArmor(Material material) {
         return armorSlot(material) != null;
     }
@@ -27,6 +32,7 @@ public final class EquipmentTypeResolver {
 
     public static EquipmentKind resolve(Material material) {
         if (isWearable(material)) return EquipmentKind.ARMOR;
+        if (isBow(material)) return EquipmentKind.BOW;
         if (isTool(material)) return EquipmentKind.TOOL;
         return EquipmentKind.WEAPON;
     }
