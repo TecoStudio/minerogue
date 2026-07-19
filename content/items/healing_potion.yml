@@ -1,0 +1,8 @@
+id: healing_potion
+item: minecraft:potion
+name: 治疗药水
+description: 恢复生命值
+item-type: potion
+rarity: common
+effects:
+  heal_amount: 10.0
