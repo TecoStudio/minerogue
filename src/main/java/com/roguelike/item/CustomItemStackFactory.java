@@ -1,6 +1,7 @@
 package com.roguelike.item;
 
 import com.roguelike.util.Message;
+import org.bukkit.Bukkit;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Color;
 import org.bukkit.Material;
@@ -8,16 +9,23 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.profile.PlayerProfile;
+import org.bukkit.profile.PlayerTextures;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 public final class CustomItemStackFactory {
     private static final NamespacedKey ITEM_ID_KEY = new NamespacedKey("roguelike", "custom_item_id");
+    private static final String BURGER_TEXTURE = "https://textures.minecraft.net/texture/6ae9c9bc898c7cfe9a3b11b6deaed1757817ad02511ab5a8b306ab92eeb3e2d";
 
     private CustomItemStackFactory() {
     }
@@ -28,10 +36,10 @@ public final class CustomItemStackFactory {
         if (meta == null) return stack;
 
         meta.getPersistentDataContainer().set(ITEM_ID_KEY, PersistentDataType.STRING, item.getId());
-        meta.displayName(Message.toComponent("&f" + item.getName()));
+        meta.displayName(Message.toComponent(rarityColor(item.getRarity()) + item.getName()));
         List<Component> lore = new ArrayList<>();
         if (!item.getDescription().isBlank()) lore.add(Message.toComponent("&7" + item.getDescription()));
-        lore.add(Message.toComponent("&7品质: &f" + item.getRarity()));
+        lore.add(Message.toComponent("&7品质: " + rarityColor(item.getRarity()) + rarityName(item.getRarity())));
         for (String line : effectLore(item)) {
             lore.add(Message.toComponent("&7- &f" + line));
         }
@@ -39,6 +47,8 @@ public final class CustomItemStackFactory {
 
         if (meta instanceof PotionMeta potionMeta) {
             applyPotionMeta(item, potionMeta);
+        } else if (meta instanceof SkullMeta skullMeta) {
+            applySkullMeta(item, skullMeta);
         }
         stack.setItemMeta(meta);
         return stack;
@@ -69,6 +79,9 @@ public final class CustomItemStackFactory {
         if (resistance > 0) lore.add("抗性等级: " + format(resistance));
         double duration = item.getEffect("duration_seconds", 0.0);
         if (duration > 0) lore.add("持续时间: " + format(duration) + "秒");
+        double healPercent = item.getEffect("heal_percent", 0.0);
+        if (healPercent > 0) lore.add("恢复生命: " + format(healPercent * 100.0) + "%");
+        if (item.getEffect("full_saturation", 0.0) > 0) lore.add("补满饱食度");
         return lore;
     }
 
@@ -99,6 +112,39 @@ public final class CustomItemStackFactory {
         } else if (heal > 0) {
             meta.setColor(Color.RED);
         }
+    }
+
+    private static void applySkullMeta(CustomItem item, SkullMeta meta) {
+        if (!"burger".equalsIgnoreCase(item.getId())) return;
+        try {
+            PlayerProfile profile = Bukkit.createPlayerProfile(UUID.fromString("0df25a12-1c45-4e24-9b98-4b0f7f7a4a1b"), "RoguelikeBurger");
+            PlayerTextures textures = profile.getTextures();
+            textures.setSkin(new URL(BURGER_TEXTURE));
+            profile.setTextures(textures);
+            meta.setOwnerProfile(profile);
+        } catch (IllegalArgumentException | MalformedURLException ignored) {
+            // Keep the item usable even if the decorative texture cannot be applied.
+        }
+    }
+
+    private static String rarityColor(String rarity) {
+        return switch (rarity == null ? "" : rarity.toLowerCase(Locale.ROOT)) {
+            case "rare" -> "&9";
+            case "epic" -> "&5";
+            case "legendary" -> "&6";
+            case "special" -> "&a";
+            default -> "&f";
+        };
+    }
+
+    private static String rarityName(String rarity) {
+        return switch (rarity == null ? "" : rarity.toLowerCase(Locale.ROOT)) {
+            case "rare" -> "稀有";
+            case "epic" -> "史诗";
+            case "legendary" -> "传奇";
+            case "special" -> "特殊";
+            default -> "常见";
+        };
     }
 
     private static int levelToAmplifier(double level) {
