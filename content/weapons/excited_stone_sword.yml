@@ -1,0 +1,12 @@
+id: excited_stone_sword
+item: minecraft:stone_sword
+name: 石剑
+description: 僵尸精英使用的亢奋石剑
+base-damage: 5
+attack-speed: 1.6
+durability: 131
+rarity: common
+effects:
+  attack_range: 3.0
+  crit_chance: 0.10
+  hyper: 1.0
