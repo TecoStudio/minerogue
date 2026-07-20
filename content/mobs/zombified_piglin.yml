@@ -4,3 +4,19 @@ health-multiplier: 1.20
 damage-multiplier: 1.20
 speed-multiplier: 1.05
 weapon-template: plague_saber
+equipment:
+  helmet: minecraft:golden_helmet
+  chestplate: minecraft:golden_chestplate
+  leggings: minecraft:golden_leggings
+  boots: minecraft:golden_boots
+  main-hand-weapon-template: plague_saber
+  drop-chances:
+    helmet: 0.01
+    chestplate: 0.01
+    leggings: 0.01
+    boots: 0.01
+    main-hand: 0.0
+    off-hand: 0.0
+drops:
+  held-item-chance: 0.0
+  items: []

@@ -270,6 +270,15 @@ public class ConfigManager {
             }
         }
 
+        ConfigurationSection internal = config.getConfigurationSection("internal");
+        if (internal != null) {
+            for (String key : internal.getKeys(false)) {
+                if ("enabled".equalsIgnoreCase(key)) continue;
+                ConfigurationSection mob = internal.getConfigurationSection(key);
+                if (mob != null) applyInternalMobConfig(key, mob);
+            }
+        }
+
         String type = config.getString("type", "").toLowerCase(Locale.ROOT);
         String id = config.getString("id", defaultId);
         if (id == null || id.isBlank()) return;
@@ -293,14 +302,53 @@ public class ConfigManager {
 
     private static void applyInternalMobConfig(String id, ConfigurationSection section) {
         String template = section.getString("template", "zombie");
+        warnUnknownTemplate(id, template);
         List<String> aliases = section.getStringList("aliases");
         boolean spawnable = section.getBoolean("spawnable", true);
         String weaponTemplate = section.getString("weapon-template", null);
+        EquipmentDefinition equipment = parseEquipmentDefinition(section);
+        DropConfig drops = parseDropConfig(section);
+        List<MobPotionEffectDefinition> potionEffects = parsePotionEffects(section);
         List<ActionDefinition> actions = readActions(section);
-        internalMobDefinitions.put(id.toLowerCase(Locale.ROOT), new InternalMobDefinition(id, template, aliases, spawnable, weaponTemplate, actions));
+        internalMobDefinitions.put(id.toLowerCase(Locale.ROOT), new InternalMobDefinition(
+                id, template, aliases, spawnable, weaponTemplate, equipment, drops, potionEffects, actions));
         ScriptedMobConfig config = parseScriptedMobConfig(section);
         scriptedMobConfigs.put(id.toLowerCase(Locale.ROOT), config);
         scriptedMobConfig = config;
+    }
+
+    private static EquipmentDefinition parseEquipmentDefinition(ConfigurationSection section) {
+        ConfigurationSection equipment = section.getConfigurationSection("equipment");
+        if (equipment == null) return EquipmentDefinition.empty();
+        return new EquipmentDefinition(
+                equipment.getString("helmet", null),
+                equipment.getString("chestplate", null),
+                equipment.getString("leggings", null),
+                equipment.getString("boots", null),
+                equipment.getString("main-hand", null),
+                equipment.getString("off-hand", null),
+                equipment.getString("main-hand-weapon-template", null),
+                equipment.getString("off-hand-weapon-template", null),
+                parseEquipmentDropChances(equipment.getConfigurationSection("drop-chances"))
+        );
+    }
+
+    private static EquipmentDropChances parseEquipmentDropChances(ConfigurationSection section) {
+        if (section == null) return EquipmentDropChances.zero();
+        return new EquipmentDropChances(
+                clampChance(section.getDouble("helmet", 0.0)),
+                clampChance(section.getDouble("chestplate", 0.0)),
+                clampChance(section.getDouble("leggings", 0.0)),
+                clampChance(section.getDouble("boots", 0.0)),
+                clampChance(section.getDouble("main-hand", 0.0)),
+                clampChance(section.getDouble("off-hand", 0.0))
+        );
+    }
+
+    private static void warnUnknownTemplate(String id, String template) {
+        String normalized = template == null ? "" : template.toLowerCase(Locale.ROOT);
+        if (normalized.contains("zombie") || normalized.contains("skeleton") || normalized.contains("spider")) return;
+        if (plugin != null) plugin.getLogger().warning("未知内置怪物模板 " + template + " (" + id + ")，将回退为 zombie。");
     }
 
     private static List<ActionDefinition> readActions(ConfigurationSection section) {
@@ -311,9 +359,27 @@ public class ConfigManager {
             String when = String.valueOf(whenValue);
             String action = actionValue == null ? "" : String.valueOf(actionValue);
             int hits = Math.max(1, toInt(entry.get("hits"), 1));
-            if (!action.isBlank()) actions.add(new ActionDefinition(when, action, hits));
+            double chance = clampChance(toDouble(entry.get("chance"), 1.0));
+            double durationSeconds = Math.max(0.0, toDouble(entry.get("duration-seconds"), toDouble(entry.get("duration"), 2.5)));
+            int level = Math.max(1, toInt(entry.get("level"), toInt(entry.get("slow-level"), 1)));
+            long cooldownTicks = Math.max(0L, toLong(entry.get("cooldown-ticks"), 0L));
+            double speed = Math.max(0.0, toDouble(entry.get("speed"), 0.0));
+            double damage = toDouble(entry.get("damage"), Double.NaN);
+            if (!action.isBlank()) {
+                warnUnknownAction(action);
+                actions.add(new ActionDefinition(when, action, hits, chance, durationSeconds, level, cooldownTicks, speed, damage));
+            }
         }
         return actions;
+    }
+
+    private static void warnUnknownAction(String action) {
+        String normalized = action.toLowerCase(Locale.ROOT).replace('_', '-');
+        boolean known = switch (normalized) {
+            case "melee-burst", "retreat", "leap", "shockwave", "blink", "blade-storm", "slow-on-hit" -> true;
+            default -> false;
+        };
+        if (!known && plugin != null) plugin.getLogger().warning("未知内置怪物动作 " + action + "，该动作将被忽略。");
     }
 
     private static int toInt(Object value, int fallback) {
@@ -326,17 +392,89 @@ public class ConfigManager {
         }
     }
 
+    private static long toLong(Object value, long fallback) {
+        if (value instanceof Number number) return number.longValue();
+        if (value == null) return fallback;
+        try {
+            return Long.parseLong(value.toString());
+        } catch (NumberFormatException ignored) {
+            return fallback;
+        }
+    }
+
+    private static double toDouble(Object value, double fallback) {
+        if (value instanceof Number number) return number.doubleValue();
+        if (value == null) return fallback;
+        try {
+            return Double.parseDouble(value.toString());
+        } catch (NumberFormatException ignored) {
+            return fallback;
+        }
+    }
+
     private static MobConfig parseMobConfig(ConfigurationSection section) {
         if (section == null) return new MobConfig(1.0, 1.0, 1.0, null);
         double health = section.getDouble("health-multiplier", 1.0);
         double damage = section.getDouble("damage-multiplier", 1.0);
         double speed = section.getDouble("speed-multiplier", 1.0);
         String weapon = section.getString("weapon-template", null);
-        return new MobConfig(health, damage, speed, weapon);
+        return new MobConfig(health, damage, speed, weapon, parseEquipmentDefinition(section), parseDropConfig(section));
+    }
+
+    private static DropConfig parseDropConfig(ConfigurationSection section) {
+        if (section == null) return DropConfig.empty();
+        ConfigurationSection drops = section.getConfigurationSection("drops");
+        if (drops == null) {
+            return new DropConfig(clampChance(section.getDouble("held-item-drop-chance", 0.0)), List.of());
+        }
+        double heldItemChance = clampChance(drops.getDouble("held-item-chance",
+                drops.getDouble("held-item-drop-chance", 0.0)));
+        List<DropItemDefinition> items = new ArrayList<>();
+        for (Map<?, ?> entry : drops.getMapList("items")) {
+            String material = toNullableString(entry.get("material"));
+            String weaponTemplate = toNullableString(entry.get("weapon-template"));
+            String itemTemplate = toNullableString(entry.get("item-template"));
+            int amount = Math.max(1, toInt(entry.get("amount"), 1));
+            double chance = clampChance(toDouble(entry.get("chance"), 0.0));
+            if (chance > 0.0 && (isPresent(material) || isPresent(weaponTemplate) || isPresent(itemTemplate))) {
+                items.add(new DropItemDefinition(material, weaponTemplate, itemTemplate, amount, chance));
+            }
+        }
+        return new DropConfig(heldItemChance, items);
+    }
+
+    private static List<MobPotionEffectDefinition> parsePotionEffects(ConfigurationSection section) {
+        List<MobPotionEffectDefinition> effects = new ArrayList<>();
+        if (section == null) return effects;
+        for (Map<?, ?> entry : section.getMapList("potion-effects")) {
+            String type = toNullableString(entry.containsKey("type") ? entry.get("type") : entry.get("effect"));
+            if (!isPresent(type)) continue;
+            int level = Math.max(1, toInt(entry.get("level"), 1));
+            boolean infinite = toBoolean(entry.get("infinite"), false);
+            int durationTicks = infinite ? -1 : toInt(entry.get("duration-ticks"), toInt(entry.get("duration"), -1));
+            boolean ambient = toBoolean(entry.get("ambient"), false);
+            boolean particles = toBoolean(entry.get("particles"), true);
+            effects.add(new MobPotionEffectDefinition(type, level, durationTicks, ambient, particles));
+        }
+        return effects;
+    }
+
+    private static String toNullableString(Object value) {
+        return value == null ? null : String.valueOf(value);
+    }
+
+    private static boolean isPresent(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    private static boolean toBoolean(Object value, boolean fallback) {
+        if (value instanceof Boolean bool) return bool;
+        if (value == null) return fallback;
+        return Boolean.parseBoolean(value.toString());
     }
 
     private static ScriptedMobConfig parseScriptedMobConfig(ConfigurationSection section) {
-        ScriptedMobConfig defaults = scriptedMobConfig;
+        ScriptedMobConfig defaults = DefaultMobs.scriptedMob();
         if (section == null) return defaults;
         return new ScriptedMobConfig(
                 section.getBoolean("enabled", defaults.enabled()),
@@ -348,7 +486,8 @@ public class ConfigManager {
                 Math.max(0.0, section.getDouble("detect-range", defaults.detectRange())),
                 Math.max(0.0, section.getDouble("skill-range", defaults.skillRange())),
                 Math.max(1L, section.getLong("skill-cooldown-ticks", defaults.skillCooldownTicks())),
-                Math.max(0.0, section.getDouble("skill-damage", defaults.skillDamage()))
+                Math.max(0.0, section.getDouble("skill-damage", defaults.skillDamage())),
+                section.getBoolean("bossbar", defaults.bossBar())
         );
     }
 
@@ -371,8 +510,25 @@ public class ConfigManager {
             if (!itemsFile.exists()) saveItemsYaml(itemsFile, DefaultItems.create());
             if (!mobsFile.exists()) saveMobsYaml(mobsFile);
             if (!sidebarFile.exists()) saveSidebarYaml(sidebarFile);
+            exportBundledContentDefaults();
         } catch (IOException e) {
             plugin.getLogger().warning("无法导出默认 YAML 配置: " + e.getMessage());
+        }
+    }
+
+    private static void exportBundledContentDefaults() {
+        if (plugin == null) return;
+        List<String> files = plugin.getConfig().getStringList("content.github-sync.files");
+        for (String relative : files) {
+            if (relative == null || relative.isBlank() || relative.contains("..")) continue;
+            String normalized = relative.replace('\\', '/');
+            File target = new File(contentDirectory, normalized);
+            if (target.exists()) continue;
+            try {
+                plugin.saveResource("content/" + normalized, false);
+            } catch (IllegalArgumentException e) {
+                plugin.getLogger().warning("默认内容 YAML 不存在 content/" + normalized + ": " + e.getMessage());
+            }
         }
     }
 
@@ -516,8 +672,25 @@ public class ConfigManager {
             config.set(path + "damage-multiplier", value.damageMultiplier());
             config.set(path + "speed-multiplier", value.speedMultiplier());
             config.set(path + "weapon-template", value.weaponTemplate());
+            writeDropConfig(config, path + "drops", value.drops());
         });
         saveYaml(config, file);
+    }
+
+    private static void writeDropConfig(YamlConfiguration config, String path, DropConfig drops) {
+        if (drops == null || (drops.heldItemChance() <= 0.0 && drops.items().isEmpty())) return;
+        config.set(path + ".held-item-chance", drops.heldItemChance());
+        List<Map<String, Object>> items = new ArrayList<>();
+        for (DropItemDefinition drop : drops.items()) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            if (drop.material() != null && !drop.material().isBlank()) item.put("material", drop.material());
+            if (drop.weaponTemplate() != null && !drop.weaponTemplate().isBlank()) item.put("weapon-template", drop.weaponTemplate());
+            if (drop.itemTemplate() != null && !drop.itemTemplate().isBlank()) item.put("item-template", drop.itemTemplate());
+            item.put("chance", drop.chance());
+            item.put("amount", drop.amount());
+            items.add(item);
+        }
+        config.set(path + ".items", items);
     }
 
     public static CustomWeapon getWeapon(String id) {
@@ -576,8 +749,8 @@ public class ConfigManager {
     }
 
     public static double getWeaponDropMultiplier() {
-        if (plugin == null) return 1.0;
-        return Math.max(0.0, plugin.getConfig().getDouble("gameplay.weapon-drop-multiplier", 1.0));
+        if (plugin == null) return 0.0;
+        return Math.max(0.0, plugin.getConfig().getDouble("gameplay.weapon-drop-multiplier", 0.0));
     }
 
     public static double getConfiguredWeaponDropChance(String rarity, double fallback) {
@@ -607,22 +780,93 @@ public class ConfigManager {
         return plugin;
     }
 
-    public record MobConfig(double healthMultiplier, double damageMultiplier, double speedMultiplier, String weaponTemplate) {
+    public record MobConfig(double healthMultiplier, double damageMultiplier, double speedMultiplier,
+                            String weaponTemplate, EquipmentDefinition equipment, DropConfig drops) {
+        public MobConfig(double healthMultiplier, double damageMultiplier, double speedMultiplier, String weaponTemplate) {
+            this(healthMultiplier, damageMultiplier, speedMultiplier, weaponTemplate, EquipmentDefinition.empty(), DropConfig.empty());
+        }
+
+        public MobConfig(double healthMultiplier, double damageMultiplier, double speedMultiplier,
+                         String weaponTemplate, DropConfig drops) {
+            this(healthMultiplier, damageMultiplier, speedMultiplier, weaponTemplate, EquipmentDefinition.empty(), drops);
+        }
+
+        public MobConfig {
+            equipment = equipment == null ? EquipmentDefinition.empty() : equipment;
+            drops = drops == null ? DropConfig.empty() : drops;
+        }
     }
 
     public record InternalMobDefinition(String id, String template, List<String> aliases, boolean spawnable,
-                                        String weaponTemplate, List<ActionDefinition> actions) {
+                                        String weaponTemplate, EquipmentDefinition equipment, DropConfig drops,
+                                        List<MobPotionEffectDefinition> potionEffects, List<ActionDefinition> actions) {
+        public InternalMobDefinition(String id, String template, List<String> aliases, boolean spawnable,
+                                     String weaponTemplate, List<ActionDefinition> actions) {
+            this(id, template, aliases, spawnable, weaponTemplate, EquipmentDefinition.empty(),
+                    DropConfig.empty(), List.of(), actions);
+        }
+
         public InternalMobDefinition {
             aliases = aliases == null ? List.of() : List.copyOf(aliases);
+            equipment = equipment == null ? EquipmentDefinition.empty() : equipment;
+            drops = drops == null ? DropConfig.empty() : drops;
+            potionEffects = potionEffects == null ? List.of() : List.copyOf(potionEffects);
             actions = actions == null ? List.of() : List.copyOf(actions);
         }
     }
 
-    public record ActionDefinition(String when, String action, int hits) {
+    public record EquipmentDefinition(String helmet, String chestplate, String leggings, String boots,
+                                      String mainHand, String offHand, String mainHandWeaponTemplate,
+                                      String offHandWeaponTemplate, EquipmentDropChances dropChances) {
+        public static EquipmentDefinition empty() {
+            return new EquipmentDefinition(null, null, null, null, null, null, null, null, EquipmentDropChances.zero());
+        }
+
+        public EquipmentDefinition {
+            dropChances = dropChances == null ? EquipmentDropChances.zero() : dropChances;
+        }
+    }
+
+    public record EquipmentDropChances(double helmet, double chestplate, double leggings, double boots,
+                                       double mainHand, double offHand) {
+        public static EquipmentDropChances zero() {
+            return new EquipmentDropChances(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+        }
+    }
+
+    public record DropConfig(double heldItemChance, List<DropItemDefinition> items) {
+        public static DropConfig empty() {
+            return new DropConfig(0.0, List.of());
+        }
+
+        public DropConfig {
+            heldItemChance = clampChance(heldItemChance);
+            items = items == null ? List.of() : List.copyOf(items);
+        }
+    }
+
+    public record DropItemDefinition(String material, String weaponTemplate, String itemTemplate,
+                                     int amount, double chance) {
+        public DropItemDefinition {
+            amount = Math.max(1, amount);
+            chance = clampChance(chance);
+        }
+    }
+
+    public record MobPotionEffectDefinition(String type, int level, int durationTicks,
+                                            boolean ambient, boolean particles) {
+        public MobPotionEffectDefinition {
+            level = Math.max(1, level);
+        }
+    }
+
+    public record ActionDefinition(String when, String action, int hits, double chance, double durationSeconds,
+                                   int level, long cooldownTicks, double speed, double damage) {
     }
 
     public record ScriptedMobConfig(boolean enabled, double spawnChance, String name, double health, double damage, double speedMultiplier,
-                                    double detectRange, double skillRange, long skillCooldownTicks, double skillDamage) {
+                                    double detectRange, double skillRange, long skillCooldownTicks, double skillDamage,
+                                    boolean bossBar) {
     }
 
     @FunctionalInterface

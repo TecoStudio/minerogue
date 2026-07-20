@@ -195,7 +195,7 @@ public class EventListener implements Listener {
             return;
         }
         if (WeaponManager.getTemplate(player.getInventory().getItemInMainHand()) != null) {
-            double damage = CombatHandler.processAttack(player, target, event.getDamage());
+            double damage = CombatHandler.processAttack(player, target, event.getDamage(), event.isCritical());
             event.setDamage(damage);
         }
     }

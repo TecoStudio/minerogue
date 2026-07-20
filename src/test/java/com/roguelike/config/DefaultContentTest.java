@@ -12,6 +12,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -98,6 +99,15 @@ class DefaultContentTest {
                     spawn-chance: 0.25
                     name: '&c外部骷髅'
                     weapon-template: test_blade
+                    equipment:
+                      main-hand: minecraft:bow
+                      off-hand-weapon-template: test_blade
+                    drops:
+                      held-item-chance: 0.25
+                      items:
+                        - weapon-template: test_blade
+                          chance: 0.40
+                          amount: 1
                     skill-range: 3.0
                     actions:
                       - when: target_close
@@ -113,6 +123,16 @@ class DefaultContentTest {
                     damage-multiplier: 1.2
                     speed-multiplier: 0.9
                     weapon-template: test_blade
+                    equipment:
+                      helmet: minecraft:iron_helmet
+                      chestplate: minecraft:iron_chestplate
+                      main-hand: minecraft:stone_axe
+                      off-hand-weapon-template: test_blade
+                      drop-chances:
+                        helmet: 0.05
+                        chestplate: 0.04
+                        main-hand: 0.03
+                        off-hand: 0.02
                     """);
             Files.writeString(root.resolve("mobs/exp-zombie.yml"), """
                     type: experience
@@ -122,22 +142,130 @@ class DefaultContentTest {
 
             ConfigManager.loadContentDirectory(root.toFile());
 
+            ConfigManager.InternalMobDefinition skeleton = ConfigManager.getInternalMobDefinitions().stream()
+                    .filter(definition -> definition.id().equals("skeleton-elite"))
+                    .findFirst()
+                    .orElseThrow();
+
             assertAll(
                     () -> assertEquals("测试剑", ConfigManager.getWeapon("test_blade").getName()),
                     () -> assertEquals(3.5, ConfigManager.getWeapon("test_blade").getAttackRange(), 0.001),
                     () -> assertEquals("测试药水", ConfigManager.getItem("test_potion").getName()),
                     () -> assertEquals(12.0, ConfigManager.getItem("test_potion").getEffect("heal_amount"), 0.001),
                     () -> assertEquals("外部荆棘头盔", ConfigManager.getArmorDefinitions().get("thorns_helmet").name()),
-                    () -> assertEquals("skeleton-elite", ConfigManager.getInternalMobDefinitions().getFirst().id()),
-                    () -> assertEquals("skeleton", ConfigManager.getInternalMobDefinitions().getFirst().template()),
-                    () -> assertEquals("test_blade", ConfigManager.getInternalMobDefinitions().getFirst().weaponTemplate()),
-                    () -> assertTrue(ConfigManager.getInternalMobDefinitions().getFirst().aliases().contains("skeleton_elite")),
-                    () -> assertEquals("melee-burst", ConfigManager.getInternalMobDefinitions().getFirst().actions().getFirst().action()),
-                    () -> assertEquals(3, ConfigManager.getInternalMobDefinitions().getFirst().actions().getFirst().hits()),
-                    () -> assertEquals("test_blade", ConfigManager.getMobConfig("husk").weaponTemplate())
+                    () -> assertEquals("skeleton-elite", skeleton.id()),
+                    () -> assertEquals("skeleton", skeleton.template()),
+                    () -> assertEquals("test_blade", skeleton.weaponTemplate()),
+                    () -> assertEquals("minecraft:bow", skeleton.equipment().mainHand()),
+                    () -> assertEquals("test_blade", skeleton.equipment().offHandWeaponTemplate()),
+                    () -> assertEquals(0.25, skeleton.drops().heldItemChance(), 0.001),
+                    () -> assertEquals("test_blade", skeleton.drops().items().getFirst().weaponTemplate()),
+                    () -> assertEquals(0.40, skeleton.drops().items().getFirst().chance(), 0.001),
+                    () -> assertTrue(skeleton.aliases().contains("skeleton_elite")),
+                    () -> assertEquals("melee-burst", skeleton.actions().getFirst().action()),
+                    () -> assertEquals(3, skeleton.actions().getFirst().hits()),
+                    () -> assertEquals("test_blade", ConfigManager.getMobConfig("husk").weaponTemplate()),
+                    () -> assertEquals("minecraft:iron_helmet", ConfigManager.getMobConfig("husk").equipment().helmet()),
+                    () -> assertEquals("minecraft:stone_axe", ConfigManager.getMobConfig("husk").equipment().mainHand()),
+                    () -> assertEquals("test_blade", ConfigManager.getMobConfig("husk").equipment().offHandWeaponTemplate()),
+                    () -> assertEquals(0.05, ConfigManager.getMobConfig("husk").equipment().dropChances().helmet(), 0.001),
+                    () -> assertEquals(0.02, ConfigManager.getMobConfig("husk").equipment().dropChances().offHand(), 0.001),
+                    () -> assertEquals(0.0, ConfigManager.getMobConfig("husk").drops().heldItemChance(), 0.001)
             );
         } finally {
             deleteRecursively(root);
+        }
+    }
+
+    @Test
+    void internalMobYamlDefaultsDoNotBleedAcrossFiles() throws IOException {
+        Path root = Files.createTempDirectory("roguelike-mob-defaults-test");
+        try {
+            Files.createDirectories(root.resolve("mobs"));
+            Files.writeString(root.resolve("mobs/a-spider-default-source.yml"), """
+                    type: internal
+                    id: a-spider-default-source
+                    template: spider
+                    enabled: true
+                    spawn-chance: 0.45
+                    name: '&5Source'
+                    health: 44.0
+                    damage: 6.0
+                    speed-multiplier: 1.7
+                    detect-range: 19.0
+                    skill-range: 4.0
+                    skill-cooldown-ticks: 80
+                    skill-damage: 3.0
+                    bossbar: true
+                    actions:
+                      - when: target_close
+                        do: slow-on-hit
+                    """);
+            Files.writeString(root.resolve("mobs/z-boss-default-target.yml"), """
+                    type: internal
+                    id: z-boss-default-target
+                    template: zombie
+                    enabled: true
+                    name: '&4Target'
+                    health: 150.0
+                    actions:
+                      - when: target_far
+                        do: leap
+                    """);
+
+            ConfigManager.loadContentDirectory(root.toFile());
+
+            ConfigManager.ScriptedMobConfig source = ConfigManager.getScriptedMobConfig("a-spider-default-source");
+            ConfigManager.ScriptedMobConfig target = ConfigManager.getScriptedMobConfig("z-boss-default-target");
+            assertAll(
+                    () -> assertEquals(0.45, source.spawnChance(), 0.001),
+                    () -> assertTrue(source.bossBar()),
+                    () -> assertEquals(0.0, target.spawnChance(), 0.001),
+                    () -> assertEquals(0.0, target.damage(), 0.001),
+                    () -> assertEquals(1.0, target.speedMultiplier(), 0.001),
+                    () -> assertEquals(0.0, target.detectRange(), 0.001),
+                    () -> assertEquals(0.0, target.skillRange(), 0.001),
+                    () -> assertEquals(20L, target.skillCooldownTicks()),
+                    () -> assertEquals(0.0, target.skillDamage(), 0.001),
+                    () -> assertFalse(target.bossBar())
+            );
+        } finally {
+            deleteRecursively(root);
+        }
+    }
+
+    @Test
+    void bundledInternalMobYamlMakesEquipmentAndDropsExplicit() throws IOException {
+        Path mobDirectory = Path.of("content", "mobs");
+
+        try (var stream = Files.list(mobDirectory)) {
+            for (Path file : stream.filter(path -> path.toString().endsWith(".yml")).toList()) {
+                String yaml = Files.readString(file);
+                if (!yaml.contains("type: internal")) continue;
+
+                assertTrue(yaml.contains("equipment:"), file + " must explicitly configure equipment");
+                assertTrue(yaml.contains("drops:"), file + " must explicitly configure drops");
+                if (yaml.contains("template: spider")) {
+                    assertTrue(yaml.contains("potion-effects:"), file + " must explicitly configure spider invisibility/effects");
+                }
+            }
+        }
+    }
+
+    @Test
+    void bundledMobYamlDoesNotDropPluginItemsByDefault() throws IOException {
+        Path mobDirectory = Path.of("content", "mobs");
+
+        try (var stream = Files.list(mobDirectory)) {
+            for (Path file : stream.filter(path -> path.toString().endsWith(".yml")).toList()) {
+                String drops = topLevelSection(Files.readString(file), "drops");
+                if (drops.isBlank()) continue;
+
+                assertFalse(drops.contains("weapon-template:"), file + " must opt out of plugin weapon drops by default");
+                assertFalse(drops.contains("item-template:"), file + " must opt out of plugin item drops by default");
+                assertFalse(drops.contains("held-item-chance: 0.05"), file + " must not drop plugin-capable held items by default");
+                assertFalse(drops.contains("held-item-chance: 0.15"), file + " must not drop plugin-capable held items by default");
+            }
         }
     }
 
@@ -221,6 +349,20 @@ class DefaultContentTest {
         assertTrue(modifier.speedMultiplier() > 0.0, id + " speed multiplier must be positive");
         assertTrue(modifier.weaponTemplate() == null || modifier.weaponTemplate().isBlank()
                 || weapons.containsKey(modifier.weaponTemplate()), id + " references missing weapon " + modifier.weaponTemplate());
+    }
+
+    private static String topLevelSection(String yaml, String sectionName) {
+        StringBuilder section = new StringBuilder();
+        boolean inSection = false;
+        for (String line : yaml.split("\\R")) {
+            if (!inSection) {
+                inSection = line.equals(sectionName + ":");
+                continue;
+            }
+            if (!line.isBlank() && !Character.isWhitespace(line.charAt(0))) break;
+            section.append(line).append('\n');
+        }
+        return section.toString();
     }
 
     private static void deleteRecursively(Path path) throws IOException {

@@ -2,6 +2,8 @@ package com.roguelike.mob;
 
 import com.roguelike.RoguelikePlugin;
 import com.roguelike.config.ConfigManager;
+import com.roguelike.item.CustomItem;
+import com.roguelike.item.CustomItemStackFactory;
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.integration.IntegrationManager;
 import com.roguelike.mob.internal.ScriptedInternalMob;
@@ -13,6 +15,7 @@ import org.bukkit.GameMode;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Monster;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -29,6 +32,7 @@ public class MobManager {
     private static BukkitTask behaviorTask;
 
     public static void init(RoguelikePlugin plugin) {
+        shutdown();
         MobManager.plugin = plugin;
         internalMobs.clear();
         for (ConfigManager.InternalMobDefinition definition : ConfigManager.getInternalMobDefinitions()) {
@@ -47,6 +51,14 @@ public class MobManager {
             behaviorTask.cancel();
             behaviorTask = null;
         }
+        for (InternalMob mob : internalMobs) {
+            mob.shutdown();
+        }
+        internalMobs.clear();
+    }
+
+    public static void reload() {
+        if (plugin != null) init(plugin);
     }
 
     public static void applyToMob(LivingEntity entity) {
@@ -85,16 +97,59 @@ public class MobManager {
             }
         }
 
-        if (!"zombie".equals(type) && config.weaponTemplate() != null && entity.getEquipment() != null) {
-            CustomWeapon template = ConfigManager.getWeapon(config.weaponTemplate());
-            if (template != null) {
-                ItemStack weapon = WeaponManager.createWeaponStack(template, modifierWeaponMaterial(template));
-                entity.getEquipment().setItemInMainHand(weapon);
-                if (entity instanceof Monster monster) {
-                    entity.getEquipment().setItemInMainHandDropChance(0.15f);
-                }
-            }
-        }
+        applyConfiguredEquipment(entity, config, type);
+    }
+
+    private static void applyConfiguredEquipment(LivingEntity entity, ConfigManager.MobConfig config, String type) {
+        EntityEquipment equipment = entity.getEquipment();
+        if (equipment == null) return;
+
+        ConfigManager.EquipmentDefinition equipmentDefinition = config.equipment();
+        setSlot(equipment::setHelmet, equipmentDefinition.helmet());
+        setSlot(equipment::setChestplate, equipmentDefinition.chestplate());
+        setSlot(equipment::setLeggings, equipmentDefinition.leggings());
+        setSlot(equipment::setBoots, equipmentDefinition.boots());
+        setSlot(equipment::setItemInMainHand, equipmentDefinition.mainHand());
+        setSlot(equipment::setItemInOffHand, equipmentDefinition.offHand());
+        setWeaponSlot(equipment::setItemInMainHand, equipmentDefinition.mainHandWeaponTemplate());
+        setWeaponSlot(equipment::setItemInOffHand, equipmentDefinition.offHandWeaponTemplate());
+        equipLegacyWeaponTemplate(equipment, config, type, equipmentDefinition);
+
+        ConfigManager.EquipmentDropChances dropChances = equipmentDefinition.dropChances();
+        equipment.setHelmetDropChance((float) dropChances.helmet());
+        equipment.setChestplateDropChance((float) dropChances.chestplate());
+        equipment.setLeggingsDropChance((float) dropChances.leggings());
+        equipment.setBootsDropChance((float) dropChances.boots());
+        equipment.setItemInMainHandDropChance((float) dropChances.mainHand());
+        equipment.setItemInOffHandDropChance((float) dropChances.offHand());
+    }
+
+    private static void equipLegacyWeaponTemplate(EntityEquipment equipment, ConfigManager.MobConfig config,
+                                                  String type, ConfigManager.EquipmentDefinition equipmentDefinition) {
+        if ("zombie".equals(type) || config.weaponTemplate() == null || config.weaponTemplate().isBlank()) return;
+        if (isConfigured(equipmentDefinition.mainHand()) || isConfigured(equipmentDefinition.mainHandWeaponTemplate())) return;
+        CustomWeapon template = ConfigManager.getWeapon(config.weaponTemplate());
+        if (template == null) return;
+        ItemStack weapon = WeaponManager.createWeaponStack(template, modifierWeaponMaterial(template));
+        equipment.setItemInMainHand(weapon);
+    }
+
+    private static void setSlot(java.util.function.Consumer<ItemStack> setter, String materialName) {
+        if (!isConfigured(materialName)) return;
+        Material material = Material.matchMaterial(normalizedMaterialName(materialName));
+        if (material == null || material.isAir() || !material.isItem()) return;
+        setter.accept(new ItemStack(material));
+    }
+
+    private static void setWeaponSlot(java.util.function.Consumer<ItemStack> setter, String weaponTemplate) {
+        if (!isConfigured(weaponTemplate)) return;
+        CustomWeapon template = ConfigManager.getWeapon(weaponTemplate);
+        if (template == null) return;
+        setter.accept(WeaponManager.createWeaponStack(template, modifierWeaponMaterial(template)));
+    }
+
+    private static boolean isConfigured(String value) {
+        return value != null && !value.isBlank();
     }
 
     public static void handleDamage(EntityDamageByEntityEvent event) {
@@ -115,15 +170,17 @@ public class MobManager {
     public static List<String> getAcceptedMobIds() {
         List<String> ids = new ArrayList<>();
         for (InternalMob mob : internalMobs) {
-            ids.add(mob.id());
-            ids.addAll(mob.aliases());
+            if (mob.spawnable()) {
+                ids.add(mob.id());
+                ids.addAll(mob.aliases());
+            }
         }
         return ids;
     }
 
     public static List<String> defaultInternalMobIds() {
         return ConfigManager.getInternalMobDefinitions().stream()
-                .filter(ConfigManager.InternalMobDefinition::spawnable)
+                .filter(definition -> definition.spawnable() && ConfigManager.getScriptedMobConfig(definition.id()).enabled())
                 .map(ConfigManager.InternalMobDefinition::id)
                 .toList();
     }
@@ -136,9 +193,13 @@ public class MobManager {
         return !dead && gameMode != GameMode.CREATIVE && gameMode != GameMode.SPECTATOR;
     }
 
+    public static double defaultRandomWeaponDropMultiplier() {
+        return 0.0;
+    }
+
     public static LivingEntity spawnInternalMob(String id, Location location) {
         for (InternalMob mob : internalMobs) {
-            if (matchesId(mob, id)) {
+            if (mob.spawnable() && matchesId(mob, id)) {
                 return mob.spawn(location);
             }
         }
@@ -161,7 +222,7 @@ public class MobManager {
 
     public static boolean isAcceptedMobId(String id) {
         for (InternalMob mob : internalMobs) {
-            if (matchesId(mob, id)) return true;
+            if (mob.spawnable() && matchesId(mob, id)) return true;
         }
         return false;
     }
@@ -189,16 +250,67 @@ public class MobManager {
     public static void handleDrop(LivingEntity entity) {
         handleRandomWeaponDrop(entity);
         for (InternalMob mob : internalMobs) {
-            if (mob.isMob(entity)) return;
+            if (mob.isMob(entity)) {
+                mob.onDeath(entity);
+                return;
+            }
         }
         String type = entity.getType().name().toLowerCase();
         ConfigManager.MobConfig config = ConfigManager.getMobConfig(type);
-        if (config == null || config.weaponTemplate() == null) return;
-        if (RANDOM.nextDouble() > 0.15) return;
-        CustomWeapon template = ConfigManager.getWeapon(config.weaponTemplate());
-        if (template == null) return;
-        ItemStack weapon = WeaponManager.createWeaponStack(template, modifierWeaponMaterial(template));
-        entity.getWorld().dropItemNaturally(entity.getLocation(), weapon);
+        if (config == null) return;
+        handleConfiguredDrops(entity, config.drops());
+    }
+
+    public static void handleConfiguredDrops(LivingEntity entity, ConfigManager.DropConfig drops) {
+        if (entity == null || drops == null) return;
+        if (drops.heldItemChance() > 0.0 && entity.getEquipment() != null) {
+            dropHeldItem(entity, entity.getEquipment().getItemInMainHand(), drops.heldItemChance());
+            dropHeldItem(entity, entity.getEquipment().getItemInOffHand(), drops.heldItemChance());
+        }
+        for (ConfigManager.DropItemDefinition drop : drops.items()) {
+            if (RANDOM.nextDouble() >= drop.chance()) continue;
+            ItemStack stack = createConfiguredDrop(drop);
+            if (stack != null && !stack.getType().isAir()) {
+                entity.getWorld().dropItemNaturally(entity.getLocation(), stack);
+            }
+        }
+    }
+
+    private static void dropHeldItem(LivingEntity entity, ItemStack held, double chance) {
+        if (held == null || held.getType().isAir()) return;
+        if (RANDOM.nextDouble() >= chance) return;
+        ItemStack stack = held.clone();
+        stack.setAmount(1);
+        entity.getWorld().dropItemNaturally(entity.getLocation(), stack);
+    }
+
+    private static ItemStack createConfiguredDrop(ConfigManager.DropItemDefinition drop) {
+        if (drop.weaponTemplate() != null && !drop.weaponTemplate().isBlank()) {
+            CustomWeapon template = ConfigManager.getWeapon(drop.weaponTemplate());
+            if (template == null) return null;
+            ItemStack stack = WeaponManager.createWeaponStack(template, modifierWeaponMaterial(template));
+            stack.setAmount(drop.amount());
+            return stack;
+        }
+        if (drop.itemTemplate() != null && !drop.itemTemplate().isBlank()) {
+            CustomItem item = ConfigManager.getItem(drop.itemTemplate());
+            if (item == null) return null;
+            ItemStack stack = CustomItemStackFactory.createItemStack(item);
+            stack.setAmount(drop.amount());
+            return stack;
+        }
+        if (drop.material() != null && !drop.material().isBlank()) {
+            Material material = Material.matchMaterial(normalizedMaterialName(drop.material()));
+            if (material == null || material.isAir() || !material.isItem()) return null;
+            return new ItemStack(material, drop.amount());
+        }
+        return null;
+    }
+
+    private static String normalizedMaterialName(String material) {
+        String normalized = material.trim().toUpperCase(Locale.ROOT);
+        if (normalized.startsWith("MINECRAFT:")) normalized = normalized.substring("MINECRAFT:".length());
+        return normalized;
     }
 
     private static void handleRandomWeaponDrop(LivingEntity entity) {

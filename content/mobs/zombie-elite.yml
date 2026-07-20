@@ -10,10 +10,27 @@ name: '&2僵尸精英'
 health: 35.0
 damage: 5.0
 weapon-template: excited_stone_sword
+equipment:
+  helmet: minecraft:netherite_helmet
+  chestplate: minecraft:netherite_chestplate
+  leggings: minecraft:diamond_leggings
+  boots: minecraft:netherite_boots
+  main-hand-weapon-template: excited_stone_sword
+  drop-chances:
+    helmet: 0.01
+    chestplate: 0.01
+    leggings: 0.01
+    boots: 0.01
+    main-hand: 0.0
+    off-hand: 0.0
+drops:
+  held-item-chance: 0.0
+  items: []
 detect-range: 16.0
 skill-range: 3.0
 skill-cooldown-ticks: 60
 skill-damage: 5.0
+bossbar: false
 actions:
   - when: target_close
     do: melee-burst

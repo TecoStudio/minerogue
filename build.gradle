@@ -53,6 +53,9 @@ processResources {
     def props = [version: version]
     inputs.properties props
     filteringCharset = 'UTF-8'
+    from('content') {
+        into 'content'
+    }
     filesMatching('plugin.yml') {
         expand props
     }

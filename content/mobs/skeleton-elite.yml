@@ -12,10 +12,28 @@ name: '&c骷髅精英'
 health: 30.0
 damage: 5.0
 weapon-template: rusty_iron_sword
+equipment:
+  helmet: minecraft:chainmail_helmet
+  chestplate: minecraft:diamond_chestplate
+  leggings: minecraft:chainmail_leggings
+  boots: minecraft:diamond_boots
+  main-hand: minecraft:bow
+  off-hand-weapon-template: rusty_iron_sword
+  drop-chances:
+    helmet: 0.01
+    chestplate: 0.01
+    leggings: 0.01
+    boots: 0.01
+    main-hand: 0.0
+    off-hand: 0.0
+drops:
+  held-item-chance: 0.0
+  items: []
 detect-range: 18.0
 skill-range: 3.2
 skill-cooldown-ticks: 100
 skill-damage: 5.0
+bossbar: false
 actions:
   # Keep vanilla skeleton bow AI as the fallback behavior from template: skeleton.
   # When a player gets close, run a reusable three-hit melee burst block.

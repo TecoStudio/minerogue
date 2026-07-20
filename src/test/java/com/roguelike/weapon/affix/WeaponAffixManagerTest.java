@@ -76,6 +76,17 @@ class WeaponAffixManagerTest {
         assertFalse(WeaponAffixManager.isApplicable("scatter_shot", EquipmentKind.WEAPON));
     }
 
+    @Test
+    void scatterShotUsesExplicitArrowCountsFromTwoToFive() {
+        Random random = new Random(42);
+
+        for (int i = 0; i < 20; i++) {
+            double value = WeaponAffixManager.generateBaseValue("scatter_shot", random);
+            assertTrue(value >= 2.0 && value <= 5.0, "scatter count must be 2-5, got " + value);
+            assertEquals((int) value + "支", WeaponAffixManager.format("scatter_shot", value));
+        }
+    }
+
     private static CustomWeapon weapon(String id, Map<String, Double> effects) {
         return new CustomWeapon(id, id, "", "minecraft:wooden_sword", 1.0, 1.0, 100, "common", effects);
     }

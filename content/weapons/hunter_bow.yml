@@ -8,5 +8,5 @@ durability: 384
 rarity: rare
 effects:
   attack_range: 3.0
-  scatter_shot: 1.0
+  scatter_shot: 2.0
   charge_power: 1.0

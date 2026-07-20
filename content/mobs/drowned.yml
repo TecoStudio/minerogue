@@ -4,3 +4,18 @@ health-multiplier: 1.10
 damage-multiplier: 1.05
 speed-multiplier: 1.05
 weapon-template: storm_spear
+equipment:
+  helmet: minecraft:chainmail_helmet
+  chestplate: minecraft:chainmail_chestplate
+  main-hand-weapon-template: storm_spear
+  off-hand: minecraft:nautilus_shell
+  drop-chances:
+    helmet: 0.01
+    chestplate: 0.01
+    leggings: 0.0
+    boots: 0.0
+    main-hand: 0.0
+    off-hand: 0.02
+drops:
+  held-item-chance: 0.0
+  items: []

@@ -53,36 +53,125 @@ class ExportCommand {
                     "    rarity: common\n" +
                     "    effects:\n" +
                     "      heal_amount: 10\n");
-            writeFile(examples.resolve("mobs.yml"), "internal:\n" +
-                    "  enabled: true\n" +
-                    "  skeleton-elite:\n" +
-                    "    enabled: true\n" +
-                    "    spawn-chance: 0.12\n" +
-                    "    name: '&c骷髅精英'\n" +
-                    "  zombie-elite:\n" +
-                    "    enabled: true\n" +
-                    "    spawn-chance: 0.12\n" +
-                    "    name: '&2僵尸精英'\n" +
-                    "    weapon-template: excited_stone_sword\n" +
-                    "  # 精英蜘蛛：隐身，35血，1.2倍移速，攻击概率附加缓慢。\n" +
-                    "  spider-elite:\n" +
-                    "    enabled: true\n" +
-                    "    # 自然蜘蛛转化概率，0.12 = 12%。\n" +
-                    "    spawn-chance: 0.12\n" +
-                    "    name: '&5精英蜘蛛'\n" +
-                    "    health: 35.0\n" +
-                    "    # 1.2 = 原版移速的 1.2 倍。\n" +
-                    "    speed-multiplier: 1.2\n" +
-                    "    # 0.35 = 35% 概率。\n" +
-                    "    slow-chance: 0.35\n" +
-                    "    slow-duration-seconds: 8.0\n" +
-                    "    # 药水等级按游戏内显示填写：1 = 缓慢 I，2 = 缓慢 II。\n" +
-                    "    slow-level: 1\n" +
-                    "default-experience: 10\n" +
+            writeFile(examples.resolve("mobs.yml"), "default-experience: 10\n" +
                     "experience:\n" +
                     "  zombie: 15\n" +
                     "  skeleton: 15\n" +
                     "modifiers: {}\n");
+            writeFile(examples.resolve("content/mobs/skeleton-elite.yml"), "type: internal\n" +
+                    "id: skeleton-elite\n" +
+                    "template: skeleton\n" +
+                    "aliases:\n" +
+                    "  - skeleton_elite\n" +
+                    "enabled: true\n" +
+                    "spawnable: true\n" +
+                    "spawn-chance: 0.12\n" +
+                    "name: '&c骷髅精英'\n" +
+                    "health: 30.0\n" +
+                    "damage: 5.0\n" +
+                    "weapon-template: rusty_iron_sword\n" +
+                    "equipment:\n" +
+                    "  helmet: minecraft:chainmail_helmet\n" +
+                    "  chestplate: minecraft:diamond_chestplate\n" +
+                    "  leggings: minecraft:chainmail_leggings\n" +
+                    "  boots: minecraft:diamond_boots\n" +
+                    "  main-hand: minecraft:bow\n" +
+                    "  off-hand-weapon-template: rusty_iron_sword\n" +
+                    "  drop-chances:\n" +
+                    "    helmet: 0.01\n" +
+                    "    chestplate: 0.01\n" +
+                    "    leggings: 0.01\n" +
+                    "    boots: 0.01\n" +
+                    "    main-hand: 0.0\n" +
+                    "    off-hand: 0.0\n" +
+                    "drops:\n" +
+                    "  held-item-chance: 0.0\n" +
+                    "  items: []\n" +
+                    "detect-range: 18.0\n" +
+                    "skill-range: 3.2\n" +
+                    "skill-cooldown-ticks: 100\n" +
+                    "skill-damage: 5.0\n" +
+                    "bossbar: false\n" +
+                    "actions:\n" +
+                    "  - when: target_close\n" +
+                    "    do: melee-burst\n" +
+                    "    hits: 3\n" +
+                    "  - when: after melee-burst\n" +
+                    "    do: retreat\n");
+            writeFile(examples.resolve("content/mobs/spider-elite.yml"), "type: internal\n" +
+                    "id: spider-elite\n" +
+                    "template: spider\n" +
+                    "aliases:\n" +
+                    "  - spider_elite\n" +
+                    "enabled: true\n" +
+                    "spawnable: true\n" +
+                    "spawn-chance: 0.12\n" +
+                    "name: '&5精英蜘蛛'\n" +
+                    "health: 35.0\n" +
+                    "damage: 0.0\n" +
+                    "speed-multiplier: 1.2\n" +
+                    "equipment:\n" +
+                    "  drop-chances:\n" +
+                    "    helmet: 0.0\n" +
+                    "    chestplate: 0.0\n" +
+                    "    leggings: 0.0\n" +
+                    "    boots: 0.0\n" +
+                    "    main-hand: 0.0\n" +
+                    "    off-hand: 0.0\n" +
+                    "potion-effects:\n" +
+                    "  - type: invisibility\n" +
+                    "    level: 1\n" +
+                    "    infinite: true\n" +
+                    "    ambient: false\n" +
+                    "    particles: false\n" +
+                    "drops:\n" +
+                    "  held-item-chance: 0.0\n" +
+                    "  items: []\n" +
+                    "detect-range: 16.0\n" +
+                    "skill-range: 3.0\n" +
+                    "skill-cooldown-ticks: 60\n" +
+                    "skill-damage: 1.2\n" +
+                    "bossbar: false\n" +
+                    "actions:\n" +
+                    "  - when: target_close\n" +
+                    "    do: slow-on-hit\n" +
+                    "    chance: 0.35\n" +
+                    "    duration-seconds: 8.0\n" +
+                    "    level: 1\n");
+            writeFile(examples.resolve("content/mobs/blood-zombie.yml"), "type: internal\n" +
+                    "id: blood-zombie\n" +
+                    "template: zombie\n" +
+                    "enabled: true\n" +
+                    "spawnable: true\n" +
+                    "bossbar: true\n" +
+                    "name: '&4沸血僵尸'\n" +
+                    "health: 180.0\n" +
+                    "damage: 9.0\n" +
+                    "equipment:\n" +
+                    "  helmet: minecraft:netherite_helmet\n" +
+                    "  chestplate: minecraft:netherite_chestplate\n" +
+                    "  leggings: minecraft:diamond_leggings\n" +
+                    "  boots: minecraft:netherite_boots\n" +
+                    "  main-hand: minecraft:diamond_axe\n" +
+                    "  drop-chances:\n" +
+                    "    helmet: 0.01\n" +
+                    "    chestplate: 0.01\n" +
+                    "    leggings: 0.01\n" +
+                    "    boots: 0.01\n" +
+                    "    main-hand: 0.0\n" +
+                    "    off-hand: 0.0\n" +
+                    "drops:\n" +
+                    "  held-item-chance: 0.0\n" +
+                    "  items: []\n" +
+                    "detect-range: 24.0\n" +
+                    "skill-range: 5.0\n" +
+                    "skill-cooldown-ticks: 120\n" +
+                    "skill-damage: 8.0\n" +
+                    "actions:\n" +
+                    "  - when: target_far\n" +
+                    "    do: leap\n" +
+                    "  - when: target_close\n" +
+                    "    do: shockwave\n");
             writeFile(examples.resolve("tab-scoreboard.yml"), "scoreboards:\n" +
                     "  roguelike:\n" +
                     "    title: '&6统计信息'\n" +
@@ -112,7 +201,7 @@ class ExportCommand {
         }
 
         Message.send(sender, "&a已导出 YAML 配置到 plugins/Roguelike，并导出示例到 plugins/Roguelike/examples。");
-        Message.send(sender, "&7修改 weapons.yml、items.yml、mobs.yml、forge-recipes.yml、sidebar.yml 后执行 /rw reload 生效。");
+        Message.send(sender, "&7修改 weapons.yml、items.yml、mobs.yml、forge-recipes.yml、sidebar.yml 或 content/ 后执行 /rw reload 生效。");
         return true;
     }
 

@@ -79,6 +79,11 @@ class MobManagerTest {
         assertFalse(MobManager.shouldBossAffectPlayer(GameMode.SURVIVAL, true));
     }
 
+    @Test
+    void randomPluginWeaponDropsAreDisabledByDefault() {
+        assertEquals(0.0, MobManager.defaultRandomWeaponDropMultiplier(), 0.001);
+    }
+
     private record StubMob(String id, List<String> aliases) implements InternalMob {
         @Override
         public void onSpawn(org.bukkit.entity.LivingEntity entity) {

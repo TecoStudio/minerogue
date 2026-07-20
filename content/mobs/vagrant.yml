@@ -9,10 +9,28 @@ name: '&5流浪者'
 health: 150.0
 damage: 7.0
 speed-multiplier: 1.25
+equipment:
+  helmet: minecraft:chainmail_helmet
+  chestplate: minecraft:diamond_chestplate
+  leggings: minecraft:chainmail_leggings
+  boots: minecraft:diamond_boots
+  main-hand: minecraft:bow
+  off-hand: minecraft:clock
+  drop-chances:
+    helmet: 0.01
+    chestplate: 0.01
+    leggings: 0.01
+    boots: 0.01
+    main-hand: 0.0
+    off-hand: 0.0
+drops:
+  held-item-chance: 0.0
+  items: []
 detect-range: 26.0
 skill-range: 4.5
 skill-cooldown-ticks: 90
 skill-damage: 6.0
+bossbar: true
 actions:
   - when: target_detected
     do: blink

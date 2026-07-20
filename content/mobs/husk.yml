@@ -4,3 +4,19 @@ health-multiplier: 1.25
 damage-multiplier: 1.10
 speed-multiplier: 0.95
 weapon-template: frost_cleaver
+equipment:
+  helmet: minecraft:iron_helmet
+  chestplate: minecraft:iron_chestplate
+  leggings: minecraft:chainmail_leggings
+  boots: minecraft:iron_boots
+  main-hand-weapon-template: frost_cleaver
+  drop-chances:
+    helmet: 0.01
+    chestplate: 0.01
+    leggings: 0.01
+    boots: 0.01
+    main-hand: 0.0
+    off-hand: 0.0
+drops:
+  held-item-chance: 0.0
+  items: []

@@ -23,7 +23,13 @@ public interface InternalMob {
 
     void onDamage(EntityDamageByEntityEvent event);
 
+    default void onDeath(LivingEntity entity) {
+    }
+
     void tick();
+
+    default void shutdown() {
+    }
 
     boolean isMob(LivingEntity entity);
 }

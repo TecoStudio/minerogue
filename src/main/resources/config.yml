@@ -95,8 +95,8 @@ gameplay:
   exp-multiplier: 1.0
   # 挖矿/进食里程碑经验倍率。未配置时建议与击杀经验分开调节。
   progression-exp-multiplier: 1.0
-  # 所有随机武器掉落概率倍率。0 = 关闭随机武器掉落。
-  weapon-drop-multiplier: 1.0
+  # 所有随机武器掉落概率倍率。默认 0 = 怪物不掉落插件随机武器；改为 1.0 后使用下方基础概率。
+  weapon-drop-multiplier: 0.0
   # 随机武器基础掉落概率，最终概率 = 此处概率 * weapon-drop-multiplier。
   weapon-drop-chances:
     legendary: 0.002

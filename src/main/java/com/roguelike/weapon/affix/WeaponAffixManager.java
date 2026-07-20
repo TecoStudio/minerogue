@@ -134,10 +134,26 @@ public class WeaponAffixManager {
             if (level > 0) lore.add(Message.toComponent("§a✦ 用不坏: §f" + level + "级 (" + WeaponManager.format(durabilityRestoreChance(level) * 100, 0) + "%返还3耐久)"));
         }), Target.ALL);
         register(toggle("ore_highlight", "高亮矿物", "§e✦ 高亮矿物: §f挖掘时10%概率高亮附近矿物1秒", false), Target.TOOL);
-        register(level("scatter_shot", "散射", 1, 5, (lore, template, data) -> {
-            int level = (int) total(template, data, "scatter_shot", 0.0);
-            if (level > 0) lore.add(Message.toComponent("§b➹ 散射: §f额外发射 " + level + " 支箭"));
-        }), Target.BOW);
+        register(new SimpleAffix("scatter_shot", "散射", true, 2, 5, true, (lore, template, data) -> {
+            int arrows = (int) total(template, data, "scatter_shot", 0.0);
+            if (arrows > 0) lore.add(Message.toComponent("§b➹ 散射: §f总计发射 " + arrows + " 支箭"));
+        }) {
+            @Override
+            public boolean isStrengthenable(CustomWeapon template, WeaponInstanceData data) {
+                double value = total(template, data, id(), 0.0);
+                return value > 0 && value < 5;
+            }
+
+            @Override
+            public double strengthen(double currentValue, int useCount, Random random) {
+                return Math.min(5, currentValue + 1);
+            }
+
+            @Override
+            public String format(double value) {
+                return (int) value + "支";
+            }
+        }, Target.BOW);
         register(level("rapid_shot", "连发", 1, 5, (lore, template, data) -> {
             int level = (int) total(template, data, "rapid_shot", 0.0);
             if (level > 0) lore.add(Message.toComponent("§b➹ 连发: §f短延迟追加 " + level + " 支箭"));

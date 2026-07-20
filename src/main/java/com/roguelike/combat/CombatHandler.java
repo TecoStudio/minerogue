@@ -43,12 +43,16 @@ public class CombatHandler {
     }
 
     public static double processAttack(Player player, LivingEntity target, double baseDamage) {
+        return processAttack(player, target, baseDamage, false);
+    }
+
+    public static double processAttack(Player player, LivingEntity target, double baseDamage, boolean vanillaCritical) {
         CustomWeapon template = WeaponManager.getTemplate(player.getInventory().getItemInMainHand());
         WeaponInstanceData data = WeaponInstanceData.fromItemStack(player.getInventory().getItemInMainHand());
         if (template == null || data == null) return baseDamage;
 
         double weaponDamage = data.getTotalDamage(template);
-        double vanillaBonus = Math.max(0.0, baseDamage - weaponDamage);
+        double vanillaBonus = vanillaBonus(baseDamage, weaponDamage, vanillaCritical);
         double damage = weaponDamage + vanillaBonus;
         List<String> damageParts = new ArrayList<>();
         List<FormulaPart> formulaParts = new ArrayList<>();
@@ -241,6 +245,12 @@ public class CombatHandler {
         WeaponManager.updateLore(player.getInventory().getItemInMainHand(), template, data);
         sendDamageFormula(player, damage, formulaParts, damageParts, extraParts);
         return damage;
+    }
+
+    static double vanillaBonus(double eventDamage, double weaponDamage, boolean vanillaCritical) {
+        double existingBonus = Math.max(0.0, eventDamage - weaponDamage);
+        double criticalBonus = vanillaCritical ? Math.max(0.0, weaponDamage * 0.5) : 0.0;
+        return existingBonus >= criticalBonus ? existingBonus : existingBonus + criticalBonus;
     }
 
     private static void sendDamageFormula(Player player, double damage, List<FormulaPart> formulaParts, List<String> damageParts, List<String> extraParts) {

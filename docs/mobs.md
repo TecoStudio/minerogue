@@ -25,11 +25,11 @@
 
 | 精英怪 | 默认生成率 | 名称 | 生命 | 攻击 | 特点 |
 | --- | ---: | --- | ---: | ---: | --- |
-| 骷髅精英 | 12% | 骷髅精英 | 30 | 5 | 持剑与精英弓，远程射击、近身突进三连击，攻击附毒，目标中毒时增伤 |
-| 僵尸精英 | 12% | 僵尸精英 | 35 | 5 | 铁头盔，亢奋石剑，近战压迫 |
+| 骷髅精英 | 12% | 骷髅精英 | 30 | 5 | 使用原版骷髅弓 AI 作为远程兜底，近身触发三连击后撤退；副手武器模板提供中毒相关效果 |
+| 僵尸精英 | 12% | 僵尸精英 | 35 | 5 | 僵尸模板装备与亢奋石剑，近战压迫 |
 | 精英蜘蛛 | 12% | 精英蜘蛛 | 35 | - | 常驻隐身，移速提升，攻击概率附加缓慢 |
 
-精英怪名称不会强制常显，避免玩家隔墙看到名字；准星指向实体时仍可看到其自定义名称。
+精英怪名称不会强制常显，避免玩家隔墙看到名字；准星指向实体时仍可看到其自定义名称。精英怪默认不显示 Boss 血条。
 
 ## 内置 Boss
 
@@ -37,10 +37,10 @@ Boss 不会自然生成，管理员可用 `/rw monster spawn <id>` 生成。
 
 | Boss ID | 名称 | 生命 | 攻击 | 特殊技能 | 装备 |
 | --- | --- | ---: | ---: | --- | --- |
-| `blood-zombie` | 沸血僵尸 | 180 | 9 | `template: zombie` + `actions: target_far/leap, target_close/shockwave` | 下界合金头盔/胸甲/靴子、钻石护腿、钻石斧 |
-| `vagrant` | 流浪者 | 150 | 7 | `template: skeleton` + `actions: target_detected/blink, target_close/blade-storm` | 钻石胸甲/靴子、锁链头盔/护腿、下界合金剑、时钟 |
+| `blood-zombie` | 沸血僵尸 | 180 | 9 | `template: zombie` + `actions: target_far/leap, target_close/shockwave` | YAML 显式配置下界合金头盔/胸甲/靴子、钻石护腿、钻石斧 |
+| `vagrant` | 流浪者 | 150 | 7 | `template: skeleton` + `actions: target_detected/blink, target_close/blade-storm` | YAML 显式配置骷髅远程兜底装备与时钟副手 |
 
-Boss 名称同样不会强制常显，避免隔墙看到名字；玩家靠近检测范围内会看到 Boss 血条。血条使用 YAML 中的中文显示名，不会把逻辑脚本展示给玩家。怪物 ID、别名、技能数值、`template:` 和 `actions:` 均在 `content/mobs/*.yml` 中调整。
+Boss 名称同样不会强制常显，避免隔墙看到名字；配置 `bossbar: true` 的 Boss 会在玩家靠近检测范围内显示 Boss 血条。血条使用 YAML 中的中文显示名，不会把动作编排展示给玩家。怪物 ID、别名、技能数值、`bossbar:`、`template:` 和 `actions:` 均在 `content/mobs/*.yml` 中调整。
 
 ## 普通怪强化规则
 
@@ -53,7 +53,11 @@ Boss 名称同样不会强制常显，避免隔墙看到名字；玩家靠近检
 | pillager | 1.15 | 1.15 | 1.00 | echo_blade |
 | zombified_piglin | 1.20 | 1.20 | 1.05 | plague_saber |
 
-配置了 `weapon-template` 的普通怪死亡时，除随机武器掉落外，还会按现有普通怪武器逻辑低概率掉落该模板武器。
+配置了 `weapon-template` 的普通怪生成时会手持对应 Roguelike 武器；死亡掉落不再写死，而是读取同一个 YAML 的 `drops:`：
+
+- `drops.held-item-chance`：按概率掉落怪物死亡时主手/副手实际持有物品的克隆；默认内容包为 `0.0`。
+- `drops.items[]`：按概率额外掉落指定 `weapon-template`、`item-template` 或原版 `material`，可配置 `chance` 与 `amount`；默认内容包为空。
+- 因此默认怪物不会掉落插件物品；服主需要插件物品掉落时再显式开启这些字段。
 
 ## 骷髅精英仇恨
 
@@ -63,11 +67,11 @@ Boss 名称同样不会强制常显，避免隔墙看到名字；玩家靠近检
 
 ## 随机武器掉落
 
-怪物死亡时有低概率掉落内置武器模板。掉落会优先判定高品质，命中某个品质后从该品质的内置武器中随机选择一个。
+怪物随机武器掉落默认关闭。将 `gameplay.weapon-drop-multiplier` 从 `0.0` 调高后，怪物死亡时除 YAML 配置掉落外，才会有低概率随机掉落内置武器模板。随机掉落会优先判定高品质，命中某个品质后从该品质的内置武器中随机选择一个。
 
 掉落概率按 `legendary -> epic -> rare -> common` 顺序独立判定。每个品质的最终概率为 `gameplay.weapon-drop-chances.<品质> * gameplay.weapon-drop-multiplier`，并限制在 0-1。
 
-| 品质 | 掉落概率 |
+| 品质 | 启用后基础概率 |
 | --- | ---: |
 | legendary | 0.2% |
 | epic | 0.5% |

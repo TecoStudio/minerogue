@@ -22,6 +22,7 @@ class AdminInfoCommands {
         ConfigManager.getPlugin().reloadConfig();
         DevLog.init(ConfigManager.getPlugin());
         ConfigManager.reload();
+        MobManager.reload();
         ForgeRecipeManager.reload();
         PlayerDataManager.reloadSettings();
         RoguelikeScoreboard.restartTask();

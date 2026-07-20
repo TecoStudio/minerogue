@@ -8,11 +8,33 @@ spawnable: true
 spawn-chance: 0.12
 name: '&5精英蜘蛛'
 health: 35.0
+damage: 0.0
 speed-multiplier: 1.2
+equipment:
+  drop-chances:
+    helmet: 0.0
+    chestplate: 0.0
+    leggings: 0.0
+    boots: 0.0
+    main-hand: 0.0
+    off-hand: 0.0
+potion-effects:
+  - type: invisibility
+    level: 1
+    infinite: true
+    ambient: false
+    particles: false
+drops:
+  held-item-chance: 0.0
+  items: []
 detect-range: 16.0
 skill-range: 3.0
 skill-cooldown-ticks: 60
 skill-damage: 1.2
+bossbar: false
 actions:
   - when: target_close
     do: slow-on-hit
+    chance: 0.35
+    duration-seconds: 8.0
+    level: 1
