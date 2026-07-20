@@ -222,7 +222,7 @@ plugins/Roguelike/forge-recipes.yml
 
 ## 怪物内容
 
-怪物经验、内置精英怪/Boss 参数和普通怪强化规则同样从 YAML 内容包加载。默认示例位于 `content/mobs/`，服务器运行时放在 `plugins/Roguelike/content/mobs/`。当前推荐一个 YAML 对应一个怪物相关定义：`type: experience`、`type: modifier`、`type: internal` 或 `type: settings`。代码只保留 `logic:` 对应的行为实现，具体怪物 ID、别名、属性和动作由 YAML 定义。
+怪物经验、内置精英怪/Boss 参数和普通怪强化规则同样从 YAML 内容包加载。默认示例位于 `content/mobs/`，服务器运行时放在 `plugins/Roguelike/content/mobs/`。当前推荐一个 YAML 对应一个怪物相关定义：`type: experience`、`type: modifier`、`type: internal` 或 `type: settings`。代码只保留 `template:` 与 `actions:` 可调用的通用动作实现，具体怪物 ID、别名、属性和动作编排由 YAML 定义。
 
 ### 普通怪经验
 
@@ -251,7 +251,7 @@ plugins/Roguelike/forge-recipes.yml
 | 僵尸精英 | 12% | 35 | 5 | 使用亢奋石剑，提供近战压力。 |
 | 精英蜘蛛 | 12% | 35 | 1.2 | 移速较高，带跳跃/位移相关能力参数。 |
 
-精英怪数据和普通怪经验可通过 `content/mobs/*.yml` 调整。内置怪物 YAML 通过英文 multiline `logic:` 拼接原版模板和动作块，例如 `use template zombie / if target_far then leap / else shockwave`。代码只实现 reusable action blocks，例如 `leap`、`shockwave`、`blink`、`blade-storm`，不再为具体 Boss 保留专名变量。
+精英怪数据和普通怪经验可通过 `content/mobs/*.yml` 调整。内置怪物 YAML 通过 `template:` 选择原版实体兜底，并用 `actions:` 组装动作块，例如 `target_close -> melee-burst -> retreat`。代码只实现 reusable action blocks，例如 `melee-burst`、`retreat`、`leap`、`shockwave`、`blink`、`blade-storm`，不再为具体怪物保留专名内容。
 
 部分原版普通怪默认带有强化配置，例如尸壳、溺尸、掠夺者和僵尸猪灵会获得适度属性倍率和指定武器模板。服主可在 `content/mobs/<怪物 ID>.yml` 中用 `type: modifier` 调整或移除这些规则。
 

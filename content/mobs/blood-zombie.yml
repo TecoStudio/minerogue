@@ -1,9 +1,8 @@
 type: internal
 id: blood-zombie
-logic: |
-  use template zombie
-  if target_far then leap
-  else shockwave
+# Internal mobs are assembled from a vanilla template plus reusable action blocks.
+# This is the complete combat definition for the mob.
+template: zombie
 aliases:
   - blood_zombie
 enabled: true
@@ -16,3 +15,8 @@ detect-range: 24.0
 skill-range: 5.0
 skill-cooldown-ticks: 120
 skill-damage: 8.0
+actions:
+  - when: target_far
+    do: leap
+  - when: target_close
+    do: shockwave

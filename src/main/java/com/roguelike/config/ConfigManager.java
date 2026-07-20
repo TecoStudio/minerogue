@@ -33,10 +33,6 @@ public class ConfigManager {
     private static String sidebarTitle = "&6统计信息";
     private static List<String> sidebarLines = defaultSidebarLines();
     private static boolean internalMonsterSystemEnabled = true;
-    private static double skeletonEliteSpawnChance = 0.12;
-    private static SkeletonEliteConfig skeletonEliteConfig = DefaultMobs.skeletonElite();
-    private static ZombieEliteConfig zombieEliteConfig = DefaultMobs.zombieElite();
-    private static SpiderEliteConfig spiderEliteConfig = DefaultMobs.spiderElite();
     private static ScriptedMobConfig scriptedMobConfig = DefaultMobs.scriptedMob();
 
     private static final Map<String, CustomWeapon> weapons = new LinkedHashMap<>();
@@ -44,9 +40,6 @@ public class ConfigManager {
     private static final Map<String, ArmorDefinition> armorDefinitions = new LinkedHashMap<>();
     private static final Map<String, MobConfig> mobs = new LinkedHashMap<>();
     private static final Map<String, InternalMobDefinition> internalMobDefinitions = new LinkedHashMap<>();
-    private static final Map<String, SkeletonEliteConfig> skeletonEliteConfigs = new LinkedHashMap<>();
-    private static final Map<String, ZombieEliteConfig> zombieEliteConfigs = new LinkedHashMap<>();
-    private static final Map<String, SpiderEliteConfig> spiderEliteConfigs = new LinkedHashMap<>();
     private static final Map<String, ScriptedMobConfig> scriptedMobConfigs = new LinkedHashMap<>();
 
     public static void loadAll(RoguelikePlugin plugin) {
@@ -76,9 +69,6 @@ public class ConfigManager {
         armorDefinitions.clear();
         mobs.clear();
         internalMobDefinitions.clear();
-        skeletonEliteConfigs.clear();
-        zombieEliteConfigs.clear();
-        spiderEliteConfigs.clear();
         scriptedMobConfigs.clear();
         MobExperienceConfig.clear();
 
@@ -86,11 +76,7 @@ public class ConfigManager {
         items.putAll(DefaultItems.create());
         armorDefinitions.putAll(DefaultArmor.create());
         internalMonsterSystemEnabled = DefaultMobs.internalSystemEnabled();
-        skeletonEliteConfig = DefaultMobs.skeletonElite();
-        zombieEliteConfig = DefaultMobs.zombieElite();
-        spiderEliteConfig = DefaultMobs.spiderElite();
         scriptedMobConfig = DefaultMobs.scriptedMob();
-        skeletonEliteSpawnChance = skeletonEliteConfig.spawnChance();
         MobExperienceConfig.setDefaultExp(DefaultMobs.defaultExperience());
         DefaultMobs.experience().forEach(MobExperienceConfig::setMobExp);
         mobs.putAll(DefaultMobs.modifiers());
@@ -269,10 +255,6 @@ public class ConfigManager {
 
     private static void loadMobsFromConfiguration(YamlConfiguration config, String defaultId) {
         internalMonsterSystemEnabled = config.getBoolean("internal.enabled", internalMonsterSystemEnabled);
-        skeletonEliteConfig = parseSkeletonEliteConfig(config.getConfigurationSection("internal.skeleton-elite"));
-        zombieEliteConfig = parseZombieEliteConfig(config.getConfigurationSection("internal.zombie-elite"));
-        spiderEliteConfig = parseSpiderEliteConfig(config.getConfigurationSection("internal.spider-elite"));
-        skeletonEliteSpawnChance = skeletonEliteConfig.spawnChance();
         MobExperienceConfig.setDefaultExp(config.getInt("default-experience", MobExperienceConfig.getDefaultExp()));
         ConfigurationSection experience = config.getConfigurationSection("experience");
         if (experience != null) {
@@ -310,57 +292,38 @@ public class ConfigManager {
     }
 
     private static void applyInternalMobConfig(String id, ConfigurationSection section) {
-        String normalized = id.toLowerCase(Locale.ROOT).replace('_', '-');
-        String logic = section.getString("logic", legacyInternalMobLogic(normalized));
-        if (logic == null || logic.isBlank()) return;
-        String logicKind = internalLogicKind(logic);
+        String template = section.getString("template", "zombie");
         List<String> aliases = section.getStringList("aliases");
         boolean spawnable = section.getBoolean("spawnable", true);
-        internalMobDefinitions.put(id.toLowerCase(Locale.ROOT), new InternalMobDefinition(id, logic, aliases, spawnable));
-        switch (logicKind) {
-            case "scripted" -> {
-                ScriptedMobConfig config = parseScriptedMobConfig(section);
-                scriptedMobConfigs.put(id.toLowerCase(Locale.ROOT), config);
-                scriptedMobConfig = config;
-            }
-            case "skeleton-elite" -> {
-                SkeletonEliteConfig config = parseSkeletonEliteConfig(section);
-                skeletonEliteConfigs.put(id.toLowerCase(Locale.ROOT), config);
-                skeletonEliteConfig = config;
-                skeletonEliteSpawnChance = config.spawnChance();
-            }
-            case "zombie-elite" -> {
-                ZombieEliteConfig config = parseZombieEliteConfig(section);
-                zombieEliteConfigs.put(id.toLowerCase(Locale.ROOT), config);
-                zombieEliteConfig = config;
-            }
-            case "spider-elite" -> {
-                SpiderEliteConfig config = parseSpiderEliteConfig(section);
-                spiderEliteConfigs.put(id.toLowerCase(Locale.ROOT), config);
-                spiderEliteConfig = config;
-            }
-            default -> {
-            }
+        String weaponTemplate = section.getString("weapon-template", null);
+        List<ActionDefinition> actions = readActions(section);
+        internalMobDefinitions.put(id.toLowerCase(Locale.ROOT), new InternalMobDefinition(id, template, aliases, spawnable, weaponTemplate, actions));
+        ScriptedMobConfig config = parseScriptedMobConfig(section);
+        scriptedMobConfigs.put(id.toLowerCase(Locale.ROOT), config);
+        scriptedMobConfig = config;
+    }
+
+    private static List<ActionDefinition> readActions(ConfigurationSection section) {
+        List<ActionDefinition> actions = new ArrayList<>();
+        for (Map<?, ?> entry : section.getMapList("actions")) {
+            Object whenValue = entry.containsKey("when") ? entry.get("when") : "always";
+            Object actionValue = entry.containsKey("do") ? entry.get("do") : entry.get("action");
+            String when = String.valueOf(whenValue);
+            String action = actionValue == null ? "" : String.valueOf(actionValue);
+            int hits = Math.max(1, toInt(entry.get("hits"), 1));
+            if (!action.isBlank()) actions.add(new ActionDefinition(when, action, hits));
         }
+        return actions;
     }
 
-    private static String legacyInternalMobLogic(String normalizedId) {
-        return switch (normalizedId) {
-            case "skeleton-elite" -> "skeleton-elite";
-            case "zombie-elite" -> "zombie-elite";
-            case "spider-elite" -> "spider-elite";
-            case "blood-zombie" -> "use template zombie\nif target_far then leap\nelse shockwave";
-            case "vagrant" -> "use template skeleton\nif target_detected then blink\nif target_close then blade-storm";
-            default -> null;
-        };
-    }
-
-    private static String internalLogicKind(String logic) {
-        String normalized = logic.toLowerCase(Locale.ROOT).replace('_', '-').trim();
-        return switch (normalized) {
-            case "skeleton-elite", "zombie-elite", "spider-elite" -> normalized;
-            default -> "scripted";
-        };
+    private static int toInt(Object value, int fallback) {
+        if (value instanceof Number number) return number.intValue();
+        if (value == null) return fallback;
+        try {
+            return Integer.parseInt(value.toString());
+        } catch (NumberFormatException ignored) {
+            return fallback;
+        }
     }
 
     private static MobConfig parseMobConfig(ConfigurationSection section) {
@@ -372,67 +335,12 @@ public class ConfigManager {
         return new MobConfig(health, damage, speed, weapon);
     }
 
-    private static SkeletonEliteConfig parseSkeletonEliteConfig(ConfigurationSection section) {
-        SkeletonEliteConfig defaults = skeletonEliteConfig;
-        if (section == null) return defaults;
-        return new SkeletonEliteConfig(
-                section.getBoolean("enabled", defaults.enabled()),
-                clampChance(section.getDouble("spawn-chance", defaults.spawnChance())),
-                section.getString("name", defaults.name()),
-                section.getDouble("health", defaults.health()),
-                section.getDouble("damage", defaults.damage()),
-                clampChance(section.getDouble("poison-chance", defaults.poisonChance())),
-                Math.max(0.0, section.getDouble("poisoned-damage-bonus", defaults.poisonedDamageBonus())),
-                Math.max(0.0, section.getDouble("poison-duration-seconds", defaults.poisonDurationSeconds())),
-                section.getString("weapon-template", defaults.weaponTemplate()),
-                Math.max(0.0, section.getDouble("behavior.detect-range", defaults.detectRange())),
-                Math.max(0.0, section.getDouble("behavior.keep-distance", defaults.keepDistance())),
-                Math.max(0.0, section.getDouble("behavior.melee-range", defaults.meleeRange())),
-                Math.max(1L, section.getLong("behavior.shot-cooldown-ticks", defaults.shotCooldownTicks())),
-                Math.max(1L, section.getLong("behavior.burst-cooldown-ticks", defaults.burstCooldownTicks())),
-                Math.max(0.1, section.getDouble("behavior.arrow-speed", defaults.arrowSpeed())),
-                Math.max(0.0, section.getDouble("behavior.retreat-speed", defaults.retreatSpeed())),
-                Math.max(0.0, section.getDouble("behavior.lunge-speed", defaults.lungeSpeed())),
-                Math.max(0.0, section.getDouble("behavior.post-burst-retreat-speed", defaults.postBurstRetreatSpeed())),
-                readCombatScript(section, defaults.combatScript())
-        );
-    }
-
-    private static ZombieEliteConfig parseZombieEliteConfig(ConfigurationSection section) {
-        ZombieEliteConfig defaults = zombieEliteConfig;
-        if (section == null) return defaults;
-        return new ZombieEliteConfig(
-                section.getBoolean("enabled", defaults.enabled()),
-                clampChance(section.getDouble("spawn-chance", defaults.spawnChance())),
-                section.getString("name", defaults.name()),
-                section.getDouble("health", defaults.health()),
-                section.getDouble("damage", defaults.damage()),
-                section.getString("weapon-template", defaults.weaponTemplate()),
-                readCombatScript(section, defaults.combatScript())
-        );
-    }
-
-    private static SpiderEliteConfig parseSpiderEliteConfig(ConfigurationSection section) {
-        SpiderEliteConfig defaults = spiderEliteConfig;
-        if (section == null) return defaults;
-        return new SpiderEliteConfig(
-                section.getBoolean("enabled", defaults.enabled()),
-                clampChance(section.getDouble("spawn-chance", defaults.spawnChance())),
-                section.getString("name", defaults.name()),
-                section.getDouble("health", defaults.health()),
-                Math.max(0.0, section.getDouble("speed-multiplier", defaults.speedMultiplier())),
-                clampChance(section.getDouble("slow-chance", defaults.slowChance())),
-                Math.max(0.0, section.getDouble("slow-duration-seconds", defaults.slowDurationSeconds())),
-                Math.max(1, section.getInt("slow-level", section.getInt("slow-amplifier", defaults.slowLevel()))),
-                readCombatScript(section, defaults.combatScript())
-        );
-    }
-
     private static ScriptedMobConfig parseScriptedMobConfig(ConfigurationSection section) {
         ScriptedMobConfig defaults = scriptedMobConfig;
         if (section == null) return defaults;
         return new ScriptedMobConfig(
                 section.getBoolean("enabled", defaults.enabled()),
+                clampChance(section.getDouble("spawn-chance", defaults.spawnChance())),
                 section.getString("name", defaults.name()),
                 Math.max(1.0, section.getDouble("health", defaults.health())),
                 Math.max(0.0, section.getDouble("damage", defaults.damage())),
@@ -442,13 +350,6 @@ public class ConfigManager {
                 Math.max(1L, section.getLong("skill-cooldown-ticks", defaults.skillCooldownTicks())),
                 Math.max(0.0, section.getDouble("skill-damage", defaults.skillDamage()))
         );
-    }
-
-    private static String readCombatScript(ConfigurationSection section, String fallback) {
-        String script = section.getString("combat-script", null);
-        if (script != null) return script;
-        List<String> lines = section.getStringList("combat-script");
-        return lines.isEmpty() ? fallback : String.join("\n", lines);
     }
 
     private static Map<String, Double> readDoubleMap(ConfigurationSection section) {
@@ -607,9 +508,6 @@ public class ConfigManager {
                 """);
         config.setComments("internal", List.of("是否启用本插件内置怪物系统。"));
         config.set("internal.enabled", internalMonsterSystemEnabled);
-        saveSkeletonEliteConfig(config, "internal.skeleton-elite", skeletonEliteConfig);
-        saveZombieEliteConfig(config, "internal.zombie-elite", zombieEliteConfig);
-        saveSpiderEliteConfig(config, "internal.spider-elite", spiderEliteConfig);
         config.set("default-experience", MobExperienceConfig.getDefaultExp());
         MobExperienceConfig.getAllMobExp().forEach((key, value) -> config.set("experience." + key, value));
         mobs.forEach((key, value) -> {
@@ -620,74 +518,6 @@ public class ConfigManager {
             config.set(path + "weapon-template", value.weaponTemplate());
         });
         saveYaml(config, file);
-    }
-
-    private static void saveSkeletonEliteConfig(YamlConfiguration config, String path, SkeletonEliteConfig value) {
-        config.setComments(path, List.of("骷髅精英：自然骷髅按概率转化，远程射箭，近身突进三连击。"));
-        config.setComments(path + ".enabled", List.of("是否启用该怪物。"));
-        config.set(path + ".enabled", value.enabled());
-        config.setComments(path + ".spawn-chance", List.of("自然生成骷髅转化为骷髅精英的概率，0.12 = 12%。"));
-        config.set(path + ".spawn-chance", value.spawnChance());
-        config.setComments(path + ".name", List.of("怪物显示名，支持 & 颜色代码。"));
-        config.set(path + ".name", value.name());
-        config.setComments(path + ".health", List.of("最大生命值。"));
-        config.set(path + ".health", value.health());
-        config.setComments(path + ".damage", List.of("攻击和箭矢基础伤害。"));
-        config.set(path + ".damage", value.damage());
-        config.setComments(path + ".poison-chance", List.of("攻击使目标中毒的概率，0.30 = 30%。"));
-        config.set(path + ".poison-chance", value.poisonChance());
-        config.setComments(path + ".poisoned-damage-bonus", List.of("目标已中毒时的额外伤害比例，0.10 = +10%。"));
-        config.set(path + ".poisoned-damage-bonus", value.poisonedDamageBonus());
-        config.setComments(path + ".poison-duration-seconds", List.of("中毒持续秒数。"));
-        config.set(path + ".poison-duration-seconds", value.poisonDurationSeconds());
-        config.setComments(path + ".weapon-template", List.of("主手武器模板 ID，配置在 weapons.yml。"));
-        config.set(path + ".weapon-template", value.weaponTemplate());
-        config.setComments(path + ".behavior", List.of("战斗行为参数。距离单位为格，冷却单位为 tick，20 tick = 1 秒。"));
-        config.set(path + ".behavior.detect-range", value.detectRange());
-        config.set(path + ".behavior.keep-distance", value.keepDistance());
-        config.set(path + ".behavior.melee-range", value.meleeRange());
-        config.set(path + ".behavior.shot-cooldown-ticks", value.shotCooldownTicks());
-        config.set(path + ".behavior.burst-cooldown-ticks", value.burstCooldownTicks());
-        config.set(path + ".behavior.arrow-speed", value.arrowSpeed());
-        config.set(path + ".behavior.retreat-speed", value.retreatSpeed());
-        config.set(path + ".behavior.lunge-speed", value.lungeSpeed());
-        config.set(path + ".behavior.post-burst-retreat-speed", value.postBurstRetreatSpeed());
-    }
-
-    private static void saveZombieEliteConfig(YamlConfiguration config, String path, ZombieEliteConfig value) {
-        config.setComments(path, List.of("僵尸精英：自然僵尸按概率转化，佩戴铁头盔，使用带锋利 I 的亢奋石剑。"));
-        config.setComments(path + ".enabled", List.of("是否启用该怪物。"));
-        config.set(path + ".enabled", value.enabled());
-        config.setComments(path + ".spawn-chance", List.of("自然生成僵尸转化为僵尸精英的概率，0.12 = 12%。"));
-        config.set(path + ".spawn-chance", value.spawnChance());
-        config.setComments(path + ".name", List.of("怪物显示名，支持 & 颜色代码。"));
-        config.set(path + ".name", value.name());
-        config.setComments(path + ".health", List.of("最大生命值。"));
-        config.set(path + ".health", value.health());
-        config.setComments(path + ".damage", List.of("近战基础伤害。"));
-        config.set(path + ".damage", value.damage());
-        config.setComments(path + ".weapon-template", List.of("主手武器模板 ID，配置在 weapons.yml。"));
-        config.set(path + ".weapon-template", value.weaponTemplate());
-    }
-
-    private static void saveSpiderEliteConfig(YamlConfiguration config, String path, SpiderEliteConfig value) {
-        config.setComments(path, List.of("精英蜘蛛：自然蜘蛛按概率转化，常驻隐身，攻击时概率附加缓慢。"));
-        config.setComments(path + ".enabled", List.of("是否启用该怪物。"));
-        config.set(path + ".enabled", value.enabled());
-        config.setComments(path + ".spawn-chance", List.of("自然生成蜘蛛转化为精英蜘蛛的概率，0.12 = 12%。"));
-        config.set(path + ".spawn-chance", value.spawnChance());
-        config.setComments(path + ".name", List.of("怪物显示名，支持 & 颜色代码。"));
-        config.set(path + ".name", value.name());
-        config.setComments(path + ".health", List.of("最大生命值。"));
-        config.set(path + ".health", value.health());
-        config.setComments(path + ".speed-multiplier", List.of("移动速度倍率。1.2 = 原版移速的 1.2 倍。"));
-        config.set(path + ".speed-multiplier", value.speedMultiplier());
-        config.setComments(path + ".slow-chance", List.of("攻击使目标获得缓慢的概率，0.35 = 35%。"));
-        config.set(path + ".slow-chance", value.slowChance());
-        config.setComments(path + ".slow-duration-seconds", List.of("缓慢持续秒数。"));
-        config.set(path + ".slow-duration-seconds", value.slowDurationSeconds());
-        config.setComments(path + ".slow-level", List.of("缓慢等级，按游戏内显示填写：1 = 缓慢 I，2 = 缓慢 II。"));
-        config.set(path + ".slow-level", value.slowLevel());
     }
 
     public static CustomWeapon getWeapon(String id) {
@@ -712,18 +542,6 @@ public class ConfigManager {
 
     public static List<InternalMobDefinition> getInternalMobDefinitions() {
         return new ArrayList<>(internalMobDefinitions.values());
-    }
-
-    public static SkeletonEliteConfig getSkeletonEliteConfig(String id) {
-        return configOrDefault(skeletonEliteConfigs, id, skeletonEliteConfig);
-    }
-
-    public static ZombieEliteConfig getZombieEliteConfig(String id) {
-        return configOrDefault(zombieEliteConfigs, id, zombieEliteConfig);
-    }
-
-    public static SpiderEliteConfig getSpiderEliteConfig(String id) {
-        return configOrDefault(spiderEliteConfigs, id, spiderEliteConfig);
     }
 
     public static ScriptedMobConfig getScriptedMobConfig(String id) {
@@ -780,23 +598,6 @@ public class ConfigManager {
         return plugin != null && internalMonsterSystemEnabled;
     }
 
-    public static double getSkeletonEliteSpawnChance() {
-        if (plugin == null) return 0.0;
-        return skeletonEliteSpawnChance;
-    }
-
-    public static SkeletonEliteConfig getSkeletonEliteConfig() {
-        return skeletonEliteConfig;
-    }
-
-    public static ZombieEliteConfig getZombieEliteConfig() {
-        return zombieEliteConfig;
-    }
-
-    public static SpiderEliteConfig getSpiderEliteConfig() {
-        return spiderEliteConfig;
-    }
-
     private static void saveYaml(YamlConfiguration config, File file) throws IOException {
         Files.createDirectories(file.toPath().getParent());
         config.save(file);
@@ -809,30 +610,18 @@ public class ConfigManager {
     public record MobConfig(double healthMultiplier, double damageMultiplier, double speedMultiplier, String weaponTemplate) {
     }
 
-    public record InternalMobDefinition(String id, String logic, List<String> aliases, boolean spawnable) {
+    public record InternalMobDefinition(String id, String template, List<String> aliases, boolean spawnable,
+                                        String weaponTemplate, List<ActionDefinition> actions) {
         public InternalMobDefinition {
             aliases = aliases == null ? List.of() : List.copyOf(aliases);
+            actions = actions == null ? List.of() : List.copyOf(actions);
         }
     }
 
-    public record SkeletonEliteConfig(boolean enabled, double spawnChance, String name, double health, double damage,
-                                      double poisonChance, double poisonedDamageBonus, double poisonDurationSeconds,
-                                      String weaponTemplate, double detectRange, double keepDistance, double meleeRange,
-                                      long shotCooldownTicks, long burstCooldownTicks, double arrowSpeed,
-                                      double retreatSpeed, double lungeSpeed, double postBurstRetreatSpeed,
-                                      String combatScript) {
+    public record ActionDefinition(String when, String action, int hits) {
     }
 
-    public record ZombieEliteConfig(boolean enabled, double spawnChance, String name, double health, double damage,
-                                    String weaponTemplate, String combatScript) {
-    }
-
-    public record SpiderEliteConfig(boolean enabled, double spawnChance, String name, double health,
-                                    double speedMultiplier, double slowChance, double slowDurationSeconds,
-                                    int slowLevel, String combatScript) {
-    }
-
-    public record ScriptedMobConfig(boolean enabled, String name, double health, double damage, double speedMultiplier,
+    public record ScriptedMobConfig(boolean enabled, double spawnChance, String name, double health, double damage, double speedMultiplier,
                                     double detectRange, double skillRange, long skillCooldownTicks, double skillDamage) {
     }
 

@@ -78,21 +78,20 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -TimeoutSeconds 
 
 完整文档已拆分到 `docs/`：
 
-| 文档 | 内容 |
-| --- | --- |
-| [文档目录](docs/README.md) | 全部文档入口 |
-| [游戏内容总览](docs/game-content.md) | 核心玩法循环、成长、战斗、装备、券、铸造、怪物、掉落与配置扩展 |
-| [快速开始](docs/quick-start.md) | 核心循环、基础部署、常用入口 |
-| [等级与经验](docs/leveling.md) | 经验需求、升级奖励、死亡惩罚 |
-| [装备与武器](docs/equipment.md) | 内置武器、内置物品、防具套装、原版附魔兼容 |
-| [券系统](docs/tickets.md) | 强化券、超级强化券、开发券、工具开发券、移除券 |
-| [铸造台](docs/forge.md) | 铸造台结构、GUI、`forge-recipes.yml` 配方格式 |
-| [词条数据](docs/affixes.md) | 当前全部词条、强化规则、原版附魔重复项检查 |
-| [怪物系统](docs/mobs.md) | 怪物经验、内置精英怪、内置 Boss、普通怪强化、随机武器掉落、仇恨说明 |
-| [命令](docs/commands.md) | 玩家命令、管理员命令、权限 |
-| [配置文件](docs/configuration.md) | `config.yml`、`weapons.yml`、`items.yml`、`mobs.yml`、`forge-recipes.yml` |
-| [Velocity 双服 MMO + 生存网络方案](docs/mmo-velocity-network.md) | 使用免费插件组合 Velocity、Paper 生存服和 MMO 服，规划跨服数据互通、插件分层和第一阶段验收 |
-| [配置片段助手](docs/config-tool.html) | 静态网页工具，用于生成武器、物品、精英怪/Boss 难度和普通怪强化 YAML 片段 |
+| 文档                                 | 内容                                                                                |
+| ------------------------------------ | ----------------------------------------------------------------------------------- |
+| [文档目录](docs/README.md)            | 全部文档入口                                                                        |
+| [游戏内容总览](docs/game-content.md)  | 核心玩法循环、成长、战斗、装备、券、铸造、怪物、掉落与配置扩展                      |
+| [快速开始](docs/quick-start.md)       | 核心循环、基础部署、常用入口                                                        |
+| [等级与经验](docs/leveling.md)        | 经验需求、升级奖励、死亡惩罚                                                        |
+| [装备与武器](docs/equipment.md)       | 内置武器、内置物品、防具套装、原版附魔兼容                                          |
+| [券系统](docs/tickets.md)             | 强化券、超级强化券、开发券、工具开发券、移除券                                      |
+| [铸造台](docs/forge.md)               | 铸造台结构、GUI、`forge-recipes.yml` 配方格式                                     |
+| [词条数据](docs/affixes.md)           | 当前全部词条、强化规则、原版附魔重复项检查                                          |
+| [怪物系统](docs/mobs.md)              | 怪物经验、内置精英怪、内置 Boss、普通怪强化、随机武器掉落、仇恨说明                 |
+| [命令](docs/commands.md)              | 玩家命令、管理员命令、权限                                                          |
+| [配置文件](docs/configuration.md)     | `config.yml`、`weapons.yml`、`items.yml`、`mobs.yml`、`forge-recipes.yml` |
+| [配置片段助手](docs/config-tool.html) | 静态网页工具，用于生成武器、物品、精英怪/Boss 难度和普通怪强化 YAML 片段            |
 
 面向代码代理和维护者的工作说明见 [AGENTS.md](AGENTS.md)。
 

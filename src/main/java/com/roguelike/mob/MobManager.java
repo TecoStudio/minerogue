@@ -4,10 +4,7 @@ import com.roguelike.RoguelikePlugin;
 import com.roguelike.config.ConfigManager;
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.integration.IntegrationManager;
-import com.roguelike.mob.internal.SkeletonEliteMob;
 import com.roguelike.mob.internal.ScriptedInternalMob;
-import com.roguelike.mob.internal.SpiderEliteMob;
-import com.roguelike.mob.internal.ZombieEliteMob;
 import com.roguelike.weapon.WeaponManager;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -42,22 +39,7 @@ public class MobManager {
     }
 
     private static InternalMob createInternalMob(RoguelikePlugin plugin, ConfigManager.InternalMobDefinition definition) {
-        return switch (internalLogicKind(definition.logic())) {
-            case "skeleton-elite" -> new SkeletonEliteMob(plugin, definition);
-            case "zombie-elite" -> new ZombieEliteMob(plugin, definition);
-            case "spider-elite" -> new SpiderEliteMob(plugin, definition);
-            case "scripted" -> new ScriptedInternalMob(plugin, definition);
-            default -> null;
-        };
-    }
-
-    private static String internalLogicKind(String logic) {
-        if (logic == null) return "";
-        String normalized = logic.toLowerCase(Locale.ROOT).replace('_', '-').trim();
-        return switch (normalized) {
-            case "skeleton-elite", "zombie-elite", "spider-elite" -> normalized;
-            default -> "scripted";
-        };
+        return new ScriptedInternalMob(plugin, definition);
     }
 
     public static void shutdown() {

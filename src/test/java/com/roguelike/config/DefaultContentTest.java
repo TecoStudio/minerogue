@@ -91,16 +91,20 @@ class DefaultContentTest {
             Files.writeString(root.resolve("mobs/skeleton-elite.yml"), """
                     type: internal
                     id: skeleton-elite
-                    logic: skeleton-elite
+                    template: skeleton
                     aliases:
                       - skeleton_elite
                     enabled: true
                     spawn-chance: 0.25
                     name: '&c外部骷髅'
                     weapon-template: test_blade
-                    combat-script: |
-                      ranged-shot
-                      disable melee-burst
+                    skill-range: 3.0
+                    actions:
+                      - when: target_close
+                        do: melee-burst
+                        hits: 3
+                      - when: after melee-burst
+                        do: retreat
                     """);
             Files.writeString(root.resolve("mobs/husk.yml"), """
                     type: modifier
@@ -125,10 +129,11 @@ class DefaultContentTest {
                     () -> assertEquals(12.0, ConfigManager.getItem("test_potion").getEffect("heal_amount"), 0.001),
                     () -> assertEquals("外部荆棘头盔", ConfigManager.getArmorDefinitions().get("thorns_helmet").name()),
                     () -> assertEquals("skeleton-elite", ConfigManager.getInternalMobDefinitions().getFirst().id()),
-                    () -> assertEquals("skeleton-elite", ConfigManager.getInternalMobDefinitions().getFirst().logic()),
+                    () -> assertEquals("skeleton", ConfigManager.getInternalMobDefinitions().getFirst().template()),
+                    () -> assertEquals("test_blade", ConfigManager.getInternalMobDefinitions().getFirst().weaponTemplate()),
                     () -> assertTrue(ConfigManager.getInternalMobDefinitions().getFirst().aliases().contains("skeleton_elite")),
-                    () -> assertEquals(0.25, ConfigManager.getSkeletonEliteConfig().spawnChance(), 0.001),
-                    () -> assertTrue(ConfigManager.getSkeletonEliteConfig().combatScript().contains("disable melee-burst")),
+                    () -> assertEquals("melee-burst", ConfigManager.getInternalMobDefinitions().getFirst().actions().getFirst().action()),
+                    () -> assertEquals(3, ConfigManager.getInternalMobDefinitions().getFirst().actions().getFirst().hits()),
                     () -> assertEquals("test_blade", ConfigManager.getMobConfig("husk").weaponTemplate())
             );
         } finally {

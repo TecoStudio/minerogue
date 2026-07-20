@@ -1,6 +1,8 @@
 type: internal
 id: skeleton-elite
-logic: skeleton-elite
+# Internal mobs are assembled from a vanilla template plus reusable action blocks.
+# No Java preset ID or legacy combat script is used here: this YAML is the mob definition.
+template: skeleton
 aliases:
   - skeleton_elite
 enabled: true
@@ -9,20 +11,17 @@ spawn-chance: 0.12
 name: '&c骷髅精英'
 health: 30.0
 damage: 5.0
-poison-chance: 0.30
-poisoned-damage-bonus: 0.10
-poison-duration-seconds: 5.0
 weapon-template: rusty_iron_sword
-behavior:
-  detect-range: 18.0
-  keep-distance: 8.0
-  melee-range: 3.2
-  shot-cooldown-ticks: 35
-  burst-cooldown-ticks: 100
-  arrow-speed: 1.9
-  retreat-speed: 0.22
-  lunge-speed: 0.75
-  post-burst-retreat-speed: 0.65
-combat-script: |
-  ranged-shot
-  melee-burst
+detect-range: 18.0
+skill-range: 3.2
+skill-cooldown-ticks: 100
+skill-damage: 5.0
+actions:
+  # Keep vanilla skeleton bow AI as the fallback behavior from template: skeleton.
+  # When a player gets close, run a reusable three-hit melee burst block.
+  - when: target_close
+    do: melee-burst
+    hits: 3
+  # After the melee burst, push away from the target so vanilla skeleton ranged AI can resume.
+  - when: after melee-burst
+    do: retreat

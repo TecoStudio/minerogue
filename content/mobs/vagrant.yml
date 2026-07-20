@@ -1,9 +1,6 @@
 type: internal
 id: vagrant
-logic: |
-  use template skeleton
-  if target_detected then blink
-  if target_close then blade-storm
+template: skeleton
 aliases:
   - vagrant_skeleton
 enabled: true
@@ -16,3 +13,8 @@ detect-range: 26.0
 skill-range: 4.5
 skill-cooldown-ticks: 90
 skill-damage: 6.0
+actions:
+  - when: target_detected
+    do: blink
+  - when: target_close
+    do: blade-storm

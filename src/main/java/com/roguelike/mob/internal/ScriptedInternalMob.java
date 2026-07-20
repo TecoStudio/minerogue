@@ -2,9 +2,12 @@ package com.roguelike.mob.internal;
 
 import com.roguelike.RoguelikePlugin;
 import com.roguelike.config.ConfigManager;
+import com.roguelike.item.CustomWeapon;
+import com.roguelike.item.WeaponInstanceData;
 import com.roguelike.mob.InternalMob;
 import com.roguelike.mob.MobManager;
 import com.roguelike.util.Message;
+import com.roguelike.weapon.WeaponManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -19,6 +22,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
@@ -36,6 +40,7 @@ import java.util.Set;
 import java.util.UUID;
 
 public class ScriptedInternalMob implements InternalMob {
+    private static final java.util.Random RANDOM = java.util.concurrent.ThreadLocalRandom.current();
     private final RoguelikePlugin plugin;
     private final ConfigManager.InternalMobDefinition definition;
     private final NamespacedKey mobKey;
@@ -68,11 +73,18 @@ public class ScriptedInternalMob implements InternalMob {
 
     @Override
     public void onSpawn(LivingEntity entity) {
+        ConfigManager.ScriptedMobConfig config = ConfigManager.getScriptedMobConfig(id());
+        if (!config.enabled() || config.spawnChance() <= 0.0) return;
+        if (entity.getEntitySpawnReason() != CreatureSpawnEvent.SpawnReason.NATURAL) return;
+        if (entity.getPersistentDataContainer().has(mobKey, PersistentDataType.STRING)) return;
+        if (entity.getType() != templateEntityType(definition.template())) return;
+        if (RANDOM.nextDouble() >= config.spawnChance()) return;
+        apply(entity, config);
     }
 
     @Override
     public LivingEntity spawn(Location location) {
-        EntityType type = templateEntityType(definition.logic());
+        EntityType type = templateEntityType(definition.template());
         LivingEntity entity = (LivingEntity) location.getWorld().spawnEntity(location, type);
         apply(entity, ConfigManager.getScriptedMobConfig(id()));
         return entity;
@@ -100,8 +112,8 @@ public class ScriptedInternalMob implements InternalMob {
     private void equipTemplate(LivingEntity entity, ConfigManager.ScriptedMobConfig config) {
         EntityEquipment equipment = entity.getEquipment();
         if (equipment == null) return;
-        String logic = normalize(definition.logic());
-        if (logic.contains("template skeleton") || logic.contains("skeleton template") || logic.contains("template: skeleton")) {
+        String template = normalize(definition.template());
+        if (template.contains("skeleton")) {
             equipment.setHelmet(new ItemStack(Material.CHAINMAIL_HELMET));
             equipment.setChestplate(new ItemStack(Material.DIAMOND_CHESTPLATE));
             equipment.setLeggings(new ItemStack(Material.CHAINMAIL_LEGGINGS));
@@ -115,12 +127,21 @@ public class ScriptedInternalMob implements InternalMob {
             equipment.setBoots(new ItemStack(Material.NETHERITE_BOOTS));
             equipment.setItemInMainHand(new ItemStack(Material.DIAMOND_AXE));
         }
+        equipConfiguredWeapon(equipment);
         equipment.setHelmetDropChance(0.01f);
         equipment.setChestplateDropChance(0.01f);
         equipment.setLeggingsDropChance(0.01f);
         equipment.setBootsDropChance(0.01f);
         equipment.setItemInMainHandDropChance(0.05f);
         equipment.setItemInOffHandDropChance(0.03f);
+    }
+
+    private void equipConfiguredWeapon(EntityEquipment equipment) {
+        String weaponTemplate = definition.weaponTemplate();
+        if (weaponTemplate == null || weaponTemplate.isBlank()) return;
+        CustomWeapon template = ConfigManager.getWeapon(weaponTemplate);
+        if (template == null) return;
+        equipment.setItemInMainHand(WeaponManager.createWeaponStack(template, null));
     }
 
     @Override
@@ -131,10 +152,32 @@ public class ScriptedInternalMob implements InternalMob {
             return;
         }
         ConfigManager.ScriptedMobConfig config = ConfigManager.getScriptedMobConfig(id());
-        event.setDamage(config.damage());
-        if (event.getEntity() instanceof LivingEntity target && actionEnabled("slow-on-hit")) {
-            target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 50, 0));
+        double damage = config.damage();
+        WeaponInstanceData data = WeaponInstanceData.fromItemStack(attacker.getEquipment() == null ? null : attacker.getEquipment().getItemInMainHand());
+        CustomWeapon template = data == null ? null : ConfigManager.getWeapon(data.getBaseWeaponId());
+        boolean wasPoisoned = event.getEntity() instanceof LivingEntity target && target.hasPotionEffect(PotionEffectType.POISON);
+        if (template != null && data != null) {
+            damage = weaponDamage(template, data, damage, wasPoisoned);
         }
+        event.setDamage(damage);
+        if (event.getEntity() instanceof LivingEntity target) {
+            if (hasAction("slow-on-hit")) {
+                target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 50, 0));
+            }
+            if (template != null && data != null && RANDOM.nextDouble() < weaponPoisonChance(template, data)) {
+                target.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 100, 0));
+            }
+        }
+    }
+
+    static double weaponDamage(CustomWeapon template, WeaponInstanceData data, double fallbackDamage, boolean targetPoisoned) {
+        double damage = Math.max(fallbackDamage, data.getTotalDamage(template));
+        double poisonedBonus = data.getTotalEffect(template, "poisoned_target_damage_percent", 0.0);
+        return targetPoisoned && poisonedBonus > 0.0 ? damage * (1.0 + poisonedBonus) : damage;
+    }
+
+    static double weaponPoisonChance(CustomWeapon template, WeaponInstanceData data) {
+        return Math.max(0.0, Math.min(1.0, data.getTotalEffect(template, "poison_chance", 0.0)));
     }
 
     @Override
@@ -169,30 +212,42 @@ public class ScriptedInternalMob implements InternalMob {
 
     private void runScriptedActions(LivingEntity entity, LivingEntity target, ConfigManager.ScriptedMobConfig config) {
         double distance = entity.getLocation().distance(target.getLocation());
-        if (distance <= config.skillRange() && actionEnabled("shockwave")) {
-            shockwave(entity, config);
-        }
-        if (distance > config.skillRange() && distance <= config.detectRange() && actionEnabled("leap")) {
-            leapToward(entity, target, config);
-        }
-        if (distance <= config.detectRange() && actionEnabled("blink")) {
-            blinkBehind(entity, target, config);
-        }
-        if (distance <= config.skillRange() && actionEnabled("blade-storm")) {
-            bladeStorm(entity, config);
+        for (ConfigManager.ActionDefinition action : definition.actions()) {
+            if (!conditionMatches(action.when(), distance, config)) continue;
+            runAction(action, entity, target, config);
         }
     }
 
-    private boolean actionEnabled(String action) {
-        String logic = normalize(definition.logic());
-        return switch (action) {
-            case "leap" -> logic.contains("leap");
-            case "shockwave" -> logic.contains("shockwave");
-            case "blink" -> logic.contains("blink");
-            case "blade-storm" -> logic.contains("blade-storm");
-            case "slow-on-hit" -> logic.contains("slow-on-hit");
-            default -> logic.contains(action.toLowerCase(Locale.ROOT));
+    private boolean hasAction(String name) {
+        for (ConfigManager.ActionDefinition action : definition.actions()) {
+            if (name.equalsIgnoreCase(action.action())) return true;
+        }
+        return false;
+    }
+
+    private boolean conditionMatches(String when, double distance, ConfigManager.ScriptedMobConfig config) {
+        String condition = normalize(when).replace('_', '-');
+        return switch (condition) {
+            case "target-close" -> distance <= config.skillRange();
+            case "target-far" -> distance > config.skillRange() && distance <= config.detectRange();
+            case "target-detected" -> distance <= config.detectRange();
+            case "always", "after melee-burst" -> true;
+            default -> false;
         };
+    }
+
+    private void runAction(ConfigManager.ActionDefinition action, LivingEntity entity, LivingEntity target,
+                           ConfigManager.ScriptedMobConfig config) {
+        switch (normalize(action.action()).replace('_', '-')) {
+            case "melee-burst" -> meleeBurst(entity, target, config, action.hits());
+            case "retreat" -> retreat(entity, target);
+            case "leap" -> leapToward(entity, target, config);
+            case "shockwave" -> shockwave(entity, config);
+            case "blink" -> blinkBehind(entity, target, config);
+            case "blade-storm" -> bladeStorm(entity, config);
+            default -> {
+            }
+        }
     }
 
     private Player nearestPlayer(LivingEntity entity, double range) {
@@ -220,6 +275,24 @@ public class ScriptedInternalMob implements InternalMob {
         for (Player player : entity.getWorld().getPlayers()) {
             if (player.getLocation().distanceSquared(entity.getLocation()) <= visibleDistance) bar.addPlayer(player);
         }
+    }
+
+    private void meleeBurst(LivingEntity entity, LivingEntity target, ConfigManager.ScriptedMobConfig config, int hits) {
+        long now = entity.getWorld().getGameTime();
+        Long next = entity.getPersistentDataContainer().get(nextPrimaryKey, PersistentDataType.LONG);
+        if (next != null && next > now) return;
+        entity.getPersistentDataContainer().set(nextPrimaryKey, PersistentDataType.LONG, now + config.skillCooldownTicks());
+        int count = Math.max(1, hits);
+        for (int i = 0; i < count; i++) {
+            target.damage(config.skillDamage(), entity);
+        }
+        entity.getWorld().playSound(entity.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.8f, 1.3f);
+    }
+
+    private void retreat(LivingEntity entity, LivingEntity target) {
+        Vector direction = entity.getLocation().toVector().subtract(target.getLocation().toVector());
+        if (direction.lengthSquared() <= 0.001) return;
+        entity.setVelocity(direction.normalize().multiply(0.65).setY(0.25));
     }
 
     private void shockwave(LivingEntity entity, ConfigManager.ScriptedMobConfig config) {
@@ -305,10 +378,10 @@ public class ScriptedInternalMob implements InternalMob {
         return name.replace('&', '§');
     }
 
-    private EntityType templateEntityType(String logic) {
-        String normalized = normalize(logic);
-        if (normalized.contains("template skeleton") || normalized.contains("skeleton template") || normalized.contains("template: skeleton")) return EntityType.SKELETON;
-        if (normalized.contains("template zombie") || normalized.contains("zombie template") || normalized.contains("template: zombie")) return EntityType.ZOMBIE;
+    private EntityType templateEntityType(String template) {
+        String normalized = normalize(template);
+        if (normalized.contains("skeleton")) return EntityType.SKELETON;
+        if (normalized.contains("spider")) return EntityType.SPIDER;
         return EntityType.ZOMBIE;
     }
 

@@ -1,6 +1,6 @@
 type: internal
 id: zombie-elite
-logic: zombie-elite
+template: zombie
 aliases:
   - zombie_elite
 enabled: true
@@ -10,5 +10,11 @@ name: '&2僵尸精英'
 health: 35.0
 damage: 5.0
 weapon-template: excited_stone_sword
-combat-script: |
-  melee
+detect-range: 16.0
+skill-range: 3.0
+skill-cooldown-ticks: 60
+skill-damage: 5.0
+actions:
+  - when: target_close
+    do: melee-burst
+    hits: 1

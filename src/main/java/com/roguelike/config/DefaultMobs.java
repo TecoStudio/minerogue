@@ -15,27 +15,8 @@ public final class DefaultMobs {
         return false;
     }
 
-    public static double skeletonEliteSpawnChance() {
-        return 0.0;
-    }
-
-    public static ConfigManager.SkeletonEliteConfig skeletonElite() {
-        return new ConfigManager.SkeletonEliteConfig(
-                false, 0.0, "", 20.0, 0.0, 0.0, 0.0, 0.0, null,
-                0.0, 0.0, 0.0, 20L, 20L, 1.0, 0.0, 0.0, 0.0, ""
-        );
-    }
-
-    public static ConfigManager.ZombieEliteConfig zombieElite() {
-        return new ConfigManager.ZombieEliteConfig(false, 0.0, "", 20.0, 0.0, null, "");
-    }
-
-    public static ConfigManager.SpiderEliteConfig spiderElite() {
-        return new ConfigManager.SpiderEliteConfig(false, 0.0, "", 20.0, 1.0, 0.0, 0.0, 1, "");
-    }
-
     public static ConfigManager.ScriptedMobConfig scriptedMob() {
-        return new ConfigManager.ScriptedMobConfig(false, "", 1.0, 0.0, 1.0, 0.0, 0.0, 20L, 0.0);
+        return new ConfigManager.ScriptedMobConfig(false, 0.0, "", 1.0, 0.0, 1.0, 0.0, 0.0, 20L, 0.0);
     }
 
     public static Map<String, Integer> experience() {

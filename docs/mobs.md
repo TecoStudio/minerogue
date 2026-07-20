@@ -37,10 +37,10 @@ Boss 不会自然生成，管理员可用 `/rw monster spawn <id>` 生成。
 
 | Boss ID | 名称 | 生命 | 攻击 | 特殊技能 | 装备 |
 | --- | --- | ---: | ---: | --- | --- |
-| `blood-zombie` | 沸血僵尸 | 180 | 9 | multiline `logic:`：`use template zombie`；`if target_far then leap`；`else shockwave` | 下界合金头盔/胸甲/靴子、钻石护腿、钻石斧 |
-| `vagrant` | 流浪者 | 150 | 7 | multiline `logic:`：`use template skeleton`；`if target_detected then blink`；`if target_close then blade-storm` | 钻石胸甲/靴子、锁链头盔/护腿、下界合金剑、时钟 |
+| `blood-zombie` | 沸血僵尸 | 180 | 9 | `template: zombie` + `actions: target_far/leap, target_close/shockwave` | 下界合金头盔/胸甲/靴子、钻石护腿、钻石斧 |
+| `vagrant` | 流浪者 | 150 | 7 | `template: skeleton` + `actions: target_detected/blink, target_close/blade-storm` | 钻石胸甲/靴子、锁链头盔/护腿、下界合金剑、时钟 |
 
-Boss 名称同样不会强制常显，避免隔墙看到名字；玩家靠近检测范围内会看到 Boss 血条。血条使用 YAML 中的中文显示名，不会把逻辑脚本展示给玩家。怪物 ID、别名、技能数值和 `logic:` 均在 `content/mobs/*.yml` 中调整。
+Boss 名称同样不会强制常显，避免隔墙看到名字；玩家靠近检测范围内会看到 Boss 血条。血条使用 YAML 中的中文显示名，不会把逻辑脚本展示给玩家。怪物 ID、别名、技能数值、`template:` 和 `actions:` 均在 `content/mobs/*.yml` 中调整。
 
 ## 普通怪强化规则
 

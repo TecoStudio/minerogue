@@ -177,33 +177,78 @@ speed-multiplier: 0.95
 weapon-template: frost_cleaver
 ```
 
-内置怪物使用 `type: internal`。代码只提供 reusable action blocks 和原版模板兜底，怪物 ID、别名、是否可生成、属性和行为编排都由 YAML 定义。`logic:` 可以写成英文 multiline `logic:` script：先声明使用哪个原版模板，再按条件拼接动作块。脚本中出现对应关键词时会启用动作，例如：
+内置怪物使用 `type: internal`。代码只提供原版实体模板兜底和可复用 action block；具体怪物不再通过 Java preset, legacy logic fields, or legacy combat scripts 定义。每个怪物 YAML 直接用：
 
-| 关键词 | 动作 |
-| --- | --- |
-| `use template zombie` / `use template skeleton` | 选择原版实体模板作为兜底。 |
-| `leap` | 拉开距离时向目标跃进。 |
-| `shockwave` | 近距离范围伤害和击退。 |
-| `blink` | Teleport behind the target. |
-| `blade-storm` | 近距离范围伤害并附加缓慢。 |
+- `template:`：选择原版实体模板，例如 `skeleton`、`zombie`、`spider`。模板负责兜底原版 AI，例如骷髅的弓箭远程逻辑。
+- `weapon-template:`：可选，生成时直接给予指定 Roguelike 武器模板。若武器模板自身已经配置 `effects.poison_chance`、`effects.poisoned_target_damage_percent` 等效果，内置怪物直接使用武器内容，不再在怪物 YAML 中额外附加 `poison-chance` 之类的 legacy combat 字段。
+- `actions:`：按条件组装额外动作块。动作块是通用能力，任何怪物 YAML 都可以复用。
 
-写动作名表示启用，写 `disable <动作名>` 表示关闭：
+常用 action 条件和动作：
+
+| 字段 | 可用值 | 含义 |
+| --- | --- | --- |
+| `when` | `target_close` | 目标进入 `skill-range`。 |
+| `when` | `target_far` | 目标在 `skill-range` 外、`detect-range` 内。 |
+| `when` | `target_detected` | 目标在 `detect-range` 内。 |
+| `when` | `after melee-burst` | 用于串接近战连击后的动作。 |
+| `do` | `melee-burst` | 近战连击；可用 `hits:` 控制次数。 |
+| `do` | `retreat` | 与目标拉开距离，回到模板原版逻辑。 |
+| `do` | `leap` | 向目标跃进。 |
+| `do` | `shockwave` | 范围伤害和击退。 |
+| `do` | `blink` | Teleport behind the target. |
+| `do` | `blade-storm` | 近距离范围伤害并附加缓慢。 |
+
+骷髅精英示例：完整内容由 YAML 组装。它使用原版骷髅模板兜底；玩家靠近时触发三连砍，然后 `retreat` 拉开距离，让它回到原版骷髅远程逻辑：
+
+```yaml
+type: internal
+id: skeleton-elite
+template: skeleton
+aliases:
+  - skeleton_elite
+enabled: true
+spawnable: true
+spawn-chance: 0.12
+name: '&c骷髅精英'
+health: 30.0
+damage: 5.0
+weapon-template: rusty_iron_sword
+detect-range: 18.0
+skill-range: 3.2
+skill-cooldown-ticks: 100
+skill-damage: 5.0
+actions:
+  - when: target_close
+    do: melee-burst
+    hits: 3
+  - when: after melee-burst
+    do: retreat
+```
+
+沸血僵尸示例：同样只用 YAML 组装，使用僵尸模板，远距离跃进，近距离震地：
 
 ```yaml
 type: internal
 id: blood-zombie
-logic: |
-  use template zombie
-  if target_far then leap
-  else shockwave
+template: zombie
 aliases:
   - blood_zombie
-spawnable: true
 enabled: true
+spawnable: true
 name: '&4沸血僵尸'
 health: 180.0
 damage: 9.0
+detect-range: 24.0
+skill-range: 5.0
+skill-cooldown-ticks: 120
+skill-damage: 8.0
+actions:
+  - when: target_far
+    do: leap
+  - when: target_close
+    do: shockwave
 ```
+
 ## 导出配置
 
 执行：

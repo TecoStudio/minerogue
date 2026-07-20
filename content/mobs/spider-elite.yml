@@ -1,6 +1,6 @@
 type: internal
 id: spider-elite
-logic: spider-elite
+template: spider
 aliases:
   - spider_elite
 enabled: true
@@ -9,8 +9,10 @@ spawn-chance: 0.12
 name: '&5精英蜘蛛'
 health: 35.0
 speed-multiplier: 1.2
-slow-chance: 0.35
-slow-duration-seconds: 8.0
-slow-level: 1
-combat-script: |
-  slow-on-hit
+detect-range: 16.0
+skill-range: 3.0
+skill-cooldown-ticks: 60
+skill-damage: 1.2
+actions:
+  - when: target_close
+    do: slow-on-hit
