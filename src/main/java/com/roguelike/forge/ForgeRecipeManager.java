@@ -44,10 +44,6 @@ public final class ForgeRecipeManager {
         }
     }
 
-    public static void exportEditableYaml() throws IOException {
-        saveDefaults(recipesFile);
-    }
-
     public static ForgeRecipe match(Inventory inventory, int[] inputSlots) {
         for (ForgeRecipe recipe : RECIPES) {
             if (recipe.matches(inventory, inputSlots)) return recipe;

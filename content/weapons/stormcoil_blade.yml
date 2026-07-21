@@ -1,0 +1,14 @@
+id: stormcoil_blade
+item: minecraft:golden_sword
+name: 电弧线刃
+description: 命中后向周围敌人跳跃电弧的轻剑
+base-damage: 8
+attack-speed: 1.8
+durability: 420
+rarity: epic
+effects:
+  attack_range: 3.1
+  lightning_chance: 0.18
+  chain_targets: 4.0
+  chain_range: 4.0
+  chain_damage_percent: 0.35

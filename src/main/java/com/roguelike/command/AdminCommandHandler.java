@@ -5,7 +5,6 @@ import org.bukkit.command.CommandSender;
 
 class AdminCommandHandler {
     private final AdminInfoCommands infoCommands = new AdminInfoCommands();
-    private final ExportCommand exportCommand = new ExportCommand();
     private final DebugCommand debugCommand = new DebugCommand();
     private final AffixesCommand affixesCommand = new AffixesCommand();
     private final GiveCommand giveCommand = new GiveCommand();
@@ -23,9 +22,6 @@ class AdminCommandHandler {
         switch (args[0].toLowerCase()) {
             case "reload" -> infoCommands.handleReload(sender);
             case "backup" -> infoCommands.handleBackup(sender);
-            case "export" -> {
-                return exportCommand.handleExport(sender);
-            }
             case "debug" -> {
                 return debugCommand.handleDebug(sender, args);
             }

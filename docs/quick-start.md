@@ -47,8 +47,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -TimeoutSeconds 
 2. 启动服务器，确认控制台出现 Roguelike 启用日志且没有报错。
 3. 进入服务器后执行 `/rl` 检查玩家数据是否初始化。
 4. 管理员执行 `/rw help` 查看管理命令。
-5. 如需导出可编辑配置和示例，执行 `/rw export`。
-6. 修改配置后执行 `/rw reload`，或重启服务器。
+5. 修改配置后执行 `/rw reload`，或重启服务器。
 
 ## 常用入口
 
@@ -56,7 +55,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -TimeoutSeconds 
 - 查看券统计：`/rl tickets`
 - 管理员帮助：`/rw help`
 - 重载配置：`/rw reload`
-- 导出配置：`/rw export`
 - 查询武器 ID：`/rw list weapons`
 - 查询防具 ID：`/rw list armor`
 

@@ -1,0 +1,12 @@
+id: edge_of_finality
+item: minecraft:diamond_sword
+name: 无终刃
+description: 为追求极限处刑而锻造的暴击长剑
+base-damage: 12
+attack-speed: 1.3
+durability: 1100
+rarity: legendary
+effects:
+  attack_range: 3.2
+  crit_chance: 0.25
+  crit_damage: 2.5

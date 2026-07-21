@@ -1,0 +1,13 @@
+id: squall_fan_bow
+item: minecraft:bow
+name: 裂风扇弓
+description: 拉弦时分裂气流，同时射出多支箭矢
+base-damage: 7
+attack-speed: 1.0
+durability: 520
+rarity: epic
+effects:
+  attack_range: 3.0
+  scatter_shot: 3.0
+  rapid_shot: 2.0
+  charge_power: 1.0

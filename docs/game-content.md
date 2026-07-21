@@ -105,10 +105,20 @@ Roguelike 武器模板包含以下核心数据：
 | `ember_knife` | 余烬短刃 | common | 高攻速早期武器，提供短燃烧和少量暴击。 |
 | `frost_cleaver` | 霜裂斧 | rare | 慢速控制武器，用减速限制敌人。 |
 | `storm_spear` | 风暴长矛 | rare | 长距离突刺武器，带低概率雷击。 |
+| `crimson_oath` | 猩红誓刃 | rare | 以吸血和固定回复维持战线的续航剑。 |
 | `plague_saber` | 疫毒军刀 | epic | 毒系爆发武器，对中毒目标增伤。 |
 | `echo_blade` | 回响之刃 | epic | 群怪清理武器，攻击会连锁多个目标。 |
+| `stormcoil_blade` | 电弧线刃 | epic | 雷击与连锁并重的高速清怪轻剑。 |
+| `squall_fan_bow` | 裂风扇弓 | epic | 散射、连发和蓄能结合的多箭弓。 |
+| `cinderbrand_axe` | 烬印战斧 | epic | 先点燃再对燃烧目标增伤的火焰战斧。 |
+| `hoarfang_scythe` | 霜牙镰 | epic | 长攻击距离和高等级减速的控制镰刀。 |
+| `venomwake_glaive` | 毒潮长刃 | epic | 高概率中毒并对中毒目标增伤的毒系长刃。 |
 | `glass_cannon_hammer` | 玻璃重锤 | legendary | 高风险重型爆发武器，依靠暴击和伤害储存打出峰值。 |
+| `edge_of_finality` | 无终刃 | legendary | 极限暴击率和暴击倍率的处刑长剑。 |
 | `thunder_axe` | 雷霆战斧 | legendary | 高伤害低攻速战斧，攻击有概率召唤雷电。 |
+| `tidebreaker_trident` | 断潮戟 | legendary | 连续命中后释放储存伤害的三叉戟。 |
+| `tempest_maul` | 暴雨重锤 | legendary | 雷击与猛击结合的重型处决武器。 |
+| `heartbinder` | 缚心剑 | legendary | 命中吸血与击杀回复结合的高阶续航剑。 |
 | `whirlwind_blade` | 旋风之刃 | epic | 连锁伤害武器，可波及附近多个目标。 |
 | `inferno_greatsword` | 炼狱巨剑 | legendary | 大范围火焰与连锁伤害重型武器。 |
 | `phase_scythe` | 相位之镰 | epic | 高攻速机动武器，自带 Dash、亢奋和高暴击率。 |

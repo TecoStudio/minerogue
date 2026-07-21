@@ -127,7 +127,6 @@ class AdminInfoCommands {
 
     void showAdminHelp(CommandSender sender) {
         Message.send(sender, "&6&l═══ Roguelike 管理员帮助 ═══");
-        Message.send(sender, "&e/rw export &7- 导出可选 YAML/TAB/MythicMobs 示例");
         Message.send(sender, "&e/rw backup &7- 立即异步备份玩家数据");
         Message.send(sender, "&e/rw debug <on|off|status> &7- 控制开发日志输出");
         Message.send(sender, "&e/rw affixes [held] &7- 查看可用词条/手持武器词条");

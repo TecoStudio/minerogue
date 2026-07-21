@@ -30,20 +30,30 @@ content:
     base-url: ""
     # 需要拉取的相对路径。路径会写入 plugins/Roguelike/content/<相对路径>。
     files:
+      - weapons/cinderbrand_axe.yml
+      - weapons/crimson_oath.yml
       - weapons/echo_blade.yml
       - weapons/ember_knife.yml
+      - weapons/edge_of_finality.yml
       - weapons/excited_stone_sword.yml
       - weapons/flame_sword.yml
       - weapons/frost_cleaver.yml
       - weapons/glass_cannon_hammer.yml
+      - weapons/heartbinder.yml
+      - weapons/hoarfang_scythe.yml
       - weapons/hunter_bow.yml
       - weapons/inferno_greatsword.yml
       - weapons/phase_scythe.yml
       - weapons/plague_saber.yml
       - weapons/rusty_iron_sword.yml
       - weapons/special_weapon.yml
+      - weapons/squall_fan_bow.yml
       - weapons/storm_spear.yml
+      - weapons/stormcoil_blade.yml
       - weapons/thunder_axe.yml
+      - weapons/tempest_maul.yml
+      - weapons/tidebreaker_trident.yml
+      - weapons/venomwake_glaive.yml
       - weapons/vampire_dagger.yml
       - weapons/whirlwind_blade.yml
       - weapons/wooden_sword.yml

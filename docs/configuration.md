@@ -316,41 +316,6 @@ actions:
     do: shockwave
 ```
 
-## 导出配置
-
-执行：
-
-```text
-/rw export
-```
-
-导出位置：
-
-```text
-plugins/Roguelike/weapons.yml
-plugins/Roguelike/items.yml
-plugins/Roguelike/mobs.yml
-plugins/Roguelike/forge-recipes.yml
-plugins/Roguelike/examples
-```
-
-导出内容包括：
-
-| 路径 | 内容 |
-| --- | --- |
-| `plugins/Roguelike/weapons.yml` | 当前可编辑武器模板。 |
-| `plugins/Roguelike/items.yml` | 当前可编辑物品模板。 |
-| `plugins/Roguelike/mobs.yml` | 当前可编辑怪物配置。 |
-| `plugins/Roguelike/forge-recipes.yml` | 当前可编辑铸造配方。 |
-| `plugins/Roguelike/examples/weapons.yml` | 武器配置示例。 |
-| `plugins/Roguelike/examples/items.yml` | 物品配置示例。 |
-| `plugins/Roguelike/examples/mobs.yml` | 怪物配置示例。 |
-| `plugins/Roguelike/examples/tab-scoreboard.yml` | TAB 侧边栏示例。 |
-| `plugins/Roguelike/examples/sidebar.yml` | 内置侧边栏占位示例。 |
-| `plugins/Roguelike/examples/mythicmobs.yml` | MythicMobs 示例。 |
-
-导出不会自动把示例应用到服务器，只用于参考和复制配置字段。
-
 ## 铸造配方
 
 铸造配方详见 [铸造台](forge.md)。

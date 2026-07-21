@@ -1,0 +1,13 @@
+id: hoarfang_scythe
+item: minecraft:iron_hoe
+name: 霜牙镰
+description: 用冰冷长弧拖慢猎物脚步的镰刀
+base-damage: 8
+attack-speed: 1.5
+durability: 540
+rarity: epic
+effects:
+  attack_range: 3.6
+  slow_duration: 3.0
+  slow_level: 2.0
+  crit_damage: 1.8

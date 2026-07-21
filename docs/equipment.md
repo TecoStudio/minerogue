@@ -12,10 +12,20 @@
 | ember_knife         | 余烬短刃   | minecraft:stone_sword     |    5 |  2.0 |  180 | common    | 攻击距离 2.7，火焰伤害 2，燃烧 2 秒，暴击率 8%                                                     |
 | frost_cleaver       | 霜裂斧     | minecraft:iron_axe        |   11 |  0.9 |  520 | rare      | 攻击距离 3.0，减速 2.5 秒，减速等级 1，暴击倍率 1.8                                                |
 | storm_spear         | 风暴长矛   | minecraft:trident         |    8 |  1.2 |  650 | rare      | 攻击距离 4.0，雷电概率 10%，暴击率 8%                                                              |
+| crimson_oath        | 猩红誓刃   | minecraft:iron_sword      |    7 |  1.7 |  760 | rare      | 攻击距离 3.0，吸血 22%，固定吸血 1.5，暴击率 10%                                                   |
 | plague_saber        | 疫毒军刀   | minecraft:golden_sword    |    9 |  1.5 |  500 | epic      | 攻击距离 3.0，中毒概率 35%，中毒目标增伤 30%，暴击率 12%，暴击倍率 1.7                             |
 | echo_blade          | 回响之刃   | minecraft:diamond_sword   |   10 |  1.3 |  900 | epic      | 攻击距离 3.2，连锁 4 目标，范围 3.5，连锁伤害 45%，暴击率 10%                                      |
+| stormcoil_blade     | 电弧线刃   | minecraft:golden_sword    |    8 |  1.8 |  420 | epic      | 攻击距离 3.1，雷电概率 18%，连锁 4 目标，范围 4.0，连锁伤害 35%                                    |
+| squall_fan_bow      | 裂风扇弓   | minecraft:bow             |    7 |  1.0 |  520 | epic      | 攻击距离 3.0，散射 3 支，连发 2，蓄能 1                                                            |
+| cinderbrand_axe     | 烬印战斧   | minecraft:diamond_axe     |   13 | 0.95 |  980 | epic      | 攻击距离 3.1，火焰伤害 5，燃烧 4 秒，燃烧目标增伤 35%，暴击倍率 1.8                                |
+| hoarfang_scythe     | 霜牙镰     | minecraft:iron_hoe        |    8 |  1.5 |  540 | epic      | 攻击距离 3.6，减速 3 秒，减速等级 2，暴击倍率 1.8                                                  |
+| venomwake_glaive    | 毒潮长刃   | minecraft:golden_sword    |    9 | 1.45 |  560 | epic      | 攻击距离 3.4，中毒概率 40%，中毒目标增伤 35%，暴击率 8%                                            |
 | glass_cannon_hammer | 玻璃重锤   | minecraft:netherite_axe   |   20 |  0.7 | 1600 | legendary | 攻击距离 3.1，暴击率 20%，暴击倍率 2.4，伤害储存 20%，储存触发次数减少 4                           |
+| edge_of_finality    | 无终刃     | minecraft:diamond_sword   |   12 |  1.3 | 1100 | legendary | 攻击距离 3.2，暴击率 25%，暴击倍率 2.5                                                             |
 | thunder_axe         | 雷霆战斧   | minecraft:diamond_axe     |   14 |  0.9 | 1200 | legendary | 攻击距离 3.0，雷电概率 15%，暴击率 12%，暴击倍率 2.0                                               |
+| tidebreaker_trident | 断潮戟     | minecraft:trident         |   11 |  1.1 |  900 | legendary | 攻击距离 4.0，伤害储存 25%，储存触发次数减少 4，暴击率 12%                                         |
+| tempest_maul        | 暴雨重锤   | minecraft:netherite_axe   |   18 | 0.75 | 1700 | legendary | 攻击距离 3.1，雷电概率 25%，猛击，暴击倍率 2.0                                                     |
+| heartbinder         | 缚心剑     | minecraft:netherite_sword |   13 |  1.2 | 1400 | legendary | 攻击距离 3.2，吸血 30%，固定吸血 2，击杀后获得馈赠回复                                            |
 | whirlwind_blade     | 旋风之刃   | minecraft:iron_sword      |    9 |  1.3 | 1000 | epic      | 攻击距离 3.1，连锁 3 目标，范围 3.0，连锁伤害 50%，暴击率 10%                                      |
 | inferno_greatsword  | 炼狱巨剑   | minecraft:netherite_sword |   18 |  0.8 | 2000 | legendary | 攻击距离 3.5，火焰伤害 6，燃烧 4 秒，连锁 4 目标，范围 4.0，连锁伤害 40%，暴击率 15%，暴击倍率 2.0 |
 | phase_scythe        | 相位之镰   | minecraft:iron_hoe        |    7 |  3.2 |  250 | epic      | 攻击距离 3.0，Dash，亢奋 1，暴击率 30%                                                             |

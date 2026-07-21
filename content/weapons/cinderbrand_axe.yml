@@ -1,0 +1,14 @@
+id: cinderbrand_axe
+item: minecraft:diamond_axe
+name: 烬印战斧
+description: 在敌人身上留下越烧越深的烬印
+base-damage: 13
+attack-speed: 0.95
+durability: 980
+rarity: epic
+effects:
+  attack_range: 3.1
+  fire_damage: 5.0
+  fire_duration: 4.0
+  burning_target_damage_percent: 0.35
+  crit_damage: 1.8

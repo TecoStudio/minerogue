@@ -1,0 +1,13 @@
+id: heartbinder
+item: minecraft:netherite_sword
+name: 缚心剑
+description: 击杀后短暂稳定伤势的高阶吸血剑
+base-damage: 13
+attack-speed: 1.2
+durability: 1400
+rarity: legendary
+effects:
+  attack_range: 3.2
+  lifesteal_percent: 0.30
+  lifesteal_flat: 2.0
+  gift: 1.0

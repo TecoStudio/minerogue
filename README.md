@@ -47,7 +47,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -TimeoutSeconds 
 - 玩家执行 `/rl` 或 `/rl status` 查看等级、经验、击杀和死亡。
 - 玩家通过击杀怪物、挖矿、吃东西获得 Roguelike 经验。
 - 升级会获得强化券、开发券或移除券，用于开发和强化装备。
-- 管理员执行 `/rw export` 可导出可编辑 YAML 和示例配置。
 - 管理员执行 `/rw list weapons`、`/rw list items`、`/rw list armor` 查询可发放 ID。
 
 ## 当前主要内容
@@ -111,7 +110,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -TimeoutSeconds 
 
 ```text
 /rw reload
-/rw export
 /rw backup
 /rw debug <on|off|status>
 /rw affixes

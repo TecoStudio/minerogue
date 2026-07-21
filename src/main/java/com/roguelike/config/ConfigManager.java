@@ -532,14 +532,6 @@ public class ConfigManager {
         }
     }
 
-    public static void exportEditableYaml() throws IOException {
-        saveWeaponsYaml(weaponsFile, weapons);
-        saveItemsYaml(itemsFile, items);
-        saveArmorYaml(new File(plugin.getDataFolder(), "armor.yml"), armorDefinitions);
-        saveMobsYaml(mobsFile);
-        saveSidebarYaml(sidebarFile);
-    }
-
     private static void syncGithubContentIfEnabled() {
         if (plugin == null || !plugin.getConfig().getBoolean("content.github-sync.enabled", true)) return;
         String baseUrl = plugin.getConfig().getString("content.github-sync.base-url", "");
@@ -635,19 +627,6 @@ public class ConfigManager {
             config.set(path + "item-type", item.getItemType());
             config.set(path + "rarity", item.getRarity());
             item.getEffects().forEach((key, value) -> config.set(path + "effects." + key, value));
-        }
-        saveYaml(config, file);
-    }
-
-    private static void saveArmorYaml(File file, Map<String, ArmorDefinition> source) throws IOException {
-        YamlConfiguration config = new YamlConfiguration();
-        config.options().header("Roguelike 防具定义配置。修改后使用 /rw reload 重载。");
-        for (Map.Entry<String, ArmorDefinition> entry : source.entrySet()) {
-            String path = "armor." + entry.getKey() + ".";
-            ArmorDefinition definition = entry.getValue();
-            config.set(path + "name", definition.name());
-            config.set(path + "description", definition.description());
-            config.set(path + "rarity", definition.rarity());
         }
         saveYaml(config, file);
     }

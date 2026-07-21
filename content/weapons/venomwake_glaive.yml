@@ -1,0 +1,13 @@
+id: venomwake_glaive
+item: minecraft:golden_sword
+name: 毒潮长刃
+description: 刀锋拖出毒潮，对中毒目标格外致命
+base-damage: 9
+attack-speed: 1.45
+durability: 560
+rarity: epic
+effects:
+  attack_range: 3.4
+  poison_chance: 0.40
+  poisoned_target_damage_percent: 0.35
+  crit_chance: 0.08

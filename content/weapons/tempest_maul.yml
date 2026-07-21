@@ -1,0 +1,13 @@
+id: tempest_maul
+item: minecraft:netherite_axe
+name: 暴雨重锤
+description: 以沉重锤击唤下风暴的处决武器
+base-damage: 18
+attack-speed: 0.75
+durability: 1700
+rarity: legendary
+effects:
+  attack_range: 3.1
+  lightning_chance: 0.25
+  smash: 1.0
+  crit_damage: 2.0
