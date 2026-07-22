@@ -36,7 +36,8 @@ public class BossEventCommand {
             Message.send(sender, "&c无效的 Boss。可用: " + String.join(", ", BossEventManager.configuredBossIds()));
             return true;
         }
-        if (!MobManager.isAcceptedMobId(args[2])) {
+        String mobId = BossEventManager.configuredMobId(args[2]);
+        if (!MobManager.isAcceptedMobId(mobId)) {
             Message.send(sender, "&cBoss 已在事件配置中，但当前内置怪物未加载: " + args[2]);
             return true;
         }
@@ -44,7 +45,7 @@ public class BossEventCommand {
             Message.send(sender, "&c只有玩家可以直接召唤 Boss。");
             return true;
         }
-        var entity = MobManager.spawnInternalMob(args[2], player.getLocation());
+        var entity = MobManager.spawnInternalMob(mobId, player.getLocation());
         if (entity == null) {
             Message.send(sender, "&c召唤 Boss 失败，请检查当前位置和世界状态。");
             return true;

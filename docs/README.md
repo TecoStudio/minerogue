@@ -17,7 +17,7 @@
 | [词条数据](affixes.md)           | 当前所有武器/工具/防具词条、重复原版附魔检查                                        |
 | [怪物系统](mobs.md)              | 怪物经验、内置精英怪、内置 Boss、普通怪强化、仇恨说明、随机武器掉落                 |
 | [命令](commands.md)              | 玩家命令、管理员命令、权限                                                          |
-| [配置文件](configuration.md)     | `config.yml`、`weapons.yml`、`items.yml`、`mobs.yml`、`forge-recipes.yml` |
+| [配置文件](configuration.md)     | `config.yml`、`boss-events.yml`、`weapons.yml`、`items.yml`、`mobs.yml`、`forge-recipes.yml` |
 | [配置片段助手](config-tool.html) | 静态网页工具，用于生成武器、物品、精英怪/Boss 难度和普通怪强化 YAML 片段            |
 
 ## 快速链接

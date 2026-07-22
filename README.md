@@ -65,6 +65,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -TimeoutSeconds 
 - 铸造台由“铁砧 + 下方白色羊毛”组成，配方存储在 `forge-recipes.yml`。
 - 怪物默认不会掉落插件物品；需要时可在 `config.yml` 开启随机武器掉落，或在怪物 YAML 中显式配置手持物品和指定物品掉落概率。
 - 内置精英怪、普通怪强化和可手动生成的内置 Boss，可在 `content/mobs/*.yml` 调整；精英怪默认不显示 Boss 血条，Boss 可通过 `bossbar: true` 显示中文 Boss 血条。
+- 周期 Boss 的生成权重、实际怪物、击杀产出和结构来源集中写在 `boss-events.yml`；结构支持内置结构和原版 `.nbt` 结构文件，Litematica `.litematic` 需先转换为原版结构。
 - 骷髅精英保留原版骷髅仇恨判定，不主动锁定创造/旁观玩家。
 - `/rw give` 图形界面会使用真实武器、物品、防具和券作为预览，便于直接查看属性与 lore。
 - 内置汉堡物品使用玩家头颅图标，右键直接食用，回复最大生命值的 30% 并补满饱食度。
@@ -89,7 +90,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -TimeoutSeconds 
 | [词条数据](docs/affixes.md)           | 当前全部词条、强化规则、原版附魔重复项检查                                          |
 | [怪物系统](docs/mobs.md)              | 怪物经验、内置精英怪、内置 Boss、普通怪强化、随机武器掉落、仇恨说明                 |
 | [命令](docs/commands.md)              | 玩家命令、管理员命令、权限                                                          |
-| [配置文件](docs/configuration.md)     | `config.yml`、`weapons.yml`、`items.yml`、`mobs.yml`、`forge-recipes.yml` |
+| [配置文件](docs/configuration.md)     | `config.yml`、`boss-events.yml`、`weapons.yml`、`items.yml`、`mobs.yml`、`forge-recipes.yml` |
 | [配置片段助手](docs/config-tool.html) | 静态网页工具，用于生成武器、物品、精英怪/Boss 难度和普通怪强化 YAML 片段            |
 
 面向代码代理和维护者的工作说明见 [AGENTS.md](AGENTS.md)。

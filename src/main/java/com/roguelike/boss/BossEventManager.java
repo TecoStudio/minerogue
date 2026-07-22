@@ -93,9 +93,9 @@ public class BossEventManager {
         BossEventConfig.BossDefinition boss = chooseBoss(config.bosses());
         String id = "boss-" + DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").withZone(ZoneId.systemDefault()).format(Instant.now());
         ActiveBossArena arena = ActiveBossArena.active(id, world.getName(), plan.spawnLocation().getBlockX(), plan.spawnLocation().getBlockY(),
-                plan.spawnLocation().getBlockZ(), config.arena().radius(), boss.id(), boss.structure(), config.arena().protectBlocksWhileActive());
-        var spawnLocation = structureService.generate(arena, world);
-        LivingEntity entity = MobManager.spawnInternalMob(boss.id(), spawnLocation == null ? plan.spawnLocation() : spawnLocation);
+                plan.spawnLocation().getBlockZ(), config.arena().radius(), boss.mobId(), boss.structureId(), config.arena().protectBlocksWhileActive());
+        var spawnLocation = structureService.generate(arena, world, plugin.getDataFolder(), boss.structure());
+        LivingEntity entity = MobManager.spawnInternalMob(boss.mobId(), spawnLocation == null ? plan.spawnLocation() : spawnLocation);
         if (entity == null) return false;
         arena.setBossEntityUuid(entity.getUniqueId());
         state.setActiveArena(arena);
@@ -180,6 +180,25 @@ public class BossEventManager {
             if (bossId.equalsIgnoreCase(id)) return true;
         }
         return false;
+    }
+
+    public static String configuredMobId(String bossId) {
+        BossEventConfig source = config == null ? BossEventConfig.defaults() : config;
+        for (BossEventConfig.BossDefinition boss : source.bosses()) {
+            if (boss.id().equalsIgnoreCase(bossId)) return boss.mobId();
+        }
+        return bossId;
+    }
+
+    public static BossEventConfig.BossDefinition activeBossDefinition() {
+        ActiveBossArena arena = activeArena();
+        if (arena == null || config == null) return null;
+        for (BossEventConfig.BossDefinition boss : config.bosses()) {
+            if (boss.mobId().equalsIgnoreCase(arena.bossMobId()) || boss.id().equalsIgnoreCase(arena.bossMobId())) {
+                return boss;
+            }
+        }
+        return null;
     }
 
     private static void scheduleNextBoss() {

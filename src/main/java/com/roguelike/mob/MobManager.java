@@ -283,7 +283,7 @@ public class MobManager {
         entity.getWorld().dropItemNaturally(entity.getLocation(), stack);
     }
 
-    private static ItemStack createConfiguredDrop(ConfigManager.DropItemDefinition drop) {
+    public static ItemStack createConfiguredDrop(ConfigManager.DropItemDefinition drop) {
         if (drop.weaponTemplate() != null && !drop.weaponTemplate().isBlank()) {
             CustomWeapon template = ConfigManager.getWeapon(drop.weaponTemplate());
             if (template == null) return null;

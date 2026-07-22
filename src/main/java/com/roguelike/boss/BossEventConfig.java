@@ -7,7 +7,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 public record BossEventConfig(
         boolean enabled,
@@ -114,11 +117,32 @@ public record BossEventConfig(
         yaml.set("boss-events.broadcast.show-coordinates", false);
         yaml.set("boss-events.broadcast.show-direction-from-anchor", true);
         List<java.util.Map<String, Object>> bosses = new ArrayList<>();
-        bosses.add(java.util.Map.of("id", "blood-zombie", "weight", 60, "structure", "blood_altar"));
-        bosses.add(java.util.Map.of("id", "vagrant", "weight", 40, "structure", "bone_ruins"));
+        bosses.add(defaultBossMap("blood-zombie", 60, "blood_altar", List.of(
+                Map.of("material", "minecraft:diamond", "amount", 1, "chance", 0.35),
+                Map.of("weapon-template", "crimson_oath", "amount", 1, "chance", 0.05)
+        )));
+        bosses.add(defaultBossMap("vagrant", 40, "bone_ruins", List.of(
+                Map.of("item-template", "greater_healing_potion", "amount", 2, "chance", 0.45),
+                Map.of("weapon-template", "echo_blade", "amount", 1, "chance", 0.05)
+        )));
         yaml.set("boss-events.bosses", bosses);
         Files.createDirectories(file.toPath().getParent());
         yaml.save(file);
+    }
+
+    private static Map<String, Object> defaultBossMap(String id, int weight, String structureId, List<Map<String, Object>> loot) {
+        Map<String, Object> boss = new LinkedHashMap<>();
+        boss.put("id", id);
+        boss.put("weight", weight);
+        boss.put("mob", id);
+        Map<String, Object> structure = new LinkedHashMap<>();
+        structure.put("type", "builtin");
+        structure.put("id", structureId);
+        boss.put("structure", structure);
+        Map<String, Object> drops = new LinkedHashMap<>();
+        drops.put("items", loot);
+        boss.put("drops", drops);
+        return boss;
     }
 
     private static void ensureDefaultFile(File file) {
@@ -136,11 +160,53 @@ public record BossEventConfig(
             if (value instanceof java.util.Map<?, ?> map) {
                 String id = String.valueOf(map.containsKey("id") ? map.get("id") : "");
                 int weight = parseInt(map.get("weight"), 1);
-                String structure = String.valueOf(map.containsKey("structure") ? map.get("structure") : "blood_altar");
-                if (!id.isBlank()) result.add(new BossDefinition(id, weight, structure));
+                String mobId = String.valueOf(map.containsKey("mob") ? map.get("mob") : id);
+                StructureDefinition structure = parseStructure(map.get("structure"));
+                DropConfig drops = parseDropConfig(map);
+                if (!id.isBlank()) result.add(new BossDefinition(id, weight, mobId, structure, drops));
             }
         }
         return result;
+    }
+
+    private static StructureDefinition parseStructure(Object raw) {
+        if (raw instanceof Map<?, ?> map) {
+            String type = stringValue(map.get("type"), "builtin");
+            String id = stringValue(map.containsKey("id") ? map.get("id") : map.get("name"), "blood_altar");
+            String file = stringValue(map.get("file"), "");
+            String rotation = stringValue(map.get("rotation"), "none");
+            Offset offset = parseOffset(map.get("offset"));
+            return new StructureDefinition(type, id, file, offset, rotation);
+        }
+        return StructureDefinition.builtin(stringValue(raw, "blood_altar"));
+    }
+
+    private static Offset parseOffset(Object raw) {
+        if (raw instanceof Map<?, ?> map) {
+            return new Offset(parseInt(map.get("x"), 0), parseInt(map.get("y"), 0), parseInt(map.get("z"), 0));
+        }
+        return Offset.zero();
+    }
+
+    private static DropConfig parseDropConfig(Map<?, ?> boss) {
+        Object raw = boss.containsKey("drops") ? boss.get("drops") : boss.get("loot");
+        if (!(raw instanceof Map<?, ?> drops)) return DropConfig.empty();
+        List<DropItemDefinition> items = new ArrayList<>();
+        Object rawItems = drops.get("items");
+        if (rawItems instanceof List<?> list) {
+            for (Object entry : list) {
+                if (!(entry instanceof Map<?, ?> map)) continue;
+                String material = stringValue(map.get("material"), null);
+                String weaponTemplate = stringValue(map.get("weapon-template"), null);
+                String itemTemplate = stringValue(map.get("item-template"), null);
+                int amount = parseInt(map.get("amount"), 1);
+                double chance = parseDouble(map.get("chance"), 0.0);
+                if (chance > 0.0 && (isPresent(material) || isPresent(weaponTemplate) || isPresent(itemTemplate))) {
+                    items.add(new DropItemDefinition(material, weaponTemplate, itemTemplate, amount, chance));
+                }
+            }
+        }
+        return new DropConfig(items);
     }
 
     private static int parseInt(Object value, int fallback) {
@@ -152,12 +218,34 @@ public record BossEventConfig(
         }
     }
 
+    private static double parseDouble(Object value, double fallback) {
+        if (value instanceof Number number) return number.doubleValue();
+        try {
+            return Double.parseDouble(String.valueOf(value));
+        } catch (Exception ignored) {
+            return fallback;
+        }
+    }
+
     private static List<BossDefinition> defaultBosses() {
-        return List.of(new BossDefinition("blood-zombie", 60, "blood_altar"), new BossDefinition("vagrant", 40, "bone_ruins"));
+        return List.of(
+                new BossDefinition("blood-zombie", 60, "blood-zombie", StructureDefinition.builtin("blood_altar"), DropConfig.empty()),
+                new BossDefinition("vagrant", 40, "vagrant", StructureDefinition.builtin("bone_ruins"), DropConfig.empty())
+        );
     }
 
     private static String blankDefault(String value, String fallback) {
         return value == null || value.isBlank() ? fallback : value;
+    }
+
+    private static String stringValue(Object value, String fallback) {
+        if (value == null) return fallback;
+        String string = String.valueOf(value);
+        return string.isBlank() ? fallback : string;
+    }
+
+    private static boolean isPresent(String value) {
+        return value != null && !value.isBlank();
     }
 
     public record Spawn(int minDistanceChunks, int maxDistanceBlocks, int maxAttempts, int avoidSpawnRadiusBlocks) {
@@ -194,11 +282,47 @@ public record BossEventConfig(
         static Broadcast defaults() { return new Broadcast(true, true, false, true); }
     }
 
-    public record BossDefinition(String id, int weight, String structure) {
+    public record BossDefinition(String id, int weight, String mobId, StructureDefinition structure, DropConfig drops) {
         public BossDefinition {
             id = blankDefault(id, "blood-zombie");
             weight = Math.max(1, weight);
-            structure = blankDefault(structure, "blood_altar");
+            mobId = blankDefault(mobId, id);
+            structure = structure == null ? StructureDefinition.builtin("blood_altar") : structure;
+            drops = drops == null ? DropConfig.empty() : drops;
+        }
+
+        public String structureId() {
+            return structure.id();
+        }
+    }
+
+    public record StructureDefinition(String type, String id, String file, Offset offset, String rotation) {
+        public StructureDefinition {
+            type = blankDefault(type, "builtin").toLowerCase(Locale.ROOT);
+            id = blankDefault(id, "blood_altar");
+            file = file == null ? "" : file;
+            offset = offset == null ? Offset.zero() : offset;
+            rotation = blankDefault(rotation, "none");
+        }
+
+        static StructureDefinition builtin(String id) {
+            return new StructureDefinition("builtin", id, "", Offset.zero(), "none");
+        }
+    }
+
+    public record Offset(int x, int y, int z) {
+        static Offset zero() { return new Offset(0, 0, 0); }
+    }
+
+    public record DropConfig(List<DropItemDefinition> items) {
+        static DropConfig empty() { return new DropConfig(List.of()); }
+        public DropConfig { items = items == null ? List.of() : List.copyOf(items); }
+    }
+
+    public record DropItemDefinition(String material, String weaponTemplate, String itemTemplate, int amount, double chance) {
+        public DropItemDefinition {
+            amount = Math.max(1, amount);
+            chance = Math.max(0.0, Math.min(1.0, chance));
         }
     }
 }

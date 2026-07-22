@@ -86,6 +86,7 @@ scoreboard:
 | `content/items/*.yml` | 物品模板。一个 YAML 对应一个物品，效果配置写在该文件内的 `effects:`。 |
 | `content/armor/*.yml` | 防具显示定义。一个 YAML 对应一个防具部件定义。 |
 | `content/mobs/*.yml` | 怪物内容。一个 YAML 对应一个怪物经验、普通怪强化、内置精英怪/Boss 或全局怪物设置；怪物 ID、别名、实体模板和动作编排都写在 YAML 中。 |
+| `boss-events.yml` | 周期 Boss 总配置。集中配置所有周期 Boss 的生成权重、实际怪物 ID、击杀产出和结构来源。 |
 | `weapons.yml` / `items.yml` / `mobs.yml` | 旧版单文件配置入口，仍会加载，用于兼容或本地覆盖 |
 | `forge-recipes.yml` | 铸造台配方 |
 
@@ -171,6 +172,28 @@ effects:
 | `equipment.drop-chances.*` | 原版装备槽位掉落率，支持 `helmet`、`chestplate`、`leggings`、`boots`、`main-hand`、`off-hand`。 |
 | `drops.held-item-chance` | 死亡时按概率掉落怪物实际主手/副手物品。 |
 | `drops.items[]` | 死亡时按概率掉落指定 `weapon-template`、`item-template` 或原版 `material`。 |
+
+### 周期 Boss 总配置
+
+`plugins/Roguelike/boss-events.yml` 是周期 Boss 的总 YAML。每个 `bosses[]` 条目可以配置：
+
+- `id`：Boss 配置 ID，也是 `/rw boss spawn <id>` 使用的 ID。
+- `weight`：周期事件随机选择权重。
+- `mob`：实际生成的 `content/mobs/*.yml` 内置怪物 ID；不写时默认等于 `id`。
+- `drops.items[]` 或 `loot.items[]`：击杀产出，格式同怪物掉落，支持 `material`、`weapon-template`、`item-template`、`amount`、`chance`。
+- `structure`：结构来源。旧版字符串如 `structure: blood_altar` 仍兼容；新版可写 map。
+
+原版 Minecraft Java 有结构文件：结构方块保存的是 `.nbt` 结构模板。Roguelike 可通过 Paper/Bukkit `StructureManager` 从 `plugins/Roguelike/<file>` 加载原版 `.nbt`：
+
+```yaml
+structure:
+  type: vanilla
+  file: structures/boss/blood_altar.nbt
+  offset: { x: -8, y: 0, z: -8 }
+  rotation: none
+```
+
+Litematica 等投影 Mod 的 `.litematic` 不是原版结构文件；当前版本只识别 `type: litematic` / `type: projection` 并输出警告，不直接粘贴。请先转换/导出为原版 `.nbt` 后使用 `type: vanilla`。
 
 示例：
 
