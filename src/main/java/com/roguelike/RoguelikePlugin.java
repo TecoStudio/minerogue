@@ -4,6 +4,7 @@ import com.roguelike.command.RoguelikeCommand;
 import com.roguelike.command.GiveCommand;
 import com.roguelike.armor.ArmorSetManager;
 import com.roguelike.armor.affix.ArmorAffixManager;
+import com.roguelike.boss.BossEventManager;
 import com.roguelike.combat.CombatHandler;
 import com.roguelike.config.ConfigManager;
 import com.roguelike.data.PlayerDataManager;
@@ -39,6 +40,7 @@ public class RoguelikePlugin extends JavaPlugin {
         GiveCommand.init(this);
         TicketManager.init(this);
         MobManager.init(this);
+        BossEventManager.init(this);
         LevelManager.init(this);
         ManaManager.init(this);
         CombatHandler.init(this);
@@ -64,6 +66,7 @@ public class RoguelikePlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        BossEventManager.shutdown();
         MobManager.shutdown();
         WeaponAbilityManager.shutdown();
         BowAbilityManager.shutdown();

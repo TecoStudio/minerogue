@@ -253,6 +253,51 @@ class DefaultContentTest {
     }
 
     @Test
+    void bundledSpiderEliteKeepsDamagingAttackEnabled() throws IOException {
+        Path mobDirectory = Path.of("content", "mobs");
+
+        ConfigManager.loadContentDirectory(mobDirectory.getParent().toFile());
+        ConfigManager.ScriptedMobConfig spider = ConfigManager.getScriptedMobConfig("spider-elite");
+        ConfigManager.InternalMobDefinition definition = ConfigManager.getInternalMobDefinitions().stream()
+                .filter(mob -> mob.id().equals("spider-elite"))
+                .findFirst()
+                .orElseThrow();
+
+        assertAll(
+                () -> assertTrue(spider.damage() > 0.0, "spider-elite must not set attack damage to zero"),
+                () -> assertEquals("slow-on-hit", definition.actions().getFirst().action())
+        );
+    }
+
+    @Test
+    void bundledZombieEliteUsesFullIronArmor() throws IOException {
+        ConfigManager.loadContentDirectory(Path.of("content").toFile());
+        ConfigManager.InternalMobDefinition zombie = ConfigManager.getInternalMobDefinitions().stream()
+                .filter(mob -> mob.id().equals("zombie-elite"))
+                .findFirst()
+                .orElseThrow();
+
+        assertAll(
+                () -> assertEquals("minecraft:iron_helmet", zombie.equipment().helmet()),
+                () -> assertEquals("minecraft:iron_chestplate", zombie.equipment().chestplate()),
+                () -> assertEquals("minecraft:iron_leggings", zombie.equipment().leggings()),
+                () -> assertEquals("minecraft:iron_boots", zombie.equipment().boots()),
+                () -> assertEquals("excited_stone_sword", zombie.equipment().mainHandWeaponTemplate())
+        );
+    }
+
+    @Test
+    void bundledEliteMobsUseOneInFiftySpawnChance() throws IOException {
+        ConfigManager.loadContentDirectory(Path.of("content").toFile());
+
+        assertAll(
+                () -> assertEquals(0.02, ConfigManager.getScriptedMobConfig("skeleton-elite").spawnChance(), 0.001),
+                () -> assertEquals(0.02, ConfigManager.getScriptedMobConfig("zombie-elite").spawnChance(), 0.001),
+                () -> assertEquals(0.02, ConfigManager.getScriptedMobConfig("spider-elite").spawnChance(), 0.001)
+        );
+    }
+
+    @Test
     void bundledMobYamlDoesNotDropPluginItemsByDefault() throws IOException {
         Path mobDirectory = Path.of("content", "mobs");
 

@@ -1,6 +1,7 @@
 package com.roguelike.command;
 
 import com.roguelike.armor.ArmorSetManager;
+import com.roguelike.boss.BossEventManager;
 import com.roguelike.config.ConfigManager;
 import com.roguelike.mob.MobManager;
 import org.bukkit.Bukkit;
@@ -21,7 +22,7 @@ class RoguelikeTabCompleter {
             }
         } else if (cmd.equals("rw") || cmd.equals("roguelike")) {
             if (args.length == 1) {
-                list.addAll(Arrays.asList("export", "backup", "debug", "affixes", "reload", "give", "exp", "list", "stats", "reset", "monster", "fixhand", "help"));
+                list.addAll(Arrays.asList("backup", "debug", "affixes", "reload", "give", "exp", "list", "stats", "reset", "monster", "boss", "fixhand", "help"));
             } else if (args.length == 2 && args[0].equalsIgnoreCase("give")) {
                 list.addAll(Arrays.asList("weapon", "item", "armor", "ticket"));
             } else if (args.length == 2 && args[0].equalsIgnoreCase("debug")) {
@@ -33,6 +34,12 @@ class RoguelikeTabCompleter {
                 list.addAll(Arrays.asList("level", "kills", "deaths"));
             } else if (args.length == 2 && args[0].equalsIgnoreCase("monster")) {
                 list.add("spawn");
+            } else if (args.length == 2 && args[0].equalsIgnoreCase("boss")) {
+                list.addAll(Arrays.asList("spawn", "event"));
+            } else if (args.length == 3 && args[0].equalsIgnoreCase("boss") && args[1].equalsIgnoreCase("spawn")) {
+                list.addAll(BossEventManager.configuredBossIds());
+            } else if (args.length == 3 && args[0].equalsIgnoreCase("boss") && args[1].equalsIgnoreCase("event")) {
+                list.addAll(Arrays.asList("status", "force", "clear", "next"));
             } else if (args.length == 3 && args[0].equalsIgnoreCase("give")) {
                 switch (args[1].toLowerCase()) {
                     case "weapon" -> ConfigManager.getWeapons().forEach(w -> list.add(w.getId()));

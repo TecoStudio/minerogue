@@ -1,6 +1,7 @@
 package com.roguelike.command;
 
 import com.roguelike.armor.ArmorSetManager;
+import com.roguelike.boss.BossEventManager;
 import com.roguelike.config.ConfigManager;
 import com.roguelike.data.PlayerDataManager;
 import com.roguelike.forge.ForgeRecipeManager;
@@ -23,6 +24,7 @@ class AdminInfoCommands {
         DevLog.init(ConfigManager.getPlugin());
         ConfigManager.reload();
         MobManager.reload();
+        BossEventManager.reload();
         ForgeRecipeManager.reload();
         PlayerDataManager.reloadSettings();
         RoguelikeScoreboard.restartTask();
@@ -140,6 +142,8 @@ class AdminInfoCommands {
         Message.send(sender, "&e/rw stats top <level|kills|deaths> [数量] &7- 查看在线排行榜");
         Message.send(sender, "&e/rw reset [玩家] &7- 重置玩家数据");
         Message.send(sender, "&e/rw monster spawn <自定义怪物> &7- 生成插件自定义怪物");
+        Message.send(sender, "&e/rw boss spawn <blood-zombie|vagrant> &7- 在当前位置直接召唤事件 Boss");
+        Message.send(sender, "&e/rw boss event <status|force|clear|next> &7- 管理周期 Boss 事件");
         Message.send(sender, "&e/rw fixhand &7- 刷新手持武器属性");
     }
 }

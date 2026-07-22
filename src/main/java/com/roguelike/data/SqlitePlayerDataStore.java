@@ -123,11 +123,10 @@ final class SqlitePlayerDataStore implements PlayerDataStore {
         data.setKills(result.getInt("kills"));
         data.setDeaths(result.getInt("deaths"));
         data.setTotalExp(result.getLong("total_exp"));
-        for (int i = 0; i < result.getInt("ticket_a_uses"); i++) data.addTicketUse("ticket_a");
-        for (int i = 0; i < result.getInt("super_ticket_a_uses"); i++) data.addTicketUse("super_ticket_a");
-        for (int i = 0; i < result.getInt("ticket_b_uses"); i++) data.addTicketUse("ticket_b");
-        for (int i = 0; i < result.getInt("ticket_c_uses"); i++) data.addTicketUse("ticket_c");
-        for (int i = 0; i < result.getInt("weapon_development_uses"); i++) data.addTicketUse("ticket_b");
+        data.setTicketAUses(result.getInt("ticket_a_uses"));
+        data.setSuperTicketAUses(result.getInt("super_ticket_a_uses"));
+        data.setTicketBUses(result.getInt("ticket_b_uses") + result.getInt("weapon_development_uses"));
+        data.setTicketCUses(result.getInt("ticket_c_uses"));
         data.setMinedBlocks(result.getLong("mined_blocks"));
         data.setEatenItems(result.getLong("eaten_items"));
         return data;

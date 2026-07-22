@@ -20,13 +20,12 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
-import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class MobManager {
-    private static final Random RANDOM = ThreadLocalRandom.current();
     private static RoguelikePlugin plugin;
     private static final List<InternalMob> internalMobs = new ArrayList<>();
     private static BukkitTask behaviorTask;
@@ -268,7 +267,7 @@ public class MobManager {
             dropHeldItem(entity, entity.getEquipment().getItemInOffHand(), drops.heldItemChance());
         }
         for (ConfigManager.DropItemDefinition drop : drops.items()) {
-            if (RANDOM.nextDouble() >= drop.chance()) continue;
+            if (ThreadLocalRandom.current().nextDouble() >= drop.chance()) continue;
             ItemStack stack = createConfiguredDrop(drop);
             if (stack != null && !stack.getType().isAir()) {
                 entity.getWorld().dropItemNaturally(entity.getLocation(), stack);
@@ -278,7 +277,7 @@ public class MobManager {
 
     private static void dropHeldItem(LivingEntity entity, ItemStack held, double chance) {
         if (held == null || held.getType().isAir()) return;
-        if (RANDOM.nextDouble() >= chance) return;
+        if (ThreadLocalRandom.current().nextDouble() >= chance) return;
         ItemStack stack = held.clone();
         stack.setAmount(1);
         entity.getWorld().dropItemNaturally(entity.getLocation(), stack);
@@ -318,14 +317,15 @@ public class MobManager {
         String rarity = rollWeaponRarity();
         if (rarity == null) return;
 
+        Collection<CustomWeapon> weapons = ConfigManager.getWeapons();
         List<CustomWeapon> candidates = new ArrayList<>();
-        for (CustomWeapon weapon : ConfigManager.getWeapons()) {
+        for (CustomWeapon weapon : weapons) {
             if ("special".equalsIgnoreCase(weapon.getRarity())) continue;
             if (rarity.equalsIgnoreCase(weapon.getRarity())) candidates.add(weapon);
         }
         if (candidates.isEmpty()) return;
 
-        CustomWeapon template = candidates.get(RANDOM.nextInt(candidates.size()));
+        CustomWeapon template = candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
         ItemStack weapon = WeaponManager.createWeaponStack(template, null);
         entity.getWorld().dropItemNaturally(entity.getLocation(), weapon);
     }
@@ -342,6 +342,6 @@ public class MobManager {
 
     private static boolean rollChance(String rarity, double fallback, double multiplier) {
         double chance = Math.min(1.0, ConfigManager.getConfiguredWeaponDropChance(rarity, fallback) * multiplier);
-        return RANDOM.nextDouble() < chance;
+        return ThreadLocalRandom.current().nextDouble() < chance;
     }
 }

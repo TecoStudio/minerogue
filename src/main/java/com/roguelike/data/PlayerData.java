@@ -98,6 +98,22 @@ public class PlayerData {
         return ticketCUses;
     }
 
+    public void setTicketAUses(int ticketAUses) {
+        this.ticketAUses = Math.max(0, ticketAUses);
+    }
+
+    public void setSuperTicketAUses(int superTicketAUses) {
+        this.superTicketAUses = Math.max(0, superTicketAUses);
+    }
+
+    public void setTicketBUses(int ticketBUses) {
+        this.ticketBUses = Math.max(0, ticketBUses);
+    }
+
+    public void setTicketCUses(int ticketCUses) {
+        this.ticketCUses = Math.max(0, ticketCUses);
+    }
+
     public void addTicketUse(String ticketId) {
         switch (ticketId) {
             case "ticket_a" -> ticketAUses++;

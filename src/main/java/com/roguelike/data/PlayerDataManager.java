@@ -5,6 +5,7 @@ import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -118,7 +119,7 @@ public class PlayerDataManager {
     }
 
     private static Map<UUID, PlayerData> snapshotCache() {
-        Map<UUID, PlayerData> snapshot = new ConcurrentHashMap<>();
+        Map<UUID, PlayerData> snapshot = new HashMap<>();
         cache.forEach((uuid, data) -> snapshot.put(uuid, copyData(data)));
         return snapshot;
     }
@@ -128,10 +129,10 @@ public class PlayerDataManager {
         copy.setKills(source.getKills());
         copy.setDeaths(source.getDeaths());
         copy.setTotalExp(source.getTotalExp());
-        for (int i = 0; i < source.getTicketAUses(); i++) copy.addTicketUse("ticket_a");
-        for (int i = 0; i < source.getSuperTicketAUses(); i++) copy.addTicketUse("super_ticket_a");
-        for (int i = 0; i < source.getTicketBUses(); i++) copy.addTicketUse("ticket_b");
-        for (int i = 0; i < source.getTicketCUses(); i++) copy.addTicketUse("ticket_c");
+        copy.setTicketAUses(source.getTicketAUses());
+        copy.setSuperTicketAUses(source.getSuperTicketAUses());
+        copy.setTicketBUses(source.getTicketBUses());
+        copy.setTicketCUses(source.getTicketCUses());
         copy.setMinedBlocks(source.getMinedBlocks());
         copy.setEatenItems(source.getEatenItems());
         return copy;

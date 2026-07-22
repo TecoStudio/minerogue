@@ -5,16 +5,16 @@ aliases:
   - zombie_elite
 enabled: true
 spawnable: true
-spawn-chance: 0.12
+spawn-chance: 0.02
 name: '&2僵尸精英'
 health: 35.0
 damage: 5.0
 weapon-template: excited_stone_sword
 equipment:
-  helmet: minecraft:netherite_helmet
-  chestplate: minecraft:netherite_chestplate
-  leggings: minecraft:diamond_leggings
-  boots: minecraft:netherite_boots
+  helmet: minecraft:iron_helmet
+  chestplate: minecraft:iron_chestplate
+  leggings: minecraft:iron_leggings
+  boots: minecraft:iron_boots
   main-hand-weapon-template: excited_stone_sword
   drop-chances:
     helmet: 0.01

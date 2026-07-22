@@ -20,6 +20,7 @@ import java.util.List;
 public class RoguelikeScoreboard {
     private static RoguelikePlugin plugin;
     private static int taskId = -1;
+    private static final ChatColor[] UNIQUE_LINE_SUFFIXES = ChatColor.values();
 
     public static void init(RoguelikePlugin plugin) {
         RoguelikeScoreboard.plugin = plugin;
@@ -101,8 +102,10 @@ public class RoguelikeScoreboard {
     }
 
     private static void setLine(Objective objective, String text, int score, int index) {
-        String line = text.length() > 38 ? text.substring(0, 38) : text;
-        line = line + ChatColor.values()[index % ChatColor.values().length];
+        String suffix = UNIQUE_LINE_SUFFIXES[index % UNIQUE_LINE_SUFFIXES.length].toString();
+        int maxTextLength = Math.max(0, 40 - suffix.length());
+        String line = text.length() > maxTextLength ? text.substring(0, maxTextLength) : text;
+        line = line + suffix;
         objective.getScore(line).setScore(score);
     }
 

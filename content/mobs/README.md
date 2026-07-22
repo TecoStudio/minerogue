@@ -20,7 +20,7 @@
 | `aliases` | `- skeleton_elite` | 空 | 命令可接受别名。 |
 | `enabled` | `true` | `false` | 是否启用该怪物；禁用后不会自然生成，也不能命令生成。 |
 | `spawnable` | `true` | `true` | 是否允许 `/rw monster spawn <id>` 手动生成。 |
-| `spawn-chance` | `0.12` | `0.0` | 自然生成转化概率。Boss 不写该字段即可不自然生成。 |
+| `spawn-chance` | `0.02` | `0.0` | 自然生成转化概率。Boss 不写该字段即可不自然生成。 |
 | `bossbar` | `true` / `false` | `false` | 是否显示 Boss 血条。精英怪默认不需要 BossBar。 |
 | `name` | `&c骷髅精英` | 空 | 自定义名称。 |
 | `health` | `30.0` | `1.0` | 最大生命值。 |
@@ -94,7 +94,7 @@ id: spider-elite
 template: spider
 enabled: true
 spawnable: true
-spawn-chance: 0.12
+spawn-chance: 0.02
 bossbar: false
 name: '&5精英蜘蛛'
 health: 35.0

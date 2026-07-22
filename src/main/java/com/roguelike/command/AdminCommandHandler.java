@@ -1,5 +1,6 @@
 package com.roguelike.command;
 
+import com.roguelike.boss.BossEventCommand;
 import com.roguelike.util.Message;
 import org.bukkit.command.CommandSender;
 
@@ -9,6 +10,7 @@ class AdminCommandHandler {
     private final AffixesCommand affixesCommand = new AffixesCommand();
     private final GiveCommand giveCommand = new GiveCommand();
     private final StatsCommand statsCommand = new StatsCommand();
+    private final BossEventCommand bossEventCommand = new BossEventCommand();
 
     boolean handleAdmin(CommandSender sender, String[] args) {
         if (!sender.hasPermission("roguelike.admin")) {
@@ -38,6 +40,9 @@ class AdminCommandHandler {
             }
             case "reset" -> infoCommands.handleReset(sender, args);
             case "monster" -> infoCommands.handleMonster(sender, args);
+            case "boss" -> {
+                return bossEventCommand.handle(sender, args);
+            }
             case "fixhand" -> infoCommands.handleFixhand(sender);
             case "help", "?" -> infoCommands.showAdminHelp(sender);
             default -> Message.send(sender, "&c未知命令。使用 /rw help");

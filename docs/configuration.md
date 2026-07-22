@@ -237,7 +237,7 @@ aliases:
   - skeleton_elite
 enabled: true
 spawnable: true
-spawn-chance: 0.12
+spawn-chance: 0.02
 name: '&c骷髅精英'
 health: 30.0
 damage: 5.0

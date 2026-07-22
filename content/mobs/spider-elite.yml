@@ -5,10 +5,10 @@ aliases:
   - spider_elite
 enabled: true
 spawnable: true
-spawn-chance: 0.12
+spawn-chance: 0.02
 name: '&5精英蜘蛛'
 health: 35.0
-damage: 0.0
+damage: 3.0
 speed-multiplier: 1.2
 equipment:
   drop-chances:
