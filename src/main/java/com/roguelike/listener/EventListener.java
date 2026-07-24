@@ -26,6 +26,7 @@ import com.roguelike.weapon.ToolAbilityManager;
 import com.roguelike.weapon.BowAbilityManager;
 import com.roguelike.weapon.WeaponAbilityManager;
 import com.roguelike.weapon.WeaponManager;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -87,6 +88,14 @@ public class EventListener implements Listener {
         if (event.getHand() != EquipmentSlot.HAND) return;
         Player player = event.getPlayer();
         Action action = event.getAction();
+        if (isGuideCompass(event.getItem()) && (action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK
+                || action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK)) {
+            event.setUseInteractedBlock(Event.Result.DENY);
+            event.setUseItemInHand(Event.Result.DENY);
+            event.setCancelled(true);
+            player.performCommand("menu");
+            return;
+        }
         if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK) return;
         if (action == Action.RIGHT_CLICK_BLOCK && ForgeTableManager.isForgeTable(event.getClickedBlock())) {
             event.setCancelled(true);
@@ -120,6 +129,12 @@ public class EventListener implements Listener {
                 TicketManager.applyTicket(player, off, main);
             }
         }
+    }
+
+    static boolean isGuideCompass(ItemStack stack) {
+        if (stack == null || stack.getType() != Material.COMPASS || !stack.hasItemMeta()) return false;
+        var meta = stack.getItemMeta();
+        return meta.hasDisplayName() && "Roguelike指南针".equals(ChatColor.stripColor(meta.getDisplayName()));
     }
 
     private void denyMainHandUseIfNeeded(PlayerInteractEvent event, Player player, ItemStack main) {

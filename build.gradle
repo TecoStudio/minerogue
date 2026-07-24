@@ -62,7 +62,7 @@ processResources {
 }
 
 jar {
-    archiveFileName = "minerogue-${version}-${gitCommit}.jar"
+    archiveFileName = "minerogue.jar"
 }
 
 tasks.withType(JavaCompile).configureEach {

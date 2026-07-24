@@ -406,7 +406,7 @@ public class WeaponAffixManager {
     }
 
     private static double strengthenNumber(double currentValue, Random random) {
-        double multiplier = 1.1 + 1.4 * Math.pow(random.nextDouble(), 2.0);
+        double multiplier = 1.04 + 0.12 * Math.pow(random.nextDouble(), 2.0);
         return currentValue * multiplier;
     }
 

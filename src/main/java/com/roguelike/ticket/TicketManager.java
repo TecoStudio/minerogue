@@ -621,6 +621,7 @@ public class TicketManager {
 
     private static double strengthenStat(CustomWeapon template, String stat, double currentValue, int useCount) {
         return switch (stat) {
+            case "damage" -> strengthenDamage(currentValue);
             case "chain_targets", "slow_level" -> currentValue + 1;
             case "damage_store_hit_reduction" -> Math.min(15, currentValue + 1);
             case "hyper" -> Math.min(3, currentValue + 1);
@@ -636,14 +637,23 @@ public class TicketManager {
         return chance ? Math.min(1.0, value) : value;
     }
 
+    private static double strengthenDamage(double currentValue) {
+        double multiplier = 1.10 + 0.04 * Math.pow(RANDOM.nextDouble(), 2.0);
+        return currentValue * multiplier;
+    }
+
     private static double[] strengthenRange(String rarity) {
         return switch (normalizeRarity(rarity)) {
-            case "common" -> new double[]{1.20, 2.70};
-            case "rare" -> new double[]{1.15, 2.50};
-            case "epic" -> new double[]{1.10, 2.30};
-            case "legendary" -> new double[]{1.05, 2.10};
-            default -> new double[]{1.10, 2.50};
+            case "common" -> new double[]{1.06, 1.18};
+            case "rare" -> new double[]{1.05, 1.16};
+            case "epic" -> new double[]{1.04, 1.14};
+            case "legendary" -> new double[]{1.03, 1.12};
+            default -> new double[]{1.04, 1.16};
         };
+    }
+
+    static String formatStrengthenRangeForTesting(String rarity) {
+        return formatStrengthenRange(rarity);
     }
 
     private static String formatStrengthenRange(String rarity) {

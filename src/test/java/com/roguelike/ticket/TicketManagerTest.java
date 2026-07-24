@@ -42,6 +42,23 @@ class TicketManagerTest {
         assertEquals(0.01, TicketManager.calculateSuccessRate(20), 0.001);
     }
 
+    @Test
+    void sixteenBestCaseBaseDamageStrengthensDoNotReachOneHundred() {
+        double damage = 12.0;
+        for (int i = 0; i < 15; i++) {
+            damage *= 1.14;
+        }
+        assertTrue(damage < 100.0, "基础伤害至少需要 16 次最高倍率强化才可能达到 100");
+
+        damage *= 1.14;
+        assertTrue(damage >= 90.0, "16 次最高倍率强化后才接近或达到 100 伤害门槛");
+    }
+
+    @Test
+    void commonStrengthenRangeIsDisplayedAsNerfedValues() {
+        assertEquals("1.06x - 1.18x", TicketManager.formatStrengthenRangeForTesting("common"));
+    }
+
     private static CustomWeapon weapon(String id, String rarity, int bonusSlots, boolean allowOverflow) {
         return new CustomWeapon(id, id, "", "minecraft:wooden_sword", 4, 1.6, 59, rarity,
                 Map.of("attack_range", 3.0), bonusSlots, allowOverflow, "");
