@@ -1,0 +1,13 @@
+id: vampire_helmet
+name: 猩红头盔
+description: 猩红吸血套部件
+rarity: epic
+set: vampire
+piece: helmet
+material: minecraft:netherite_helmet
+affix: vampire
+affix-level: 1
+lore:
+  - "§4猩红: §f击杀后按最大生命回复"
+  - "§71/2/3/4件: §f3% / 6% / 9% / 16% 最大生命"
+  - "§74件: §f击杀后额外获得短暂生命恢复"

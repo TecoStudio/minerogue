@@ -8,6 +8,5 @@ durability: 250
 rarity: epic
 effects:
   attack_range: 3.0
-  dash: 1.0
   hyper: 1.0
   crit_chance: 0.30

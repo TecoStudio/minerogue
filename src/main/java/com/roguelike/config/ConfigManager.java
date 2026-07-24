@@ -22,6 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 public class ConfigManager {
     private static RoguelikePlugin plugin;
@@ -241,7 +242,38 @@ public class ConfigManager {
         String name = section.getString("name", id);
         String desc = section.getString("description", "");
         String rarity = section.getString("rarity", "common");
-        return new ArmorDefinition(name, desc, rarity);
+        String set = section.getString("set", inferArmorSet(id));
+        String piece = section.getString("piece", inferArmorPiece(id));
+        String material = section.getString("material", "");
+        String affix = section.getString("affix", set);
+        int affixLevel = Math.max(0, section.getInt("affix-level", affix == null || affix.isBlank() ? 0 : 1));
+        List<String> lore = new ArrayList<>(section.getStringList("lore"));
+        List<ArmorDefinition.ArmorEnchantmentDefinition> enchantments = parseArmorEnchantments(section.getConfigurationSection("enchantments"));
+        return new ArmorDefinition(name, desc, rarity, set, piece, material, affix, affixLevel, List.copyOf(lore), List.copyOf(enchantments));
+    }
+
+    private static List<ArmorDefinition.ArmorEnchantmentDefinition> parseArmorEnchantments(ConfigurationSection section) {
+        List<ArmorDefinition.ArmorEnchantmentDefinition> values = new ArrayList<>();
+        if (section == null) return values;
+        for (String id : section.getKeys(false)) {
+            int level = section.getInt(id, 0);
+            if (level > 0) values.add(new ArmorDefinition.ArmorEnchantmentDefinition(id, level));
+        }
+        return values;
+    }
+
+    private static String inferArmorSet(String id) {
+        int underscore = id == null ? -1 : id.indexOf('_');
+        return underscore <= 0 ? "" : id.substring(0, underscore).toLowerCase(Locale.ROOT);
+    }
+
+    private static String inferArmorPiece(String id) {
+        if (id == null) return "";
+        String lower = id.toLowerCase(Locale.ROOT);
+        for (String suffix : List.of("helmet", "chestplate", "leggings", "boots")) {
+            if (lower.endsWith("_" + suffix)) return suffix;
+        }
+        return "";
     }
 
     private static void loadMobs() {

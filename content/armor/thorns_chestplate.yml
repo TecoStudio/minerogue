@@ -2,3 +2,12 @@ id: thorns_chestplate
 name: 荆棘胸甲
 description: 锁链荆棘套部件
 rarity: common
+set: thorns
+piece: chestplate
+material: minecraft:chainmail_chestplate
+affix: thorns
+affix-level: 1
+lore:
+  - "§f荆棘: §f受击反弹基于敌人攻击力的伤害"
+  - "§71/2/3/4件: §f35% / 45% / 55% / 70% 反伤"
+  - "§74件: §f受击获得亢奋与力量 II"

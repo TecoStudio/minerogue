@@ -3,6 +3,7 @@ package com.roguelike.armor.affix;
 import com.roguelike.RoguelikePlugin;
 import com.roguelike.equipment.EquipmentTypeResolver;
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
 import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
@@ -22,11 +23,58 @@ public class ArmorAffixManager {
     private static NamespacedKey VANILLA_LEVELS_KEY;
 
     static {
+        register(new SimpleArmorAffix("dash", "Dash！", null, 1, ArmorSlot.ARMOR) {
+            @Override
+            public String format(int level) {
+                return "5秒冷却，2次充能";
+            }
+        });
+        register(new SimpleArmorAffix("thorns", "荆棘", null, 1, ArmorSlot.ARMOR) {
+            @Override
+            public String format(int level) {
+                return "受击反伤";
+            }
+        });
+        register(new SimpleArmorAffix("swift", "神速", null, 1, ArmorSlot.ARMOR) {
+            @Override
+            public String format(int level) {
+                return "移速提升";
+            }
+        });
+        register(new SimpleArmorAffix("explosive", "炸药", null, 1, ArmorSlot.ARMOR) {
+            @Override
+            public String format(int level) {
+                return "受击爆炸";
+            }
+        });
+        register(new SimpleArmorAffix("guardian", "守护", null, 1, ArmorSlot.ARMOR) {
+            @Override
+            public String format(int level) {
+                return "受击减伤";
+            }
+        });
+        register(new SimpleArmorAffix("vampire", "猩红", null, 1, ArmorSlot.ARMOR) {
+            @Override
+            public String format(int level) {
+                return "击杀回复";
+            }
+        });
+        register(new SimpleArmorAffix("storm", "雷暴", null, 1, ArmorSlot.ARMOR) {
+            @Override
+            public String format(int level) {
+                return "攻击雷击";
+            }
+        });
     }
 
     public static void init(RoguelikePlugin plugin) {
         AFFIX_LEVELS_KEY = new NamespacedKey(plugin, "armor_affix_levels");
         VANILLA_LEVELS_KEY = new NamespacedKey(plugin, "armor_affix_vanilla_levels");
+        registerServerEnchantAffixes();
+    }
+
+    private static void registerServerEnchantAffixes() {
+        registerIfAbsent(enchantment("protection", "保护", Enchantment.PROTECTION, 4, ArmorSlot.ARMOR));
     }
 
     public static List<String> effectIds() {
@@ -83,14 +131,16 @@ public class ArmorAffixManager {
         if (meta == null) return;
         Map<String, Integer> levels = readLevels(meta, AFFIX_LEVELS_KEY);
         Map<String, Integer> vanillaLevels = readLevels(meta, VANILLA_LEVELS_KEY);
-        vanillaLevels.putIfAbsent(id, meta.getEnchantLevel(affix.enchantment()));
+        if (affix.enchantment() != null) {
+            vanillaLevels.putIfAbsent(id, meta.getEnchantLevel(affix.enchantment()));
+        }
 
         int affixLevel = Math.min(level, affix.maxLevel());
         int visibleLevel = Math.max(vanillaLevels.getOrDefault(id, 0), affixLevel);
         levels.put(id, affixLevel);
         writeLevels(meta, AFFIX_LEVELS_KEY, levels);
         writeLevels(meta, VANILLA_LEVELS_KEY, vanillaLevels);
-        if (visibleLevel > 0) {
+        if (affix.enchantment() != null && visibleLevel > 0) {
             meta.addEnchant(affix.enchantment(), visibleLevel, true);
         }
         stack.setItemMeta(meta);
@@ -105,6 +155,48 @@ public class ArmorAffixManager {
 
     public static boolean hasAppliedAffix(ItemStack stack, String id) {
         return getAppliedLevel(stack, id) > 0;
+    }
+
+    public static int getEquippedLevel(Player player, String id) {
+        if (player == null || id == null) return 0;
+        int total = 0;
+        for (ItemStack stack : player.getInventory().getArmorContents()) {
+            total += getAppliedLevel(stack, id);
+        }
+        return total;
+    }
+
+    public static boolean hasEquippedAffix(Player player, String id) {
+        return getEquippedLevel(player, id) > 0;
+    }
+
+    public static double damageReductionPercent(Player player) {
+        int guardian = guardianPieces(player);
+        return Math.min(0.60, guardian * 0.06);
+    }
+
+    public static int thornsPieces(Player player) {
+        return Math.min(4, getEquippedLevel(player, "thorns"));
+    }
+
+    public static int swiftPieces(Player player) {
+        return Math.min(4, getEquippedLevel(player, "swift"));
+    }
+
+    public static int explosivePieces(Player player) {
+        return Math.min(4, getEquippedLevel(player, "explosive"));
+    }
+
+    public static int guardianPieces(Player player) {
+        return Math.min(4, getEquippedLevel(player, "guardian"));
+    }
+
+    public static int vampirePieces(Player player) {
+        return Math.min(4, getEquippedLevel(player, "vampire"));
+    }
+
+    public static int stormPieces(Player player) {
+        return Math.min(4, getEquippedLevel(player, "storm"));
     }
 
     public static void removeAppliedAffix(ItemStack stack, String id) {
@@ -122,10 +214,12 @@ public class ArmorAffixManager {
         writeLevels(meta, AFFIX_LEVELS_KEY, levels);
         writeLevels(meta, VANILLA_LEVELS_KEY, vanillaLevels);
 
-        if (vanillaLevel > 0) {
-            meta.addEnchant(affix.enchantment(), vanillaLevel, true);
-        } else {
-            meta.removeEnchant(affix.enchantment());
+        if (affix.enchantment() != null) {
+            if (vanillaLevel > 0) {
+                meta.addEnchant(affix.enchantment(), vanillaLevel, true);
+            } else {
+                meta.removeEnchant(affix.enchantment());
+            }
         }
         stack.setItemMeta(meta);
     }
@@ -169,6 +263,10 @@ public class ArmorAffixManager {
 
     private static void register(ArmorAffix affix) {
         AFFIXES.put(affix.id(), affix);
+    }
+
+    private static void registerIfAbsent(ArmorAffix affix) {
+        AFFIXES.putIfAbsent(affix.id(), affix);
     }
 
     private static ArmorAffix enchantment(String id, String displayName, Enchantment enchantment, int maxLevel, ArmorSlot slot) {

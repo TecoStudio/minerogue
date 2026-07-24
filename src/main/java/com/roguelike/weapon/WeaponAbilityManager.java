@@ -2,6 +2,7 @@ package com.roguelike.weapon;
 
 import com.roguelike.RoguelikePlugin;
 import com.roguelike.armor.ArmorSetManager;
+import com.roguelike.armor.affix.ArmorAffixManager;
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.item.WeaponInstanceData;
 import com.roguelike.util.Message;
@@ -97,7 +98,7 @@ public class WeaponAbilityManager {
         Player player = event.getPlayer();
         ItemStack hand = player.getInventory().getItemInMainHand();
         if (hasEffect(hand, "bomb")) throwBomb(player);
-        if (hasEffect(hand, "dash")) dash(player);
+        if (hasDash(player)) dash(player);
     }
 
     public static List<String> getSidebarLines(Player player) {
@@ -107,6 +108,7 @@ public class WeaponAbilityManager {
         if (bombUntil != null && bombUntil > now) {
             lines.add("§6炸弹: §f" + secondsLeft(bombUntil, now) + "s");
         }
+        if (!hasDash(player)) return lines;
         DashState dash = dashStates.computeIfAbsent(player.getUniqueId(), id -> new DashState());
         int maxCharges = maxDashCharges(player);
         refillDash(dash, now, maxCharges, dashCooldownMillis(player));
@@ -202,6 +204,10 @@ public class WeaponAbilityManager {
             state.charges++;
             state.nextChargeAt = state.charges < maxCharges ? state.nextChargeAt + cooldown : 0L;
         }
+    }
+
+    private static boolean hasDash(Player player) {
+        return ArmorAffixManager.hasEquippedAffix(player, "dash");
     }
 
     private static int maxDashCharges(Player player) {

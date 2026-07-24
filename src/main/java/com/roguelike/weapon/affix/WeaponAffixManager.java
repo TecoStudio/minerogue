@@ -128,7 +128,6 @@ public class WeaponAffixManager {
             }
         });
         register(toggle("gift", "馈赠", "§d❤ 馈赠: §f击杀后7秒回复50%生命并获得抗性提升", false));
-        register(toggle("dash", "Dash！", "§b➤ Dash！: §f向面朝方向突进，5秒冷却，2次充能", false));
         register(level("durability_restore", "用不坏", 1, 5, (lore, template, data) -> {
             int level = (int) total(template, data, "durability_restore", 0.0);
             if (level > 0) lore.add(Message.toComponent("§a✦ 用不坏: §f" + level + "级 (" + WeaponManager.format(durabilityRestoreChance(level) * 100, 0) + "%返还3耐久)"));
@@ -226,8 +225,7 @@ public class WeaponAffixManager {
                 || total(template, data, "chain_damage_percent", 0.0) > 0
                 || total(template, data, "explosion_chance", 0.0) > 0
                 || total(template, data, "big_explosion_chance", 0.0) > 0
-                || total(template, data, "victim_explosion_chance", 0.0) > 0
-                || total(template, data, "dash", 0.0) > 0) {
+                || total(template, data, "victim_explosion_chance", 0.0) > 0) {
             tags.add("战术");
         }
         if (total(template, data, "slow_duration", 0.0) > 0

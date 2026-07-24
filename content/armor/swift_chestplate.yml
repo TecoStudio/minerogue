@@ -2,3 +2,14 @@ id: swift_chestplate
 name: 神速胸甲
 description: 黄金神速套部件
 rarity: rare
+set: swift
+piece: chestplate
+material: minecraft:golden_chestplate
+affix: swift
+affix-level: 1
+lore:
+  - "§9神速: §f每件提供速度等级 +1"
+  - "§7原版自带: §f用不坏 IV"
+  - "§74件: §fDash 变为3充能，冷却4秒"
+enchantments:
+  unbreaking: 4

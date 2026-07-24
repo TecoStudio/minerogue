@@ -2,6 +2,7 @@ package com.roguelike.listener;
 
 import com.roguelike.RoguelikePlugin;
 import com.roguelike.armor.ArmorSetManager;
+import com.roguelike.armor.affix.ArmorAffixManager;
 import com.roguelike.combat.CombatHandler;
 import com.roguelike.config.ConfigManager;
 import com.roguelike.config.MobExperienceConfig;
@@ -28,6 +29,8 @@ import com.roguelike.weapon.WeaponAbilityManager;
 import com.roguelike.weapon.WeaponManager;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
@@ -219,7 +222,12 @@ public class EventListener implements Listener {
     public void onPlayerDamaged(EntityDamageEvent event) {
         if (CombatHandler.cancelLightningDamageForImmunePlayer(event)) return;
         if (event.getEntity() instanceof Player player && !CombatHandler.isInternalDamage()) {
-            event.setDamage(CombatHandler.applyIncomingNeutralDamage(player, event.getDamage()));
+            double damage = CombatHandler.applyIncomingNeutralDamage(player, event.getDamage());
+            double reduction = ArmorAffixManager.damageReductionPercent(player);
+            if (reduction > 0.0) {
+                damage *= 1.0 - reduction;
+            }
+            event.setDamage(damage);
         }
         WeaponAbilityManager.cancelGiftHeal(event);
     }
@@ -254,6 +262,7 @@ public class EventListener implements Listener {
             DevLog.debug(player.getName() + " 击杀了 " + entityName(entity));
             PlayerDataManager.get(player).addKill();
             WeaponAbilityManager.applyGiftKill(player);
+            applyVampireSetKill(player);
             applyVictimExplosion(player, entity);
             RoguelikeScoreboard.updatePlayer(player);
             MobManager.handleDrop(entity);
@@ -343,6 +352,19 @@ public class EventListener implements Listener {
         return Math.min(maximum, current + amount);
     }
 
+
+    private void applyVampireSetKill(Player player) {
+        int pieces = ArmorAffixManager.vampirePieces(player);
+        if (pieces <= 0) return;
+        double percent = pieces >= 4 ? 0.16 : pieces * 0.03;
+        var maxHealth = player.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+        double maximum = maxHealth == null ? player.getHealth() : maxHealth.getValue();
+        player.setHealth(healedHealth(player.getHealth(), maximum, maximum * percent));
+        player.getWorld().spawnParticle(Particle.HEART, player.getLocation().add(0, 1, 0), Math.min(10, pieces * 2), 0.4, 0.5, 0.4);
+        if (pieces >= 4) {
+            player.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.REGENERATION, 60, 0, true, true, true));
+        }
+    }
     private void applyVictimExplosion(Player player, LivingEntity victim) {
         ItemStack hand = player.getInventory().getItemInMainHand();
         CustomWeapon template = WeaponManager.getTemplate(hand);

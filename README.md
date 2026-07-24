@@ -1,101 +1,121 @@
-# Roguelike Paper 插件
+# Roguelike / minerogue
 
-Roguelike 是一个 Paper 服务端玩法插件，提供 Roguelike 武器、词条强化、玩家等级经验、精英怪、铸造台、可选怪物随机武器掉落和自由交易规则。
+> 一个面向 Paper 1.21.11 的自由生存肉鸽成长插件：主城提供服务，野外交给玩家，成长交给装备、词条、套装、怪物和 Boss。
 
-插件不提供经济、货币、余额、商店或定价系统。武器、强化券和掉落物的交换方式由服务器规则和玩家自行决定。
+Roguelike 不是任务服框架，也不是经济插件。它专注于把 Minecraft 生存服里的“刷怪、探索、换装、强化、冒险”做成一条可持续成长的循环：玩家从主城出发，在野外圈地、生存、刷怪和交易；插件负责提供等级经验、YAML 内容、防具套装、武器词条、券系统、铸造台、内置怪物和周期 Boss 事件。
 
-> 说明：插件在 `plugin.yml` 中的运行时名称是 `Roguelike`；Gradle 构建出的 jar 文件名使用 `minerogue-<version>-<gitCommit>.jar`。
+| 项目 | 当前状态 |
+| --- | --- |
+| 插件名 | `Roguelike` |
+| 生产部署 jar | `minerogue.jar` |
+| 服务端 | Paper 1.21.11 |
+| Java | Java 25 |
+| 内容形态 | YAML 驱动 |
+| 存储 | JSON / SQLite |
+| 软依赖 | PlaceholderAPI、TAB、CommandAPI、MythicMobs、Nova |
 
-## 基础要求
+---
 
-- Paper 1.21.11
-- Java 25
-- 插件 jar 放入服务器 `plugins` 目录
-- 首次启动后生成 `plugins/Roguelike/config.yml`
-- 首次加载后自动生成可编辑的 `weapons.yml`、`items.yml`、`mobs.yml`、`forge-recipes.yml`，并从 jar 内置内容包导出 `content/`
+## 核心体验
 
-## 构建
+```text
+主城服务 / 菜单 / 商店 / 引导
+        ↓
+出城探索 / 圈地 / 生存 / 刷怪
+        ↓
+Roguelike 经验 / 升级 / 券奖励
+        ↓
+开发装备 / 强化词条 / 移除词条
+        ↓
+防具套装 / 铸造配方 / 精英怪 / 周期 Boss
+        ↓
+玩家交易 / 自由成长 / 更高风险目标
+```
 
-推荐使用 Gradle：
+设计边界很明确：任务只是轻量引导和日常目标，不做强制主线；经济、领地、传送、菜单、商店等交给服务器插件栈组合；Roguelike 只负责装备成长和冒险压力。
 
-```powershell
-.\gradlew.bat build
+---
+
+## 已有内容
+
+| 模块 | 数量 / 说明 |
+| --- | --- |
+| 武器模板 | 27 个，位于 `content/weapons/*.yml` |
+| 物品 | 5 个，位于 `content/items/*.yml` |
+| 防具 | 24 件，6 套，每套 4 件，位于 `content/armor/*.yml` |
+| 防具套装 | 荆棘、神速、炸药、守护、猩红、雷暴 |
+| 怪物内容 | 19 个 YAML，覆盖经验、普通怪强化、内置精英怪/Boss |
+| 券系统 | 强化券、超级强化券、开发券、工具开发券、移除券 |
+| 管理 GUI | `/rw give` 图形化发放武器、物品、防具和券 |
+
+### 防具套装
+
+| 套装 | ID 前缀 | 核心词条 | 定位 |
+| --- | --- | --- | --- |
+| 荆棘 | `thorns_` | `thorns` | 受击反伤；4 件获得进攻增益 |
+| 神速 | `swift_` | `swift` | 每件速度；4 件强化防具 Dash |
+| 炸药 | `explosive_` | `explosive` | 受击概率爆炸；4 件爆炸后力量 III |
+| 守护 | `guardian_` | `guardian` | 每件 6% 插件减伤；减伤定位由它承担 |
+| 猩红 | `vampire_` | `vampire` | 击杀回血；4 件额外生命恢复 |
+| 雷暴 | `storm_` | `storm` | 攻击概率雷击 |
+
+防具现在是 YAML 驱动。一个防具文件可以直接决定材质、套装 ID、部位、自带插件词条、词条等级、展示 lore 和原版自带附魔：
+
+```yaml
+id: explosive_chestplate
+name: 炸药胸甲
+description: 铜质炸药套部件
+rarity: epic
+set: explosive
+piece: chestplate
+material: minecraft:copper_chestplate
+affix: explosive
+affix-level: 1
+lore:
+  - "§5炸药: §f受击概率触发TNT爆炸"
+  - "§71/2/3/4件: §f25% / 45% / 75% / 100%"
+  - "§74件: §f爆炸后获得力量 III"
+  - "§7原版自带: §f爆炸保护 IV"
+enchantments:
+  blast_protection: 4
+```
+
+---
+
+## 构建与部署
+
+```bash
+./gradlew.bat build
 ```
 
 构建产物：
 
 ```text
-build/libs/minerogue-*.jar
+build/libs/minerogue.jar
 ```
 
-也可以使用项目自带脚本：
+正式服部署约定：
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -TimeoutSeconds 180
+```text
+D:\LIPis\Documents\Minecraft\roguelike-production\plugins\minerogue.jar
 ```
 
-## 快速部署
+推荐更新流程：
 
-1. 构建插件 jar。
-2. 将 jar 放入 `plugins`。
-3. 启动 Paper 服务端。
-4. 根据需要修改 `plugins/Roguelike/config.yml`、`weapons.yml`、`items.yml`、`mobs.yml`、`forge-recipes.yml`。
-5. 游戏内执行 `/rw reload` 重载配置。
+1. 构建 `build/libs/minerogue.jar`。
+2. 删除生产服 `plugins/` 下旧的 `minerogue-*.jar` 重复文件。
+3. 复制新 jar 为 `plugins/minerogue.jar`。
+4. 如果修改了 `content/`，同步到 `plugins/Roguelike/content/...`。
+5. RCON 或控制台执行：
+   ```text
+   plugman reload Roguelike
+   rw reload
+   ```
+6. 检查 `logs/latest.log`，确认没有新的异常。
 
-## 首次使用
+---
 
-- 玩家执行 `/rl` 或 `/rl status` 查看等级、经验、击杀和死亡。
-- 玩家通过击杀怪物、挖矿、吃东西获得 Roguelike 经验。
-- 升级会获得强化券、开发券或移除券，用于开发和强化装备。
-- 管理员执行 `/rw list weapons`、`/rw list items`、`/rw list armor` 查询可发放 ID。
-
-## 当前主要内容
-
-- Roguelike 武器和词条系统。
-- 强化券按武器品质调整成功率和强化量，使用次数升高后成功率会大幅衰减。
-- 开发券可把普通物品开发为特殊武器，并保留原物品伤害、攻击速度和已有攻击距离属性。
-- 开发券给装备添加词条时使用单按钮随机开发 GUI；武器已移除随机词条槽位数量上限。
-- 工具开发券只给 Roguelike 镐或斧添加工具类词条。
-- 弓类词条包含散射、连发和蓄能；弓伤害沿用原版箭矢伤害计算，散射配置值表示总箭数 2/3/4/5，蓄满原版弓后侧边栏显示额外蓄能进度。
-- 原版经验条由插件接管为法力条。
-- 移除券可移除武器词条，并提升下次普通强化成功率。
-- Roguelike 武器兼容原版 MC 附魔。
-- 玩家可通过击杀怪物、挖矿和吃东西获得 Roguelike 经验。
-- 伤害聊天显示使用彩色公式，乘法倍率直接显示，鼠标悬停显示完整计算来源。
-- 铸造台由“铁砧 + 下方白色羊毛”组成，配方存储在 `forge-recipes.yml`。
-- 怪物默认不会掉落插件物品；需要时可在 `config.yml` 开启随机武器掉落，或在怪物 YAML 中显式配置手持物品和指定物品掉落概率。
-- 内置精英怪、普通怪强化和可手动生成的内置 Boss，可在 `content/mobs/*.yml` 调整；精英怪默认不显示 Boss 血条，Boss 可通过 `bossbar: true` 显示中文 Boss 血条。
-- 周期 Boss 的生成权重、实际怪物、击杀产出和结构来源集中写在 `boss-events.yml`；结构支持内置结构和原版 `.nbt` 结构文件，Litematica `.litematic` 需先转换为原版结构。
-- 骷髅精英保留原版骷髅仇恨判定，不主动锁定创造/旁观玩家。
-- `/rw give` 图形界面会使用真实武器、物品、防具和券作为预览，便于直接查看属性与 lore。
-- 内置汉堡物品使用玩家头颅图标，右键直接食用，回复最大生命值的 30% 并补满饱食度。
-
-## 可选集成
-
-插件声明了 PlaceholderAPI、TAB、CommandAPI、MythicMobs、Nova 软依赖。未安装这些插件时，Roguelike 会使用自身默认逻辑；启用对应配置后才会尝试集成。
-
-## 文档
-
-完整文档已拆分到 `docs/`：
-
-| 文档                                 | 内容                                                                                |
-| ------------------------------------ | ----------------------------------------------------------------------------------- |
-| [文档目录](docs/README.md)            | 全部文档入口                                                                        |
-| [游戏内容总览](docs/game-content.md)  | 核心玩法循环、成长、战斗、装备、券、铸造、怪物、掉落与配置扩展                      |
-| [快速开始](docs/quick-start.md)       | 核心循环、基础部署、常用入口                                                        |
-| [等级与经验](docs/leveling.md)        | 经验需求、升级奖励、死亡惩罚                                                        |
-| [装备与武器](docs/equipment.md)       | 内置武器、内置物品、防具套装、原版附魔兼容                                          |
-| [券系统](docs/tickets.md)             | 强化券、超级强化券、开发券、工具开发券、移除券                                      |
-| [铸造台](docs/forge.md)               | 铸造台结构、GUI、`forge-recipes.yml` 配方格式                                     |
-| [词条数据](docs/affixes.md)           | 当前全部词条、强化规则、原版附魔重复项检查                                          |
-| [怪物系统](docs/mobs.md)              | 怪物经验、内置精英怪、内置 Boss、普通怪强化、随机武器掉落、仇恨说明                 |
-| [命令](docs/commands.md)              | 玩家命令、管理员命令、权限                                                          |
-| [配置文件](docs/configuration.md)     | `config.yml`、`boss-events.yml`、`weapons.yml`、`items.yml`、`mobs.yml`、`forge-recipes.yml` |
-| [配置片段助手](docs/config-tool.html) | 静态网页工具，用于生成武器、物品、精英怪/Boss 难度和普通怪强化 YAML 片段            |
-
-面向代码代理和维护者的工作说明见 [AGENTS.md](AGENTS.md)。
-
-## 常用命令
+## 命令速查
 
 玩家命令：
 
@@ -107,7 +127,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -TimeoutSeconds 
 /rl help
 ```
 
-管理员命令：
+管理员命令需要 `roguelike.admin`：
 
 ```text
 /rw reload
@@ -119,33 +139,43 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -TimeoutSeconds 
 /rw give weapon <id> [玩家] [数量]
 /rw give item <id> [玩家] [数量]
 /rw give armor <id> [玩家] [数量]
-/rw give ticket <ticket_a|super_ticket_a|ticket_b|ticket_c> [玩家] [数量]
+/rw give ticket <ticket_a|super_ticket_a|ticket_b|tool_ticket_b|ticket_c> [玩家] [数量]
 /rw exp <数量> [玩家]
 /rw list <weapons|items|armor>
 /rw stats [玩家]
 /rw stats top <level|kills|deaths> [数量]
 /rw reset [玩家]
-/rw monster spawn <skeleton-elite|zombie-elite|spider-elite|blood-zombie|vagrant>
+/rw monster spawn <id>
+/rw boss ...
 /rw fixhand
 /rw help
 ```
 
-管理员权限：
+常用验证组合：
 
 ```text
-roguelike.admin
+/rw list armor
+/rw affixes
+/rw give armor explosive_chestplate <玩家>
 ```
 
-## 维护与验证
+---
 
-代码或文档变更后，至少运行：
+## 文档
 
-```powershell
-.\gradlew.bat build
-```
+| 文档 | 内容 |
+| --- | --- |
+| [docs/README.md](docs/README.md) | 文档导航与阅读顺序 |
+| [docs/quick-start.md](docs/quick-start.md) | 部署、首玩、常用检查 |
+| [docs/game-content.md](docs/game-content.md) | 完整玩法与内容总览 |
+| [docs/equipment.md](docs/equipment.md) | 武器、物品、防具套装、YAML 防具字段 |
+| [docs/affixes.md](docs/affixes.md) | 武器/工具/弓/防具词条与重复附魔规则 |
+| [docs/tickets.md](docs/tickets.md) | 强化券、开发券、工具开发券、移除券 |
+| [docs/commands.md](docs/commands.md) | 玩家/管理员命令 |
+| [docs/configuration.md](docs/configuration.md) | 配置文件与 YAML 内容格式 |
+| [docs/leveling.md](docs/leveling.md) | 经验、升级、死亡惩罚 |
+| [docs/forge.md](docs/forge.md) | 铸造台结构和配方 |
+| [docs/mobs.md](docs/mobs.md) | 怪物、精英怪、掉落、经验 |
+| [docs/boss-events.md](docs/boss-events.md) | 周期 Boss 事件 |
 
-如果修改了 `build.ps1`，再运行：
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\build-script-check.ps1
-```
+维护者说明见 [AGENTS.md](AGENTS.md)。

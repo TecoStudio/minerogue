@@ -1,0 +1,13 @@
+id: storm_leggings
+name: 雷暴护腿
+description: 钻石雷暴套部件
+rarity: epic
+set: storm
+piece: leggings
+material: minecraft:diamond_leggings
+affix: storm
+affix-level: 1
+lore:
+  - "§b雷暴: §f攻击时概率召唤雷击"
+  - "§71/2/3/4件: §f8% / 16% / 24% / 36% 概率"
+  - "§7雷击免疫自己的雷暴伤害"

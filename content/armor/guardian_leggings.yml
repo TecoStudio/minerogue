@@ -1,0 +1,13 @@
+id: guardian_leggings
+name: 守护护腿
+description: 铁质守护套部件
+rarity: rare
+set: guardian
+piece: leggings
+material: minecraft:iron_leggings
+affix: guardian
+affix-level: 1
+lore:
+  - "§a守护: §f每件提供 6% 插件减伤"
+  - "§71/2/3/4件: §f6% / 12% / 18% / 24% 减伤"
+  - "§7普通“减伤”词条已删除，减伤定位由守护套承担"

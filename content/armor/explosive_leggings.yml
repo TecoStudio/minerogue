@@ -2,3 +2,15 @@ id: explosive_leggings
 name: 炸药护腿
 description: 铜质炸药套部件
 rarity: epic
+set: explosive
+piece: leggings
+material: minecraft:copper_leggings
+affix: explosive
+affix-level: 1
+lore:
+  - "§5炸药: §f受击概率触发TNT爆炸"
+  - "§71/2/3/4件: §f25% / 45% / 75% / 100%"
+  - "§74件: §f爆炸后获得力量 III"
+  - "§7原版自带: §f爆炸保护 IV"
+enchantments:
+  blast_protection: 4

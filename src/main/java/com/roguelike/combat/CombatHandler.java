@@ -1,6 +1,7 @@
 package com.roguelike.combat;
 
 import com.roguelike.RoguelikePlugin;
+import com.roguelike.armor.affix.ArmorAffixManager;
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.item.WeaponInstanceData;
 import com.roguelike.util.Message;
@@ -207,11 +208,14 @@ public class CombatHandler {
         }
 
         // 雷电
-        double lightning = chance(data.getTotalEffect(template, "lightning_chance", 0.0) + neutralBonus(template, data, "neutral_thunder_100", 1.0));
+        int stormPieces = ArmorAffixManager.stormPieces(player);
+        double lightning = chance(data.getTotalEffect(template, "lightning_chance", 0.0)
+                + neutralBonus(template, data, "neutral_thunder_100", 1.0)
+                + stormLightningChance(stormPieces));
         if (lightning > 0 && RANDOM.nextDouble() < lightning) {
             protectFromOwnLightning(player);
             target.getWorld().strikeLightning(target.getLocation());
-            extraParts.add("雷击触发");
+            extraParts.add(stormPieces > 0 ? "雷暴触发" : "雷击触发");
         }
 
         // 爆炸
@@ -245,6 +249,16 @@ public class CombatHandler {
         WeaponManager.updateLore(player.getInventory().getItemInMainHand(), template, data);
         sendDamageFormula(player, damage, formulaParts, damageParts, extraParts);
         return damage;
+    }
+
+    private static double stormLightningChance(int pieces) {
+        return switch (pieces) {
+            case 1 -> 0.08;
+            case 2 -> 0.16;
+            case 3 -> 0.24;
+            case 4 -> 0.36;
+            default -> 0.0;
+        };
     }
 
     static double vanillaBonus(double eventDamage, double weaponDamage, boolean vanillaCritical) {

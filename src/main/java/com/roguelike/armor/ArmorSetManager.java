@@ -1,6 +1,7 @@
 package com.roguelike.armor;
 
 import com.roguelike.RoguelikePlugin;
+import com.roguelike.armor.affix.ArmorAffixManager;
 import com.roguelike.combat.CombatHandler;
 import com.roguelike.config.ArmorDefinition;
 import com.roguelike.config.ConfigManager;
@@ -16,7 +17,6 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -57,39 +57,50 @@ public final class ArmorSetManager {
     }
 
     private static ItemStack createSetItem(String id, String name, String description) {
-        ArmorSet set = ArmorSet.fromItemId(id);
-        ArmorPiece piece = ArmorPiece.fromItemId(id);
-        if (set == null || piece == null) return null;
+        ArmorDefinition definition = armorDefinitions().get(id.toLowerCase(Locale.ROOT));
+        if (definition == null) return null;
+        String set = armorSet(id, definition);
+        String piece = armorPiece(id, definition);
+        if (set.isBlank() || piece.isBlank()) return null;
 
-        ItemStack stack = new ItemStack(set.material(piece));
+        ItemStack stack = new ItemStack(resolveMaterial(definition, set, piece));
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) return stack;
 
-        meta.displayName(Message.toComponent(set.color + name));
+        meta.displayName(Message.toComponent(setColor(set) + name));
         List<Component> lore = new ArrayList<>();
         lore.add(Message.toComponent("§7" + description));
         lore.add(Message.toComponent("§7─────────────────"));
-        for (String line : set.lore) {
+        String affix = armorAffix(set, definition);
+        int affixLevel = Math.max(0, definition.affixLevel());
+        if (!affix.isBlank() && affixLevel > 0) {
+            lore.add(Message.toComponent("§7自带词条: " + setColor(set) + ArmorAffixManager.displayName(affix) + " §8(" + affix + ")"));
+        }
+        for (String line : armorLore(set, definition)) {
             lore.add(Message.toComponent(line));
         }
         lore.add(Message.toComponent("§7─────────────────"));
-        lore.add(Message.toComponent("§8套装: " + set.id + " / 部位: " + piece.id));
+        lore.add(Message.toComponent("§8套装: " + set + " / 部位: " + piece));
         meta.lore(lore);
         meta.setUnbreakable(true);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_UNBREAKABLE);
-        meta.getPersistentDataContainer().set(SET_KEY, PersistentDataType.STRING, set.id);
-        meta.getPersistentDataContainer().set(PIECE_KEY, PersistentDataType.STRING, piece.id);
-        applyBaseEnchantments(meta, set);
+        meta.getPersistentDataContainer().set(SET_KEY, PersistentDataType.STRING, set);
+        meta.getPersistentDataContainer().set(PIECE_KEY, PersistentDataType.STRING, piece);
+        applyBaseEnchantments(meta, set, definition);
         stack.setItemMeta(meta);
+        if (!affix.isBlank() && affixLevel > 0) {
+            ArmorAffixManager.applyEnchant(stack, affix, affixLevel);
+        }
         return stack;
     }
 
     public static boolean isSetItemId(String id) {
-        return ArmorSet.fromItemId(id) != null && ArmorPiece.fromItemId(id) != null;
+        ArmorDefinition definition = id == null ? null : armorDefinitions().get(id.toLowerCase(Locale.ROOT));
+        return definition != null && !armorSet(id, definition).isBlank() && !armorPiece(id, definition).isBlank();
     }
 
     public static void applyPassiveEffects(Player player) {
-        int swift = countPieces(player, ArmorSet.SWIFT);
+        int swift = swiftPieces(player);
         if (swift > 0) {
             player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 60, Math.min(3, swift - 1), true, false, true));
         }
@@ -99,7 +110,7 @@ public final class ArmorSetManager {
         if (!(event.getEntity() instanceof Player player)) return;
         if (!(event.getDamager() instanceof LivingEntity attacker)) return;
 
-        int thorns = countPieces(player, ArmorSet.THORNS);
+        int thorns = ArmorAffixManager.thornsPieces(player);
         if (thorns > 0) {
             double reflected = event.getDamage() * thornsReflectPercent(thorns);
             CombatHandler.applyInternalDamage(attacker, reflected, player);
@@ -111,7 +122,7 @@ public final class ArmorSetManager {
             }
         }
 
-        int explosive = countPieces(player, ArmorSet.EXPLOSIVE);
+        int explosive = ArmorAffixManager.explosivePieces(player);
         if (explosive > 0 && RANDOM.nextDouble() < explosiveExplosionChance(explosive)) {
             applyExplosiveSetBlast(player, explosive);
             player.getWorld().playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 0.8f, 1.2f);
@@ -122,10 +133,10 @@ public final class ArmorSetManager {
     }
 
     public static int swiftPieces(Player player) {
-        return countPieces(player, ArmorSet.SWIFT);
+        return ArmorAffixManager.swiftPieces(player);
     }
 
-    private static int countPieces(Player player, ArmorSet set) {
+    private static int countPieces(Player player, String set) {
         PlayerInventory inventory = player.getInventory();
         int count = 0;
         if (isPiece(inventory.getHelmet(), set)) count++;
@@ -135,20 +146,20 @@ public final class ArmorSetManager {
         return count;
     }
 
-    private static boolean isPiece(ItemStack stack, ArmorSet set) {
+    private static boolean isPiece(ItemStack stack, String set) {
         if (stack == null || stack.getType().isAir()) return false;
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) return false;
         String id = meta.getPersistentDataContainer().get(SET_KEY, PersistentDataType.STRING);
-        return set.id.equals(id);
+        return set.equals(id);
     }
 
     private static double thornsReflectPercent(int pieces) {
         return switch (pieces) {
-            case 1 -> 0.25;
-            case 2 -> 0.30;
-            case 3 -> 0.35;
-            default -> 0.45;
+            case 1 -> 0.35;
+            case 2 -> 0.45;
+            case 3 -> 0.55;
+            default -> 0.70;
         };
     }
 
@@ -187,12 +198,29 @@ public final class ArmorSetManager {
         }
     }
 
-    private static void applyBaseEnchantments(ItemMeta meta, ArmorSet set) {
-        if (set == ArmorSet.SWIFT) {
+    private static void applyBaseEnchantments(ItemMeta meta, String set, ArmorDefinition definition) {
+        for (ArmorDefinition.ArmorEnchantmentDefinition enchantment : definition.enchantments()) {
+            Enchantment resolved = resolveEnchantment(enchantment.id());
+            if (resolved != null) addEnchantIfHigher(meta, resolved, enchantment.level());
+        }
+        if ("swift".equals(set)) {
             addEnchantIfHigher(meta, Enchantment.UNBREAKING, 4);
-        } else if (set == ArmorSet.EXPLOSIVE) {
+        } else if ("explosive".equals(set)) {
             addEnchantIfHigher(meta, Enchantment.BLAST_PROTECTION, 4);
         }
+    }
+
+    private static Enchantment resolveEnchantment(String id) {
+        if (id == null) return null;
+        return switch (id.toLowerCase(Locale.ROOT)) {
+            case "unbreaking", "durability" -> Enchantment.UNBREAKING;
+            case "blast_protection", "blast-protection" -> Enchantment.BLAST_PROTECTION;
+            case "protection" -> Enchantment.PROTECTION;
+            case "fire_protection", "fire-protection" -> Enchantment.FIRE_PROTECTION;
+            case "projectile_protection", "projectile-protection" -> Enchantment.PROJECTILE_PROTECTION;
+            case "feather_falling", "feather-falling" -> Enchantment.FEATHER_FALLING;
+            default -> null;
+        };
     }
 
     private static void addEnchantIfHigher(ItemMeta meta, Enchantment enchantment, int level) {
@@ -210,76 +238,92 @@ public final class ArmorSetManager {
         return ConfigManager.getArmorDefinitions();
     }
 
-    private enum ArmorSet {
-        THORNS("thorns", "§f", List.of(
-                "§f荆棘套: §f受击反弹基于敌人攻击力的伤害",
-                "§72/3/4件: §f30% / 35% / 45% 反伤",
-                "§74件: §f受击获得亢奋与力量 II"
-        )),
-        SWIFT("swift", "§9", List.of(
-                "§9神速套: §f每件提供速度等级 +1",
-                "§7自带: §f用不坏 IV",
-                "§74件: §fDash 变为3充能，冷却4秒"
-        )),
-        EXPLOSIVE("explosive", "§5", List.of(
-                "§5炸药套: §f受击概率触发TNT爆炸",
-                "§71/2/3/4件: §f25% / 45% / 75% / 100%",
-                "§7自带: §f爆炸保护 IV；4件爆炸后获得力量 III"
-        ));
-
-        private final String id;
-        private final String color;
-        private final List<String> lore;
-
-        ArmorSet(String id, String color, List<String> lore) {
-            this.id = id;
-            this.color = color;
-            this.lore = lore;
-        }
-
-        Material material(ArmorPiece piece) {
-            String prefix = switch (this) {
-                case THORNS -> "CHAINMAIL";
-                case SWIFT -> "GOLDEN";
-                case EXPLOSIVE -> "COPPER";
-            };
-            Material material = Material.matchMaterial(prefix + "_" + piece.materialSuffix);
-            if (material != null) return material;
-            if (this == EXPLOSIVE) return Material.matchMaterial("LEATHER_" + piece.materialSuffix);
-            return Material.LEATHER_CHESTPLATE;
-        }
-
-        static ArmorSet fromItemId(String itemId) {
-            if (itemId == null) return null;
-            String normalized = itemId.toLowerCase(Locale.ROOT);
-            for (ArmorSet set : values()) {
-                if (normalized.startsWith(set.id + "_")) return set;
-            }
-            return null;
-        }
+    private static Material resolveMaterial(ArmorDefinition definition, String set, String piece) {
+        Material configured = Material.matchMaterial(normalizeMaterial(definition.material()));
+        if (configured != null) return configured;
+        String prefix = switch (set) {
+            case "thorns" -> "CHAINMAIL";
+            case "swift" -> "GOLDEN";
+            case "explosive" -> "COPPER";
+            case "guardian" -> "IRON";
+            case "vampire" -> "NETHERITE";
+            case "storm" -> "DIAMOND";
+            default -> "LEATHER";
+        };
+        Material material = Material.matchMaterial(prefix + "_" + materialSuffix(piece));
+        if (material != null) return material;
+        if ("explosive".equals(set)) return Material.matchMaterial("LEATHER_" + materialSuffix(piece));
+        return Material.LEATHER_CHESTPLATE;
     }
 
-    private enum ArmorPiece {
-        HELMET("helmet", "HELMET"),
-        CHESTPLATE("chestplate", "CHESTPLATE"),
-        LEGGINGS("leggings", "LEGGINGS"),
-        BOOTS("boots", "BOOTS");
+    private static String normalizeMaterial(String raw) {
+        if (raw == null || raw.isBlank()) return "";
+        String normalized = raw.trim().toUpperCase(Locale.ROOT);
+        if (normalized.startsWith("MINECRAFT:")) normalized = normalized.substring("MINECRAFT:".length());
+        return normalized;
+    }
 
-        private final String id;
-        private final String materialSuffix;
+    private static String materialSuffix(String piece) {
+        return switch (piece) {
+            case "helmet" -> "HELMET";
+            case "chestplate" -> "CHESTPLATE";
+            case "leggings" -> "LEGGINGS";
+            case "boots" -> "BOOTS";
+            default -> "CHESTPLATE";
+        };
+    }
 
-        ArmorPiece(String id, String materialSuffix) {
-            this.id = id;
-            this.materialSuffix = materialSuffix;
+    private static String armorSet(String id, ArmorDefinition definition) {
+        if (definition.set() != null && !definition.set().isBlank()) return definition.set().toLowerCase(Locale.ROOT);
+        int underscore = id == null ? -1 : id.indexOf('_');
+        return underscore <= 0 ? "" : id.substring(0, underscore).toLowerCase(Locale.ROOT);
+    }
+
+    private static String armorPiece(String id, ArmorDefinition definition) {
+        if (definition.piece() != null && !definition.piece().isBlank()) return definition.piece().toLowerCase(Locale.ROOT);
+        String lower = id == null ? "" : id.toLowerCase(Locale.ROOT);
+        for (String suffix : List.of("helmet", "chestplate", "leggings", "boots")) {
+            if (lower.endsWith("_" + suffix)) return suffix;
         }
+        return "";
+    }
 
-        static ArmorPiece fromItemId(String itemId) {
-            if (itemId == null) return null;
-            String normalized = itemId.toLowerCase(Locale.ROOT);
-            for (ArmorPiece piece : values()) {
-                if (normalized.endsWith("_" + piece.id)) return piece;
-            }
-            return null;
-        }
+    private static String armorAffix(String set, ArmorDefinition definition) {
+        if (definition.affix() != null && !definition.affix().isBlank()) return definition.affix().toLowerCase(Locale.ROOT);
+        return set;
+    }
+
+    private static List<String> armorLore(String set, ArmorDefinition definition) {
+        if (!definition.lore().isEmpty()) return definition.lore();
+        return switch (set) {
+            case "thorns" -> List.of(
+                    "§f荆棘: §f受击反弹基于敌人攻击力的伤害",
+                    "§71/2/3/4件: §f35% / 45% / 55% / 70% 反伤",
+                    "§74件: §f受击获得亢奋与力量 II"
+            );
+            case "swift" -> List.of(
+                    "§9神速: §f每件提供速度等级 +1",
+                    "§7原版自带: §f用不坏 IV",
+                    "§74件: §fDash 变为3充能，冷却4秒"
+            );
+            case "explosive" -> List.of(
+                    "§5炸药: §f受击概率触发TNT爆炸",
+                    "§71/2/3/4件: §f25% / 45% / 75% / 100%",
+                    "§74件: §f爆炸后获得力量 III",
+                    "§7原版自带: §f爆炸保护 IV"
+            );
+            default -> List.of("§7" + definition.description());
+        };
+    }
+
+    private static String setColor(String set) {
+        return switch (set) {
+            case "swift" -> "§9";
+            case "explosive" -> "§5";
+            case "guardian" -> "§a";
+            case "vampire" -> "§4";
+            case "storm" -> "§b";
+            default -> "§f";
+        };
     }
 }

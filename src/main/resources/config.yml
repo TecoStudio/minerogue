@@ -74,6 +74,18 @@ content:
       - armor/thorns_chestplate.yml
       - armor/thorns_helmet.yml
       - armor/thorns_leggings.yml
+      - armor/guardian_boots.yml
+      - armor/guardian_chestplate.yml
+      - armor/guardian_helmet.yml
+      - armor/guardian_leggings.yml
+      - armor/storm_boots.yml
+      - armor/storm_chestplate.yml
+      - armor/storm_helmet.yml
+      - armor/storm_leggings.yml
+      - armor/vampire_boots.yml
+      - armor/vampire_chestplate.yml
+      - armor/vampire_helmet.yml
+      - armor/vampire_leggings.yml
       - mobs/blood-zombie.yml
       - mobs/drowned.yml
       - mobs/exp-blaze.yml
