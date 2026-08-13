@@ -10,3 +10,6 @@ server
 network/
 .hermes/*
 resourcepack/art/
+.pytest_cache/
+.zcode/plans/
+.claude/worktrees/
