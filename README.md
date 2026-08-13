@@ -6,8 +6,9 @@ Roguelike 不是任务服框架，也不是经济插件。它专注于把 Minecr
 
 | 项目 | 当前状态 |
 | --- | --- |
-| 插件名 | `Roguelike` |
-| 生产部署 jar | `minerogue.jar` |
+| 插件名 | `minerogue` |
+| 插件数据目录 | `plugins/minerogue/` |
+| 构建产物 | `minerogue-0.2-<commitid>.jar` |
 | 服务端 | Paper 1.21.11 |
 | Java | Java 25 |
 | 内容形态 | YAML 驱动 |
@@ -91,24 +92,24 @@ enchantments:
 构建产物：
 
 ```text
-build/libs/minerogue.jar
+build/libs/minerogue-0.2-<commitid>.jar
 ```
 
 正式服部署约定：
 
 ```text
-D:\LIPis\Documents\Minecraft\roguelike-production\plugins\minerogue.jar
+D:\LIPis\Documents\Minecraft\roguelike-production\plugins\minerogue-0.2-<commitid>.jar
 ```
 
 推荐更新流程：
 
-1. 构建 `build/libs/minerogue.jar`。
-2. 删除生产服 `plugins/` 下旧的 `minerogue-*.jar` 重复文件。
-3. 复制新 jar 为 `plugins/minerogue.jar`。
-4. 如果修改了 `content/`，同步到 `plugins/Roguelike/content/...`。
+1. 构建 `build/libs/minerogue-0.2-<commitid>.jar`。
+2. 删除生产服 `plugins/` 下旧的 `minerogue-0.2-*.jar` 重复文件。
+3. 复制新 jar 到服务器 `plugins/`，保留构建产物文件名。
+4. 如果修改了 `content/`，同步到 `plugins/minerogue/content/...`。
 5. RCON 或控制台执行：
    ```text
-   plugman reload Roguelike
+   plugman reload minerogue
    rw reload
    ```
 6. 检查 `logs/latest.log`，确认没有新的异常。

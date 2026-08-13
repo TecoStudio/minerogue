@@ -27,6 +27,7 @@ public class WeaponManager {
     private static final NamespacedKey ATTACK_SPEED_KEY = new NamespacedKey("roguelike", "attack_speed");
     private static final NamespacedKey ATTACK_RANGE_KEY = new NamespacedKey("roguelike", "attack_range");
     private static final NamespacedKey MOVEMENT_SPEED_KEY = new NamespacedKey("roguelike", "movement_speed");
+    private static final String RESOURCE_PACK_NAMESPACE = "minerogue";
 
     public static void init(RoguelikePlugin plugin) {
         WeaponManager.plugin = plugin;
@@ -193,6 +194,7 @@ public class WeaponManager {
         lore.add(Message.toComponent("§7========== " + rarityColor + "品质: " + getRarityDisplayName(template.getRarity()) + " §7=========="));
 
         meta.lore(lore);
+        meta.setItemModel(new NamespacedKey(RESOURCE_PACK_NAMESPACE, template.getId()));
         applyVanillaItemAttributes(meta, stack.getType(), totalDamage, totalSpeed);
         stack.setItemMeta(meta);
     }

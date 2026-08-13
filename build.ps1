@@ -1,4 +1,4 @@
-# Roguelike Paper Plugin Build Script
+# minerogue Paper Plugin Build Script
 # Usage: powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 [-TimeoutSeconds 180]
 
 param(
@@ -17,7 +17,7 @@ if (-not (Test-Path -LiteralPath $gradleBat)) {
 }
 
 $arguments = @("--no-daemon", "clean", "build")
-Write-Host "Building Roguelike plugin with Gradle: $($arguments -join ' ')" -ForegroundColor Cyan
+Write-Host "Building minerogue plugin with Gradle: $($arguments -join ' ')" -ForegroundColor Cyan
 Write-Host "Timeout: $TimeoutSeconds seconds" -ForegroundColor DarkGray
 
 $startInfo = [System.Diagnostics.ProcessStartInfo]::new()

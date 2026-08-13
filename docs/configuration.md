@@ -5,7 +5,7 @@
 运行时目录：
 
 ```text
-plugins/Roguelike/
+plugins/minerogue/
 ├─ config.yml
 ├─ weapons.yml
 ├─ items.yml

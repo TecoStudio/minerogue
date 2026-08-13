@@ -3,14 +3,14 @@
 storage:
   # 可选: json 或 sqlite
   type: json
-  # SQLite 文件路径，相对于 plugins/Roguelike 目录
+  # SQLite 文件路径，相对于 plugins/minerogue 目录
   sqlite-file: roguelike.db
   # 定期保存间隔 (ticks)，20 ticks = 1 秒。最低 600 ticks。
   save-interval: 1200
   # 开启后定期保存会在异步线程写入磁盘，降低主线程 IO 抖动。
   async-save: true
   backup:
-    # 自动备份玩家数据到 plugins/Roguelike/backups/player-data-*.zip
+    # 自动备份玩家数据到 plugins/minerogue/backups/player-data-*.zip
     enabled: true
     # 备份间隔（分钟），最低 10 分钟。
     interval-minutes: 60
@@ -23,12 +23,12 @@ debug:
 
 content:
   github-sync:
-    # 开启后启动或 /rw reload 时会从 GitHub/raw 地址拉取内容 YAML 到 plugins/Roguelike/content/。
+    # 开启后启动或 /rw reload 时会从 GitHub/raw 地址拉取内容 YAML 到 plugins/minerogue/content/。
     # 默认打开；base-url 为空时不会发起网络请求，适合仅使用本地 content 目录。
     enabled: true
     # 示例: https://raw.githubusercontent.com/TecoStudio/minerogue-content/main/content
     base-url: ""
-    # 需要拉取的相对路径。路径会写入 plugins/Roguelike/content/<相对路径>。
+    # 需要拉取的相对路径。路径会写入 plugins/minerogue/content/<相对路径>。
     files:
       - weapons/cinderbrand_axe.yml
       - weapons/crimson_oath.yml

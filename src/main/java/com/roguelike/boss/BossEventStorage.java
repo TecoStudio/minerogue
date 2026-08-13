@@ -50,9 +50,9 @@ public class BossEventStorage {
         yaml.set(path + ".center.y", arena.centerY());
         yaml.set(path + ".center.z", arena.centerZ());
         yaml.set(path + ".radius", arena.radius());
-        yaml.set(path + ".boss-id", arena.bossMobId());
+        yaml.set(path + ".boss-id", arena.bossId());
+        yaml.set(path + ".boss-mob-id", arena.bossMobId());
         yaml.set(path + ".boss-entity-uuid", arena.bossEntityUuid() == null ? null : arena.bossEntityUuid().toString());
-        yaml.set(path + ".structure", arena.structureId());
         yaml.set(path + ".created-at", format(arena.createdAt()));
         yaml.set(path + ".expires-at", format(arena.expiresAt()));
         yaml.set(path + ".protected-while-active", arena.protectedWhileActive());
@@ -68,13 +68,13 @@ public class BossEventStorage {
         int z = section.getInt("center.z");
         int radius = section.getInt("radius", 32);
         String bossId = section.getString("boss-id", "blood-zombie");
+        String bossMobId = section.getString("boss-mob-id", bossId);
         UUID uuid = parseUuid(section.getString("boss-entity-uuid"));
-        String structure = section.getString("structure", "blood_altar");
         Instant created = parseInstant(section.getString("created-at"), Instant.now());
         Instant expires = parseInstant(section.getString("expires-at"), null);
         boolean protectedWhileActive = section.getBoolean("protected-while-active", true);
         ActiveBossArena.State state = ActiveBossArena.parseState(section.getString("state"));
-        return new ActiveBossArena(id, world, x, y, z, radius, bossId, uuid, structure, created, expires, protectedWhileActive, state);
+        return new ActiveBossArena(id, world, x, y, z, radius, bossId, bossMobId, uuid, created, expires, protectedWhileActive, state);
     }
 
     private static String format(Instant instant) {

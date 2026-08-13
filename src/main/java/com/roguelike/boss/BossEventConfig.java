@@ -9,7 +9,6 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 public record BossEventConfig(
@@ -39,7 +38,7 @@ public record BossEventConfig(
 
     public static BossEventConfig defaults() {
         return new BossEventConfig(true, "world", 48.0, true,
-                Spawn.defaults(), Arena.defaults(), Leash.defaults(), Broadcast.defaults(), defaultBosses());
+        Spawn.defaults(), Arena.defaults(), Leash.defaults(), Broadcast.defaults(), defaultBosses());
     }
 
     public static BossEventConfig load(File file) {
@@ -51,7 +50,7 @@ public record BossEventConfig(
         ConfigurationSection root = yaml.getConfigurationSection("boss-events");
         if (root == null) root = yaml;
         Spawn spawn = new Spawn(
-                root.getInt("spawn.min-distance-chunks", 3),
+                root.getInt("spawn.min-distance-chunks", 5),
                 root.getInt("spawn.max-distance-blocks", 192),
                 root.getInt("spawn.max-attempts", 32),
                 root.getInt("spawn.avoid-spawn-radius-blocks", 128)
@@ -62,8 +61,7 @@ public record BossEventConfig(
                 root.getBoolean("arena.block-break", true),
                 root.getBoolean("arena.block-place", true),
                 root.getBoolean("arena.block-explosions", true),
-                root.getBoolean("arena.block-buckets", true),
-                root.getBoolean("arena.keep-structure-after-death", true)
+                root.getBoolean("arena.block-buckets", true)
         );
         Leash leash = new Leash(
                 root.getBoolean("leash.enabled", true),
@@ -97,7 +95,7 @@ public record BossEventConfig(
         yaml.set("boss-events.world", "world");
         yaml.set("boss-events.interval-hours", 48.0);
         yaml.set("boss-events.require-online-player", true);
-        yaml.set("boss-events.spawn.min-distance-chunks", 3);
+        yaml.set("boss-events.spawn.min-distance-chunks", 5);
         yaml.set("boss-events.spawn.max-distance-blocks", 192);
         yaml.set("boss-events.spawn.max-attempts", 32);
         yaml.set("boss-events.spawn.avoid-spawn-radius-blocks", 128);
@@ -107,7 +105,6 @@ public record BossEventConfig(
         yaml.set("boss-events.arena.block-place", true);
         yaml.set("boss-events.arena.block-explosions", true);
         yaml.set("boss-events.arena.block-buckets", true);
-        yaml.set("boss-events.arena.keep-structure-after-death", true);
         yaml.set("boss-events.leash.enabled", true);
         yaml.set("boss-events.leash.check-interval-ticks", 20L);
         yaml.set("boss-events.leash.max-distance-from-center", 32);
@@ -116,12 +113,12 @@ public record BossEventConfig(
         yaml.set("boss-events.broadcast.on-death", true);
         yaml.set("boss-events.broadcast.show-coordinates", false);
         yaml.set("boss-events.broadcast.show-direction-from-anchor", true);
-        List<java.util.Map<String, Object>> bosses = new ArrayList<>();
-        bosses.add(defaultBossMap("blood-zombie", 60, "blood_altar", List.of(
+        List<Map<String, Object>> bosses = new ArrayList<>();
+        bosses.add(defaultBossMap("blood-zombie", 60, List.of(
                 Map.of("material", "minecraft:diamond", "amount", 1, "chance", 0.35),
                 Map.of("weapon-template", "crimson_oath", "amount", 1, "chance", 0.05)
         )));
-        bosses.add(defaultBossMap("vagrant", 40, "bone_ruins", List.of(
+        bosses.add(defaultBossMap("vagrant", 40, List.of(
                 Map.of("item-template", "greater_healing_potion", "amount", 2, "chance", 0.45),
                 Map.of("weapon-template", "echo_blade", "amount", 1, "chance", 0.05)
         )));
@@ -130,15 +127,11 @@ public record BossEventConfig(
         yaml.save(file);
     }
 
-    private static Map<String, Object> defaultBossMap(String id, int weight, String structureId, List<Map<String, Object>> loot) {
+    private static Map<String, Object> defaultBossMap(String id, int weight, List<Map<String, Object>> loot) {
         Map<String, Object> boss = new LinkedHashMap<>();
         boss.put("id", id);
         boss.put("weight", weight);
         boss.put("mob", id);
-        Map<String, Object> structure = new LinkedHashMap<>();
-        structure.put("type", "builtin");
-        structure.put("id", structureId);
-        boss.put("structure", structure);
         Map<String, Object> drops = new LinkedHashMap<>();
         drops.put("items", loot);
         boss.put("drops", drops);
@@ -161,31 +154,11 @@ public record BossEventConfig(
                 String id = String.valueOf(map.containsKey("id") ? map.get("id") : "");
                 int weight = parseInt(map.get("weight"), 1);
                 String mobId = String.valueOf(map.containsKey("mob") ? map.get("mob") : id);
-                StructureDefinition structure = parseStructure(map.get("structure"));
                 DropConfig drops = parseDropConfig(map);
-                if (!id.isBlank()) result.add(new BossDefinition(id, weight, mobId, structure, drops));
+                if (!id.isBlank()) result.add(new BossDefinition(id, weight, mobId, drops));
             }
         }
         return result;
-    }
-
-    private static StructureDefinition parseStructure(Object raw) {
-        if (raw instanceof Map<?, ?> map) {
-            String type = stringValue(map.get("type"), "builtin");
-            String id = stringValue(map.containsKey("id") ? map.get("id") : map.get("name"), "blood_altar");
-            String file = stringValue(map.get("file"), "");
-            String rotation = stringValue(map.get("rotation"), "none");
-            Offset offset = parseOffset(map.get("offset"));
-            return new StructureDefinition(type, id, file, offset, rotation);
-        }
-        return StructureDefinition.builtin(stringValue(raw, "blood_altar"));
-    }
-
-    private static Offset parseOffset(Object raw) {
-        if (raw instanceof Map<?, ?> map) {
-            return new Offset(parseInt(map.get("x"), 0), parseInt(map.get("y"), 0), parseInt(map.get("z"), 0));
-        }
-        return Offset.zero();
     }
 
     private static DropConfig parseDropConfig(Map<?, ?> boss) {
@@ -229,8 +202,8 @@ public record BossEventConfig(
 
     private static List<BossDefinition> defaultBosses() {
         return List.of(
-                new BossDefinition("blood-zombie", 60, "blood-zombie", StructureDefinition.builtin("blood_altar"), DropConfig.empty()),
-                new BossDefinition("vagrant", 40, "vagrant", StructureDefinition.builtin("bone_ruins"), DropConfig.empty())
+                new BossDefinition("blood-zombie", 60, "blood-zombie", DropConfig.empty()),
+                new BossDefinition("vagrant", 40, "vagrant", DropConfig.empty())
         );
     }
 
@@ -259,14 +232,14 @@ public record BossEventConfig(
             return minDistanceChunks * 16;
         }
         static Spawn defaults() {
-            return new Spawn(3, 192, 32, 128);
+            return new Spawn(5, 192, 32, 128);
         }
     }
 
     public record Arena(int radius, boolean protectBlocksWhileActive, boolean blockBreak, boolean blockPlace,
-                        boolean blockExplosions, boolean blockBuckets, boolean keepStructureAfterDeath) {
+                        boolean blockExplosions, boolean blockBuckets) {
         public Arena { radius = Math.max(4, radius); }
-        static Arena defaults() { return new Arena(32, true, true, true, true, true, true); }
+        static Arena defaults() { return new Arena(32, true, true, true, true, true); }
     }
 
     public record Leash(boolean enabled, long checkIntervalTicks, int maxDistanceFromCenter, int teleportBackDistance) {
@@ -282,36 +255,13 @@ public record BossEventConfig(
         static Broadcast defaults() { return new Broadcast(true, true, false, true); }
     }
 
-    public record BossDefinition(String id, int weight, String mobId, StructureDefinition structure, DropConfig drops) {
+    public record BossDefinition(String id, int weight, String mobId, DropConfig drops) {
         public BossDefinition {
             id = blankDefault(id, "blood-zombie");
             weight = Math.max(1, weight);
             mobId = blankDefault(mobId, id);
-            structure = structure == null ? StructureDefinition.builtin("blood_altar") : structure;
             drops = drops == null ? DropConfig.empty() : drops;
         }
-
-        public String structureId() {
-            return structure.id();
-        }
-    }
-
-    public record StructureDefinition(String type, String id, String file, Offset offset, String rotation) {
-        public StructureDefinition {
-            type = blankDefault(type, "builtin").toLowerCase(Locale.ROOT);
-            id = blankDefault(id, "blood_altar");
-            file = file == null ? "" : file;
-            offset = offset == null ? Offset.zero() : offset;
-            rotation = blankDefault(rotation, "none");
-        }
-
-        static StructureDefinition builtin(String id) {
-            return new StructureDefinition("builtin", id, "", Offset.zero(), "none");
-        }
-    }
-
-    public record Offset(int x, int y, int z) {
-        static Offset zero() { return new Offset(0, 0, 0); }
     }
 
     public record DropConfig(List<DropItemDefinition> items) {

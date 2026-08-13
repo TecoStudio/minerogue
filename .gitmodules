@@ -1,0 +1,3 @@
+[submodule "resourcepack"]
+	path = resourcepack
+	url = https://github.com/LIPiston/minerogue-resourcepack.git

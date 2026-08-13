@@ -1,4 +1,4 @@
-name: Roguelike
+name: minerogue
 version: ${version}
 main: com.roguelike.RoguelikePlugin
 api-version: '1.21'

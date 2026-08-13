@@ -29,7 +29,8 @@ public class BossLeashService {
         ActiveBossArena arena = BossEventManager.activeArena();
         if (config == null || arena == null || !arena.isActive()) return;
         LivingEntity boss = findBoss(arena);
-        if (boss == null || boss.isDead() || !boss.isValid()) {
+        if (boss == null) return;
+        if (boss.isDead() || !boss.isValid()) {
             BossEventManager.endActiveArena(ActiveBossArena.State.EXPIRED, true);
             return;
         }

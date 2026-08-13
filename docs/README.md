@@ -1,6 +1,6 @@
 # Roguelike 文档
 
-本文档描述当前 `minerogue` / `Roguelike` 插件实现。文档按“先部署能跑、再理解玩法、最后改内容”的顺序组织。
+本文档描述当前 `minerogue` 插件实现。文档按“先部署能跑、再理解玩法、最后改内容”的顺序组织。
 
 ## 推荐阅读顺序
 
@@ -24,7 +24,7 @@
 | [tickets.md](tickets.md) | 强化券、超级强化券、开发券、工具开发券、移除券 |
 | [forge.md](forge.md) | 铸造台结构、GUI、配方格式 |
 | [mobs.md](mobs.md) | 普通怪强化、精英怪、Boss、经验与掉落 |
-| [boss-events.md](boss-events.md) | 周期 Boss 事件、结构、区域保护 |
+| [boss-events.md](boss-events.md) | 周期 Boss 事件、粒子提示、区域保护 |
 | [commands.md](commands.md) | 命令与权限 |
 | [configuration.md](configuration.md) | `config.yml` 与 `content/` YAML |
 
@@ -33,4 +33,4 @@
 - 插件只负责 Roguelike 成长、装备、怪物和 Boss；经济、菜单、传送、领地等由外部插件组合。
 - 任务只做轻量引导，不作为强制主线。
 - 内容尽量 YAML 驱动：武器、物品、防具、怪物和 Boss 事件都可在运行时文件中调整。
-- 正式服部署 jar 文件名固定为 `minerogue.jar`，Bukkit 插件名仍为 `Roguelike`。
+- 插件数据目录为 `plugins/minerogue/`，构建产物格式为 `minerogue-0.2-<commitid>.jar`。

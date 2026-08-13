@@ -6,12 +6,12 @@
 ./gradlew.bat build
 ```
 
-产物：`build/libs/minerogue.jar`。
+产物：`build/libs/minerogue-0.2-<commitid>.jar`。
 
 ## 安装
 
-1. 将 `minerogue.jar` 放入 Paper 服务器 `plugins/`。
-2. 启动服务器，首次启动会生成 `plugins/Roguelike/`。
+1. 将最新的 `minerogue-0.2-<commitid>.jar` 放入 Paper 服务器 `plugins/`。
+2. 启动服务器，首次启动会生成 `plugins/minerogue/`。
 3. 修改配置后执行 `/rw reload`。
 
 ## 首次验证
@@ -40,10 +40,10 @@
 ## 正式服热更新检查
 
 ```text
-plugman reload Roguelike
+plugman reload minerogue
 rw reload
 rw list armor
 rw affixes
 ```
 
-如果改了 `content/armor/*.yml` 这类运行时内容，复制 jar 不会自动覆盖已存在的 `plugins/Roguelike/content/`，需要同步对应 YAML。
+如果改了 `content/armor/*.yml` 这类运行时内容，复制 jar 不会自动覆盖已存在的 `plugins/minerogue/content/`，需要同步对应 YAML。

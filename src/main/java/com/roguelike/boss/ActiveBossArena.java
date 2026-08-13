@@ -22,16 +22,16 @@ public class ActiveBossArena {
     private final int centerY;
     private final int centerZ;
     private final int radius;
+    private final String bossId;
     private final String bossMobId;
     private UUID bossEntityUuid;
-    private final String structureId;
     private final Instant createdAt;
     private Instant expiresAt;
     private final boolean protectedWhileActive;
     private State state;
 
     public ActiveBossArena(String id, String worldName, int centerX, int centerY, int centerZ, int radius,
-                           String bossMobId, UUID bossEntityUuid, String structureId, Instant createdAt,
+                           String bossId, String bossMobId, UUID bossEntityUuid, Instant createdAt,
                            Instant expiresAt, boolean protectedWhileActive, State state) {
         this.id = id;
         this.worldName = worldName;
@@ -39,9 +39,9 @@ public class ActiveBossArena {
         this.centerY = centerY;
         this.centerZ = centerZ;
         this.radius = Math.max(1, radius);
+        this.bossId = bossId;
         this.bossMobId = bossMobId;
         this.bossEntityUuid = bossEntityUuid;
-        this.structureId = structureId;
         this.createdAt = createdAt == null ? Instant.now() : createdAt;
         this.expiresAt = expiresAt;
         this.protectedWhileActive = protectedWhileActive;
@@ -49,9 +49,9 @@ public class ActiveBossArena {
     }
 
     public static ActiveBossArena active(String id, String worldName, int centerX, int centerY, int centerZ,
-                                         int radius, String bossMobId, String structureId, boolean protectedWhileActive) {
-        return new ActiveBossArena(id, worldName, centerX, centerY, centerZ, radius, bossMobId, null,
-                structureId, Instant.now(), null, protectedWhileActive, State.ACTIVE);
+                                         int radius, String bossId, String bossMobId, boolean protectedWhileActive) {
+        return new ActiveBossArena(id, worldName, centerX, centerY, centerZ, radius, bossId, bossMobId, null,
+                Instant.now(), null, protectedWhileActive, State.ACTIVE);
     }
 
     public boolean isActive() {
@@ -97,15 +97,18 @@ public class ActiveBossArena {
         return new Location(world, centerX + 0.5, centerY, centerZ + 0.5);
     }
 
+    public int centerChunkX() { return Math.floorDiv(centerX, 16); }
+    public int centerChunkZ() { return Math.floorDiv(centerZ, 16); }
+
     public String id() { return id; }
     public String worldName() { return worldName; }
     public int centerX() { return centerX; }
     public int centerY() { return centerY; }
     public int centerZ() { return centerZ; }
     public int radius() { return radius; }
+    public String bossId() { return bossId; }
     public String bossMobId() { return bossMobId; }
     public UUID bossEntityUuid() { return bossEntityUuid; }
-    public String structureId() { return structureId; }
     public Instant createdAt() { return createdAt; }
     public Instant expiresAt() { return expiresAt; }
     public boolean protectedWhileActive() { return protectedWhileActive; }

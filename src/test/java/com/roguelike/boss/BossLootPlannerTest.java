@@ -1,6 +1,5 @@
 package com.roguelike.boss;
 
-import org.bukkit.block.structure.StructureRotation;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -24,13 +23,5 @@ class BossLootPlannerTest {
         assertEquals(2, rolled.get(0).amount());
         assertEquals("greater_healing_potion", rolled.get(1).itemTemplate());
         assertEquals(3, rolled.get(1).amount());
-    }
-
-    @Test
-    void structureRotationAcceptsVanillaFriendlyNames() {
-        assertEquals(StructureRotation.NONE, BossStructureService.rotation("none"));
-        assertEquals(StructureRotation.CLOCKWISE_90, BossStructureService.rotation("clockwise_90"));
-        assertEquals(StructureRotation.CLOCKWISE_180, BossStructureService.rotation("180"));
-        assertEquals(StructureRotation.COUNTERCLOCKWISE_90, BossStructureService.rotation("counterclockwise_90"));
     }
 }

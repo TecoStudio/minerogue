@@ -26,7 +26,7 @@ public class BossEventManager {
     private static BossEventState state;
     private static BossEventStorage storage;
     private static BossSpawnPlanner spawnPlanner;
-    private static BossStructureService structureService;
+    private static BossBeaconService beaconService;
     private static BossLeashService leashService;
     private static BukkitTask tickTask;
 
@@ -44,19 +44,30 @@ public class BossEventManager {
     public static void reload() {
         if (plugin == null) return;
         cancelTickTask();
+        if (beaconService != null) beaconService.stop();
         File configFile = new File(plugin.getDataFolder(), "boss-events.yml");
         config = BossEventConfig.load(configFile);
         storage = new BossEventStorage(new File(plugin.getDataFolder(), "boss-events-state.yml"));
         state = storage.load(config);
         spawnPlanner = new BossSpawnPlanner(new Random());
-        structureService = new BossStructureService();
+        beaconService = new BossBeaconService();
         if (leashService == null) leashService = new BossLeashService();
+        ActiveBossArena activeArena = state.activeArena();
+        World activeWorld = activeArena == null ? null : Bukkit.getWorld(activeArena.worldName());
+        if (activeArena != null) {
+            if (activeWorld == null) {
+                endActiveArena(ActiveBossArena.State.EXPIRED, false);
+            } else {
+                beaconService.start(plugin, activeArena, activeWorld);
+            }
+        }
         leashService.start(plugin, config);
         tickTask = plugin.getServer().getScheduler().runTaskTimer(plugin, BossEventManager::tick, 20L * 60L, 20L * 60L);
     }
 
     public static void shutdown() {
         cancelTickTask();
+        if (beaconService != null) beaconService.stop();
         if (leashService != null) leashService.stop();
         if (storage != null && state != null) storage.save(state);
         plugin = null;
@@ -91,17 +102,21 @@ public class BossEventManager {
         BossSpawnPlanner.BossSpawnPlan plan = spawnPlanner.plan(Bukkit.getOnlinePlayers(), world, config, state.activeArena());
         if (plan == null) return false;
         BossEventConfig.BossDefinition boss = chooseBoss(config.bosses());
+        if (!MobManager.isAcceptedMobId(boss.mobId())) {
+            if (plugin != null) plugin.getLogger().warning("周期 Boss 配置引用了未加载的内置怪物 " + boss.mobId() + "，本次事件不会生成 Boss。");
+            return false;
+        }
         String id = "boss-" + DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").withZone(ZoneId.systemDefault()).format(Instant.now());
         ActiveBossArena arena = ActiveBossArena.active(id, world.getName(), plan.spawnLocation().getBlockX(), plan.spawnLocation().getBlockY(),
-                plan.spawnLocation().getBlockZ(), config.arena().radius(), boss.mobId(), boss.structureId(), config.arena().protectBlocksWhileActive());
-        var spawnLocation = structureService.generate(arena, world, plugin.getDataFolder(), boss.structure());
-        LivingEntity entity = MobManager.spawnInternalMob(boss.mobId(), spawnLocation == null ? plan.spawnLocation() : spawnLocation);
+                plan.spawnLocation().getBlockZ(), config.arena().radius(), boss.id(), boss.mobId(), config.arena().protectBlocksWhileActive());
+        LivingEntity entity = MobManager.spawnInternalMob(boss.mobId(), arena.centerLocation(world).add(0.0, 1.0, 0.0));
         if (entity == null) return false;
         arena.setBossEntityUuid(entity.getUniqueId());
         state.setActiveArena(arena);
         state.setLastBossSpawnAt(Instant.now());
         scheduleNextBoss();
         saveQuietly();
+        beaconService.start(plugin, arena, world);
         if (config.broadcast().onSpawn()) broadcastSpawn(arena, plan);
         return true;
     }
@@ -114,6 +129,7 @@ public class BossEventManager {
         if (state == null) return;
         ActiveBossArena arena = state.activeArena();
         if (arena == null) return;
+        if (beaconService != null) beaconService.stop();
         if (removeEntity && arena.bossEntityUuid() != null) {
             Entity entity = Bukkit.getEntity(arena.bossEntityUuid());
             if (entity != null) entity.remove();
@@ -194,7 +210,7 @@ public class BossEventManager {
         ActiveBossArena arena = activeArena();
         if (arena == null || config == null) return null;
         for (BossEventConfig.BossDefinition boss : config.bosses()) {
-            if (boss.mobId().equalsIgnoreCase(arena.bossMobId()) || boss.id().equalsIgnoreCase(arena.bossMobId())) {
+            if (boss.id().equalsIgnoreCase(arena.bossId()) || boss.mobId().equalsIgnoreCase(arena.bossMobId())) {
                 return boss;
             }
         }
@@ -217,12 +233,8 @@ public class BossEventManager {
     }
 
     private static void broadcastSpawn(ActiveBossArena arena, BossSpawnPlanner.BossSpawnPlan plan) {
-        String message = "&c周期 Boss " + arena.bossMobId() + " 已在主世界苏醒。";
-        if (config.broadcast().showCoordinates()) {
-            message += " &7坐标: " + arena.centerX() + ", " + arena.centerY() + ", " + arena.centerZ();
-        } else if (config.broadcast().showDirectionFromAnchor() && plan.anchorPlayerName() != null) {
-            message += " &7距离 " + plan.anchorPlayerName() + " 约 " + Math.round(plan.distanceFromAnchor()) + " 格。";
-        }
+        String message = "&c" + arena.bossId() + " 已经苏醒，在 "
+                + arena.centerX() + " " + arena.centerY() + " " + arena.centerZ() + " 位置。";
         Bukkit.broadcast(com.roguelike.util.Message.toComponent(message));
     }
 

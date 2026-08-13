@@ -5,7 +5,7 @@ This file is the canonical guide for coding agents working in this repository. T
 ## Project Overview
 
 - This is a Paper plugin for Minecraft `1.21.11`.
-- Runtime plugin name: `Roguelike`.
+- Runtime plugin name: `minerogue`.
 - Java target and toolchain: `25`.
 - Build system: Gradle wrapper.
 - Main plugin class: `com.roguelike.RoguelikePlugin`.
@@ -47,6 +47,15 @@ If build script behavior changes, run the regression check:
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\build-script-check.ps1
 ```
+
+## Project-Specific User Preferences
+
+- Deploy the newest `minerogue-*.jar`; remove stale duplicate plugin jars first so Paper/PlugManX cannot load an older build.
+- Use docs-first, root-cause fixes. If the user updated docs, treat those docs as the intended spec before editing code.
+- Do not stop/start/restart/regenerate production servers without explicit approval; preserve freeform survival gameplay.
+- UX constraints: no VIP/supporter rank; main GUI title is “菜单”; compass opens the menu on right-click only; Quests are removed; teleport center includes `/delhome home`.
+- Boss events: no buildings or marker blocks; use a red particle-only beam; announce `"<boss> 已经苏醒，在 x y z 位置。"`.
+- Armor design: armor set names should reflect built-in armor affixes such as thorns/swift/explosive; remove random armor affixes that merely duplicate vanilla enchants; keep both vanilla Protection and custom `damage_reduction` because they are not considered conflicting.
 
 ## Documentation Rules
 
@@ -136,7 +145,7 @@ The user has installed PlugManX for local hot-reload testing. After a successful
 Use PlugManX for manual in-server reload checks. Suggested console or in-game commands:
 
 ```text
-plugman reload Roguelike
+plugman reload minerogue
 plugins
 rw reload
 ```
@@ -146,8 +155,8 @@ If PlugManX command syntax differs on the installed version, use its help comman
 Expected hot-reload evidence in console or `server/logs/latest.log`:
 
 ```text
-[Roguelike] Enabling Roguelike v1.0.0
-[Roguelike] Roguelike plugin enabled.
+[minerogue] Enabling minerogue v0.2
+[minerogue] Roguelike plugin enabled.
 ```
 
 Do not use `server/start.bat`, `java -jar server.jar`, RCON `stop`, task killing, or process-control commands as part of normal verification. Server lifecycle is user-operated.
@@ -187,7 +196,7 @@ Preferred local verification path:
 1. Build with `./gradlew.bat build`.
 2. Have the user deploy the newest `minerogue-*.jar` into `server/plugins`.
 3. Have the user run or keep running the local server.
-4. Use PlugManX manual commands such as `plugman reload Roguelike`, `plugins`, and `/rw reload` to verify plugin reload behavior.
+4. Use PlugManX manual commands such as `plugman reload minerogue`, `plugins`, and `/rw reload` to verify plugin reload behavior.
 5. Use a Minecraft client or bot only when the user has the server running and the test requires true in-game actions such as joining, chatting, moving, mining, eating, attacking, opening GUIs, and checking inventory.
 6. Ask the user to stop the server when needed; do not stop it yourself.
 
@@ -199,7 +208,7 @@ Before reporting completion after code changes:
 
 - Run `./gradlew.bat build`.
 - If build script behavior changed, run `tests/build-script-check.ps1`.
-- If plugin runtime behavior changed, ask the user to run the server and hot-reload `Roguelike` with PlugManX, then confirm the plugin enables.
+- If plugin runtime behavior changed, ask the user to run the server and hot-reload `minerogue` with PlugManX, then confirm the plugin enables.
 - For gameplay changes, perform or request an in-game/client/bot smoke test that exercises the changed feature on the user-run server.
 - Ask the user to check `server/logs/latest.log` or paste relevant errors if the server log is needed; do not rely on direct server process control.
 - Confirm no ignored `server/` files or secrets are staged.

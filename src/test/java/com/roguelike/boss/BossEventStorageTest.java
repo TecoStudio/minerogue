@@ -17,7 +17,7 @@ class BossEventStorageTest {
         BossEventStorage storage = new BossEventStorage(dir.resolve("boss-events-state.yml").toFile());
         UUID uuid = UUID.randomUUID();
         ActiveBossArena arena = new ActiveBossArena("boss-20260722-120000", "world", 1200, 72, -830, 32,
-                "blood-zombie", uuid, "blood_altar", Instant.parse("2026-07-22T12:00:00Z"), null,
+                "bloodlord", "blood-zombie", uuid, Instant.parse("2026-07-22T12:00:00Z"), null,
                 true, ActiveBossArena.State.ACTIVE);
         BossEventState state = new BossEventState(Instant.parse("2026-07-24T12:00:00Z"),
                 Instant.parse("2026-07-22T12:00:00Z"), arena);
@@ -32,6 +32,7 @@ class BossEventStorageTest {
         assertEquals(1200, loaded.activeArena().centerX());
         assertEquals(-830, loaded.activeArena().centerZ());
         assertEquals(uuid, loaded.activeArena().bossEntityUuid());
-        assertEquals("blood_altar", loaded.activeArena().structureId());
+        assertEquals("bloodlord", loaded.activeArena().bossId());
+        assertEquals("blood-zombie", loaded.activeArena().bossMobId());
     }
 }

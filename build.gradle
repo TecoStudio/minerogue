@@ -3,7 +3,7 @@ plugins {
 }
 
 group = 'com.roguelike'
-version = '1.0.0'
+version = '0.2'
 
 def gitCommit = {
     try {
@@ -61,8 +61,17 @@ processResources {
     }
 }
 
+def resourcePackDir = file('resourcepack/pack')
+if (resourcePackDir.exists()) {
+    processResources {
+        from(resourcePackDir) {
+            into 'resourcepack'
+        }
+    }
+}
+
 jar {
-    archiveFileName = "minerogue.jar"
+    archiveFileName = "minerogue-${version}-${gitCommit}.jar"
 }
 
 tasks.withType(JavaCompile).configureEach {
