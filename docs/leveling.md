@@ -9,7 +9,7 @@
 | 进食 | 里程碑式经验，受 `gameplay.progression-exp-multiplier` 影响 |
 | 管理命令 | `/rw exp <数量> [玩家]` |
 
-原版经验条被插件接管为法力条：等级数字显示当前法力，经验条显示法力百分比。
+插件不接管原版经验条，玩家正常获得原版经验。Roguelike 等级与经验通过侧边栏计分板（`sidebar.yml`）和 `/rl status` 查看。
 
 ## 升级奖励
 

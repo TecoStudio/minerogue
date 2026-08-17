@@ -47,5 +47,10 @@ class ForgeRecipeManagerTest {
         assertEquals(id, config.getString(path + "result.id"));
         assertEquals(1, config.getInt(path + "result.amount"));
         assertEquals(coreMaterial, config.getString(path + "ingredients.W"));
+        java.util.List<String> shape = config.getStringList(path + "shape");
+        assertEquals(2, shape.size(), "shape must be 2 rows");
+        assertEquals(2, shape.get(0).length(), "shape row must be 2 chars");
+        assertEquals(2, shape.get(1).length(), "shape row must be 2 chars");
+        assertEquals(true, shape.get(0).contains("W"), "weapon symbol must be in the first row");
     }
 }

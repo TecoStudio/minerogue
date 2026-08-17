@@ -84,6 +84,8 @@ The local Paper server, when present, lives at:
 server/
 ```
 
+`start-test-server.bat` bootstraps it on first run: it creates `server/`, downloads the Paper 1.21.11 jar from the PaperMC v3 API if `server.jar` is missing, writes `eula=true`, deploys the newest `minerogue-*.jar` build, and starts the server.
+
 Important local settings normally used for smoke tests:
 
 - Minecraft address: `127.0.0.1:25565`
@@ -102,35 +104,25 @@ Important local settings normally used for smoke tests:
 - `simulation-distance=10`
 - `spawn-protection=16`
 
-The user manually starts and stops the local server by default. Agents must not start, stop, restart, kill, or otherwise control the Paper server process unless the user explicitly asks in that turn. When the user explicitly asks the agent to run server-side tests, use the psmux workflow below instead of opening an unmanaged terminal window.
+The user manually starts and stops the local server by default. Agents must not start, stop, restart, kill, or otherwise control the Paper server process unless the user explicitly asks in that turn. When the user explicitly asks the agent to run server-side tests, run the server directly in a terminal window with `start-test-server.bat`.
 
 The RCON password is stored only in ignored local `server/server.properties`. Do not copy it into tracked files, logs, docs, or commit messages. Prefer not to use RCON when the user is manually operating the server.
 
-### psmux Server Test Sessions
+### Direct Terminal Test Server
 
-When the user explicitly asks the agent to start or manage the local test server for automation, run it in a detached psmux session so RCON/MCP commands and server console output stay separated:
-
-```text
-server/start.bat
-```
-
-Expected session details:
+When the user explicitly asks the agent to start or manage the local test server for automation, run it directly in a terminal window:
 
 ```text
-Session: minerogue-server
-Window:  server
-Attach:  psmux attach -t minerogue-server
-Output:  psmux capture-pane -p -t minerogue-server:server -S -200
+start-test-server.bat
 ```
 
-Rules for psmux testing:
+Rules for terminal testing:
 
-- Use `server/start.bat` only when the user explicitly authorizes agent-controlled server startup/testing in the current turn.
-- Keep the server console in psmux; use RCON for console commands and Minecraft MCP for player/bot actions.
-- If `psmux` was just installed and is not yet on `PATH`, use the installed WinGet binary path shown by `server/start.bat` rather than editing tracked files with a machine-specific absolute path.
+- Use `start-test-server.bat` only when the user explicitly authorizes agent-controlled server startup/testing in the current turn.
+- Keep the server console in its terminal window; use RCON for console commands and Minecraft MCP for player/bot actions.
 - Before deploying a rebuilt plugin jar, remove duplicate stale `server/plugins/minerogue-*.jar` files so Paper/PlugManX cannot load an older jar.
 - After each automated test run, clean up test state: kill temporary hostile/test entities near the bot, restore the bot to creative mode when appropriate, clear short-lived effects/items created only for the test, and check `server/logs/latest.log` for new Roguelike errors.
-- At the end of testing, leave the psmux session running only if the user asked to keep the server available; otherwise ask the user before stopping/killing the session.
+- Do not close or kill the server terminal window; ask the user to stop the server when testing is done.
 
 ## Deploy And Hot Reload
 
@@ -159,7 +151,7 @@ Expected hot-reload evidence in console or `server/logs/latest.log`:
 [minerogue] Roguelike plugin enabled.
 ```
 
-Do not use `server/start.bat`, `java -jar server.jar`, RCON `stop`, task killing, or process-control commands as part of normal verification. Server lifecycle is user-operated.
+Do not run `start-test-server.bat`, `java -jar server.jar`, RCON `stop`, task killing, or process-control commands as part of normal verification. Server lifecycle is user-operated.
 
 ## Manual In-Game Smoke Tests
 

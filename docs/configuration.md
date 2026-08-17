@@ -25,7 +25,7 @@ plugins/minerogue/
 
 ## `config.yml`
 
-关键段落：storage、debug、content.github-sync、gameplay.mana、gameplay.exp-multiplier、gameplay.progression-exp-multiplier、gameplay.weapon-drop-multiplier、integrations、scoreboard。
+关键段落：storage、debug、content.github-sync、gameplay.exp-multiplier、gameplay.progression-exp-multiplier、gameplay.weapon-drop-multiplier、integrations、scoreboard。
 
 ## 防具 YAML
 

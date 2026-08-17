@@ -58,9 +58,13 @@ public final class ForgeRecipeManager {
     private static ForgeRecipe parseRecipe(String id, ConfigurationSection section) {
         if (section == null) return null;
         List<String> shape = section.getStringList("shape");
-        if (shape.size() != 3) return null;
-        String[] normalizedShape = new String[3];
-        for (int i = 0; i < 3; i++) {
+        if (shape.size() == 3) {
+            RoguelikePlugin.getInstance().getLogger().warning("配方 " + id + " 使用旧版 3x3 格式，已跳过。请删除 forge-recipes.yml 后执行 /rw reload 重新导出，或手动改为 2x2 格式。");
+            return null;
+        }
+        if (shape.size() != 2) return null;
+        String[] normalizedShape = new String[2];
+        for (int i = 0; i < 2; i++) {
             normalizedShape[i] = normalizeShapeLine(shape.get(i));
         }
 
@@ -81,8 +85,8 @@ public final class ForgeRecipeManager {
 
     private static String normalizeShapeLine(String line) {
         if (line == null) line = "";
-        if (line.length() > 3) return line.substring(0, 3);
-        return String.format("%-3s", line);
+        if (line.length() > 2) return line.substring(0, 2);
+        return String.format("%-2s", line);
     }
 
     private static Material parseMaterial(String raw) {
@@ -128,21 +132,21 @@ public final class ForgeRecipeManager {
         config.options().header("""
                 Roguelike 铸造台配方。修改后使用 /rw reload 重载。
 
-                shape 必须是 3 行，每行 3 个字符。空格表示空槽。
+                shape 必须是 2 行，每行 2 个字符。空格表示空槽。
                 ingredients 中的字符对应 shape 里的符号。
                 result.type 可选 armor、weapon、material。
                 result.id 在 armor 类型下填写插件防具 ID，在 weapon 类型下填写 weapons.yml 武器 ID，在 material 类型下填写原版材料 ID。
                 """);
-        addDefault(config, "explosive_helmet", List.of("TCT", "CCC", "TCT"), "explosive_helmet");
-        addDefault(config, "explosive_chestplate", List.of("CTC", "TCT", "CTC"), "explosive_chestplate");
-        addDefault(config, "explosive_leggings", List.of("TCT", "C C", "TCT"), "explosive_leggings");
-        addDefault(config, "explosive_boots", List.of("C C", "T T", "T T"), "explosive_boots");
-        addWeaponDefault(config, "ember_knife", List.of(" F ", " W ", " S "), "minecraft:stone_sword", 'F', "minecraft:flint", 'S', "minecraft:stick");
-        addWeaponDefault(config, "frost_cleaver", List.of(" I ", " W ", " B "), "minecraft:iron_axe", 'I', "minecraft:blue_ice", 'B', "minecraft:iron_block");
-        addWeaponDefault(config, "storm_spear", List.of(" C ", " W ", " R "), "minecraft:trident", 'C', "minecraft:copper_ingot", 'R', "minecraft:redstone");
-        addWeaponDefault(config, "plague_saber", List.of(" P ", " W ", " G "), "minecraft:golden_sword", 'P', "minecraft:spider_eye", 'G', "minecraft:gold_ingot");
-        addWeaponDefault(config, "echo_blade", List.of(" A ", " W ", " D "), "minecraft:diamond_sword", 'A', "minecraft:amethyst_shard", 'D', "minecraft:diamond");
-        addWeaponDefault(config, "glass_cannon_hammer", List.of(" N ", " W ", " B "), "minecraft:netherite_axe", 'N', "minecraft:netherite_ingot", 'B', "minecraft:diamond_block");
+        addDefault(config, "explosive_helmet", "explosive_helmet");
+        addDefault(config, "explosive_chestplate", "explosive_chestplate");
+        addDefault(config, "explosive_leggings", "explosive_leggings");
+        addDefault(config, "explosive_boots", "explosive_boots");
+        addWeaponDefault(config, "ember_knife", "minecraft:stone_sword", 'F', "minecraft:flint", 'S', "minecraft:stick");
+        addWeaponDefault(config, "frost_cleaver", "minecraft:iron_axe", 'I', "minecraft:blue_ice", 'B', "minecraft:iron_block");
+        addWeaponDefault(config, "storm_spear", "minecraft:trident", 'C', "minecraft:copper_ingot", 'R', "minecraft:redstone");
+        addWeaponDefault(config, "plague_saber", "minecraft:golden_sword", 'P', "minecraft:spider_eye", 'G', "minecraft:gold_ingot");
+        addWeaponDefault(config, "echo_blade", "minecraft:diamond_sword", 'A', "minecraft:amethyst_shard", 'D', "minecraft:diamond");
+        addWeaponDefault(config, "glass_cannon_hammer", "minecraft:netherite_axe", 'N', "minecraft:netherite_ingot", 'B', "minecraft:diamond_block");
 
         File parent = file.getParentFile();
         if (parent != null && !parent.exists() && !parent.mkdirs()) {
@@ -155,9 +159,9 @@ public final class ForgeRecipeManager {
         saveDefaults(file);
     }
 
-    private static void addDefault(YamlConfiguration config, String id, List<String> shape, String armorId) {
+    private static void addDefault(YamlConfiguration config, String id, String armorId) {
         String path = "recipes." + id + ".";
-        config.set(path + "shape", shape);
+        config.set(path + "shape", List.of("TC", "CT"));
         config.set(path + "ingredients.C", "minecraft:copper_ingot");
         config.set(path + "ingredients.T", "minecraft:tnt");
         config.set(path + "result.type", "armor");
@@ -165,11 +169,11 @@ public final class ForgeRecipeManager {
         config.set(path + "result.amount", 1);
     }
 
-    private static void addWeaponDefault(YamlConfiguration config, String id, List<String> shape,
+    private static void addWeaponDefault(YamlConfiguration config, String id,
                                          String weaponMaterial, char catalystSymbol, String catalyst,
                                          char baseSymbol, String baseMaterial) {
         String path = "recipes." + id + ".";
-        config.set(path + "shape", shape);
+        config.set(path + "shape", List.of("W" + catalystSymbol, baseSymbol + " "));
         config.set(path + "ingredients.W", weaponMaterial);
         config.set(path + "ingredients." + catalystSymbol, catalyst);
         config.set(path + "ingredients." + baseSymbol, baseMaterial);
@@ -203,7 +207,7 @@ public final class ForgeRecipeManager {
         }
 
         private Material materialAt(int index) {
-            char symbol = shape[index / 3].charAt(index % 3);
+            char symbol = shape[index / 2].charAt(index % 2);
             if (symbol == ' ') return null;
             return ingredients.get(symbol);
         }

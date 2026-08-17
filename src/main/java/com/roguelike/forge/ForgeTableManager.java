@@ -1,6 +1,7 @@
 package com.roguelike.forge;
 
 import com.roguelike.RoguelikePlugin;
+import com.roguelike.ticket.TicketManager;
 import com.roguelike.util.Message;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
@@ -20,8 +21,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class ForgeTableManager {
-    private static final int[] INPUT_SLOTS = {10, 11, 12, 19, 20, 21, 28, 29, 30};
-    private static final int RESULT_SLOT = 24;
+    private static final int EQUIPMENT_SLOT = 10;
+    private static final int[] MATERIAL_SLOTS = {12, 13, 14, 15};
+    private static final int RESULT_SLOT = 22;
     private static final int INFO_SLOT = 4;
     private ForgeTableManager() {
     }
@@ -42,17 +44,21 @@ public final class ForgeTableManager {
         for (int i = 0; i < inventory.getSize(); i++) {
             inventory.setItem(i, filler);
         }
-        for (int slot : INPUT_SLOTS) {
+        inventory.setItem(EQUIPMENT_SLOT, null);
+        for (int slot : MATERIAL_SLOTS) {
             inventory.setItem(slot, null);
         }
-        inventory.setItem(RESULT_SLOT, createGuiItem(Material.BARRIER, "&c无可用配方", List.of(
-                "&7按工作台 3x3 形式摆放材料",
-                "&7已加载配方: &f" + ForgeRecipeManager.count()
+        inventory.setItem(RESULT_SLOT, createGuiItem(Material.BARRIER, "&7等待放入物品", List.of(
+                "&7左侧放入装备，右侧放入券或材料",
+                "&7放券: 强化/开发/移除词条",
+                "&7放材料: 按配方合成",
+                "&7点击成品槽完成加工"
         )));
         inventory.setItem(INFO_SLOT, createGuiItem(Material.ANVIL, "&6铸造台", List.of(
                 "&7铁砧下方放白色羊毛即可制成",
-                "&7用于合成插件防具、工具和武器",
-                "&7点击右侧结果槽完成铸造"
+                "&7左侧格子放装备",
+                "&7右侧四个格子放券或材料",
+                "&7成品槽会显示可执行的操作"
         )));
         player.openInventory(inventory);
     }
@@ -76,11 +82,41 @@ public final class ForgeTableManager {
         return stack;
     }
 
+    private static ItemStack findTicket(Inventory inventory) {
+        for (int slot : MATERIAL_SLOTS) {
+            ItemStack stack = inventory.getItem(slot);
+            if (stack != null && TicketManager.getTicketType(stack) != null) return stack;
+        }
+        return null;
+    }
+
     private static void updateResult(Inventory inventory) {
-        ForgeRecipeManager.ForgeRecipe recipe = ForgeRecipeManager.match(inventory, INPUT_SLOTS);
+        ItemStack ticket = findTicket(inventory);
+        if (ticket != null) {
+            ItemStack equipment = inventory.getItem(EQUIPMENT_SLOT);
+            if (equipment == null || equipment.getType().isAir()) {
+                inventory.setItem(RESULT_SLOT, createGuiItem(Material.BARRIER, "&c请先在左侧放入装备", List.of(
+                        "&7右侧已放入券，左侧需要装备",
+                        "&7点击右侧格子可移除券"
+                )));
+                return;
+            }
+            ItemStack preview = TicketManager.previewForge(ticket, equipment);
+            if (preview == null) {
+                inventory.setItem(RESULT_SLOT, createGuiItem(Material.BARRIER, "&c无法使用此券", List.of(
+                        "&7请检查券与左侧装备是否匹配"
+                )));
+            } else {
+                inventory.setItem(RESULT_SLOT, preview);
+            }
+            return;
+        }
+
+        ForgeRecipeManager.ForgeRecipe recipe = ForgeRecipeManager.match(inventory, MATERIAL_SLOTS);
         if (recipe == null) {
             inventory.setItem(RESULT_SLOT, createGuiItem(Material.BARRIER, "&c无可用配方", List.of(
-                    "&7按工作台 3x3 形式摆放材料",
+                    "&7右侧四个格子摆放材料",
+                    "&7或放入券加工装备",
                     "&7已加载配方: &f" + ForgeRecipeManager.count()
             )));
             return;
@@ -89,18 +125,32 @@ public final class ForgeTableManager {
     }
 
     private static boolean isInputSlot(int slot) {
-        for (int input : INPUT_SLOTS) {
+        if (slot == EQUIPMENT_SLOT) return true;
+        for (int input : MATERIAL_SLOTS) {
             if (input == slot) return true;
         }
         return false;
     }
 
     private static void returnInputs(Player player, Inventory inventory) {
-        for (int slot : INPUT_SLOTS) {
+        int[] slots = new int[MATERIAL_SLOTS.length + 1];
+        slots[0] = EQUIPMENT_SLOT;
+        System.arraycopy(MATERIAL_SLOTS, 0, slots, 1, MATERIAL_SLOTS.length);
+        for (int slot : slots) {
             ItemStack stack = inventory.getItem(slot);
             if (stack == null || stack.getType().isAir()) continue;
             inventory.setItem(slot, null);
             player.getInventory().addItem(stack).values().forEach(item -> player.getWorld().dropItemNaturally(player.getLocation(), item));
+        }
+    }
+
+    private static void clearDepletedSlots(Inventory inventory) {
+        int[] slots = new int[MATERIAL_SLOTS.length + 1];
+        slots[0] = EQUIPMENT_SLOT;
+        System.arraycopy(MATERIAL_SLOTS, 0, slots, 1, MATERIAL_SLOTS.length);
+        for (int slot : slots) {
+            ItemStack stack = inventory.getItem(slot);
+            if (stack != null && stack.getType().isAir()) inventory.setItem(slot, null);
         }
     }
 
@@ -140,13 +190,31 @@ public final class ForgeTableManager {
         }
 
         private void craft(Player player, Inventory inventory) {
-            ForgeRecipeManager.ForgeRecipe recipe = ForgeRecipeManager.match(inventory, INPUT_SLOTS);
+            ItemStack ticket = findTicket(inventory);
+            if (ticket != null) {
+                ItemStack equipment = inventory.getItem(EQUIPMENT_SLOT);
+                if (equipment == null || equipment.getType().isAir()) {
+                    Message.send(player, "&c请先在铸造台左侧放入装备。");
+                    return;
+                }
+                boolean accepted = TicketManager.applyForgeTicket(player, ticket, equipment);
+                if (accepted) {
+                    Message.send(player, "&a加工完成。");
+                }
+                Bukkit.getScheduler().runTask(RoguelikePlugin.getInstance(), () -> {
+                    clearDepletedSlots(inventory);
+                    updateResult(inventory);
+                });
+                return;
+            }
+
+            ForgeRecipeManager.ForgeRecipe recipe = ForgeRecipeManager.match(inventory, MATERIAL_SLOTS);
             if (recipe == null) return;
-            recipe.consume(inventory, INPUT_SLOTS);
+            recipe.consume(inventory, MATERIAL_SLOTS);
             ItemStack result = recipe.result().clone();
             player.getInventory().addItem(result).values().forEach(item -> player.getWorld().dropItemNaturally(player.getLocation(), item));
             updateResult(inventory);
-            Message.send(player, "&a铸造完成。 ");
+            Message.send(player, "&a铸造完成。");
         }
     }
 

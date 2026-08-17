@@ -14,15 +14,11 @@ import com.roguelike.item.CustomItemStackFactory;
 import com.roguelike.level.LevelManager;
 import com.roguelike.mob.MobManager;
 import com.roguelike.scoreboard.RoguelikeScoreboard;
-import com.roguelike.ticket.TicketManager;
-import com.roguelike.ticket.TicketType;
 import com.roguelike.util.DevLog;
 import com.roguelike.util.Message;
-import com.roguelike.equipment.EquipmentTypeResolver;
 import com.roguelike.forge.ForgeTableManager;
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.item.WeaponInstanceData;
-import com.roguelike.mana.ManaManager;
 import com.roguelike.weapon.ToolAbilityManager;
 import com.roguelike.weapon.BowAbilityManager;
 import com.roguelike.weapon.WeaponAbilityManager;
@@ -54,12 +50,10 @@ public class EventListener implements Listener {
         Player player = event.getPlayer();
         PlayerDataManager.get(player);
         LevelManager.updateExpBar(player);
-        ManaManager.track(player);
         player.getServer().getScheduler().runTaskLater(RoguelikePlugin.getInstance(), () -> {
             WeaponManager.refreshHeldWeapon(player);
             ArmorSetManager.applyPassiveEffects(player);
             RoguelikeScoreboard.updatePlayer(player);
-            ManaManager.track(player);
         }, 1L);
     }
 
@@ -68,13 +62,6 @@ public class EventListener implements Listener {
         PlayerDataManager.unload(event.getPlayer());
         RoguelikeScoreboard.clearPlayer(event.getPlayer());
         WeaponManager.clearAttributes(event.getPlayer());
-        ManaManager.untrack(event.getPlayer());
-    }
-
-    @EventHandler(ignoreCancelled = true)
-    public void onExperienceChange(PlayerExpChangeEvent event) {
-        event.setAmount(0);
-        ManaManager.track(event.getPlayer());
     }
 
     @EventHandler
@@ -107,30 +94,8 @@ public class EventListener implements Listener {
         }
 
         ItemStack main = player.getInventory().getItemInMainHand();
-        ItemStack off = player.getInventory().getItemInOffHand();
-
         if (applyDirectUseCustomItem(player, main)) {
             event.setCancelled(true);
-            return;
-        }
-
-        TicketType mainTicket = TicketManager.getTicketType(main);
-        TicketType offTicket = TicketManager.getTicketType(off);
-
-        // 主手持券，副手持目标物品。开发券允许目标是任意非空气物品。
-        if (mainTicket != null) {
-            if (canTargetAnyItem(mainTicket) || canTargetEquipment(off)) {
-                event.setCancelled(true);
-                TicketManager.applyTicket(player, main, off);
-            }
-        }
-        // 副手持券，主手持目标物品。开发券允许目标是任意非空气物品。
-        else if (offTicket != null) {
-            if (canTargetAnyItem(offTicket) || canTargetEquipment(main)) {
-                denyMainHandUseIfNeeded(event, player, main);
-                event.setCancelled(true);
-                TicketManager.applyTicket(player, off, main);
-            }
         }
     }
 
@@ -138,29 +103,6 @@ public class EventListener implements Listener {
         if (stack == null || stack.getType() != Material.COMPASS || !stack.hasItemMeta()) return false;
         var meta = stack.getItemMeta();
         return meta.hasDisplayName() && "Roguelike指南针".equals(ChatColor.stripColor(meta.getDisplayName()));
-    }
-
-    private void denyMainHandUseIfNeeded(PlayerInteractEvent event, Player player, ItemStack main) {
-        if (!shouldDenyMainHandUseForOffhandTicket(main)) return;
-        event.setUseItemInHand(Event.Result.DENY);
-        player.clearActiveItem();
-        player.getServer().getScheduler().runTaskLater(RoguelikePlugin.getInstance(), player::clearActiveItem, 1L);
-    }
-
-    static boolean shouldDenyMainHandUseForOffhandTicket(ItemStack main) {
-        return main != null && shouldDenyMainHandUseForOffhandTicket(main.getType());
-    }
-
-    static boolean shouldDenyMainHandUseForOffhandTicket(Material material) {
-        return material == Material.TRIDENT;
-    }
-
-    private boolean canTargetEquipment(ItemStack stack) {
-        return WeaponManager.getTemplate(stack) != null || (stack != null && EquipmentTypeResolver.isWearable(stack.getType()));
-    }
-
-    private boolean canTargetAnyItem(TicketType ticket) {
-        return ticket == TicketType.TICKET_B;
     }
 
     private boolean applyDirectUseCustomItem(Player player, ItemStack stack) {

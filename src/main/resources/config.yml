@@ -109,10 +109,6 @@ content:
     overwrite-existing: true
 
 gameplay:
-  mana:
-    # 插件接管原版经验条作为法力条。经验等级数字显示当前法力值，经验条显示法力百分比。
-    max: 100.0
-    regen-per-second: 1.0
   # 怪物击杀经验倍率。0 = 关闭击杀经验，2.0 = 双倍经验。
   exp-multiplier: 1.0
   # 挖矿/进食里程碑经验倍率。未配置时建议与击杀经验分开调节。

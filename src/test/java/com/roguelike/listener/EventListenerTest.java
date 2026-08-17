@@ -1,6 +1,5 @@
 package com.roguelike.listener;
 
-import org.bukkit.Material;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -27,12 +26,5 @@ class EventListenerTest {
         assertEquals(12.5, EventListener.damageWithBleedingBonus(10.0, true, 0.25), 0.001);
         assertEquals(10.0, EventListener.damageWithBleedingBonus(10.0, false, 0.25), 0.001);
         assertEquals(10.0, EventListener.damageWithBleedingBonus(10.0, true, -0.25), 0.001);
-    }
-
-    @Test
-    void offhandTicketDeniesMainHandTridentUse() {
-        assertTrue(EventListener.shouldDenyMainHandUseForOffhandTicket(Material.TRIDENT));
-        assertFalse(EventListener.shouldDenyMainHandUseForOffhandTicket(Material.DIAMOND_SWORD));
-        assertFalse(EventListener.shouldDenyMainHandUseForOffhandTicket((Material) null));
     }
 }

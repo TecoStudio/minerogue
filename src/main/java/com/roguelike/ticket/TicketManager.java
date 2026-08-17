@@ -65,14 +65,9 @@ public class TicketManager {
             List<Component> lore = new ArrayList<>();
             lore.add(Message.toComponent(type.getDescription()));
             lore.add(Message.toComponent("§7─────────────────"));
-            if (type == TicketType.TICKET_B) {
-                lore.add(Message.toComponent("§7手持此券，另一手拿任意物品"));
-            } else if (type == TicketType.TOOL_TICKET_B) {
-                lore.add(Message.toComponent("§7手持此券，另一手拿 Roguelike 工具"));
-            } else {
-                lore.add(Message.toComponent("§7手持此券，另一手拿武器"));
-            }
-            lore.add(Message.toComponent("§7右键使用"));
+            lore.add(Message.toComponent("§7将装备放入铸造台左侧格子"));
+            lore.add(Message.toComponent("§7将本券放入铸造台右侧格子"));
+            lore.add(Message.toComponent("§7点击成品槽使用"));
             meta.lore(lore);
             meta.addEnchant(Enchantment.UNBREAKING, 1, true);
             meta.addItemFlags(ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
@@ -139,7 +134,7 @@ public class TicketManager {
         return data != null && data.hasOpenRandomAffixSlot(template);
     }
 
-    public static boolean applyTicket(Player player, ItemStack ticketStack, ItemStack weaponStack) {
+    public static boolean applyForgeTicket(Player player, ItemStack ticketStack, ItemStack weaponStack) {
         TicketType type = getTicketType(ticketStack);
         if (type == null) return false;
 
@@ -194,7 +189,7 @@ public class TicketManager {
             Message.send(player, "&c该防具已经拥有所有可用防具词条。");
             return false;
         }
-        TicketBChoice choice = new TicketBChoice(true, null);
+        TicketBChoice choice = new TicketBChoice(true, ticketStack, armorStack, TicketType.TICKET_B);
         pendingBChoices.put(player.getUniqueId(), choice);
         openTicketBChoiceGui(player, choice);
         return false;
@@ -223,7 +218,7 @@ public class TicketManager {
             Message.send(player, "&c该防具没有可移除的防具词条。");
             return false;
         }
-        TicketCChoice choice = new TicketCChoice(ticketStack, armorStack, current, null);
+        TicketCChoice choice = new TicketCChoice(ticketStack, armorStack, true, current);
         pendingCChoices.put(player.getUniqueId(), choice);
         openTicketCChoiceGui(player, choice);
         return false;
@@ -260,7 +255,7 @@ public class TicketManager {
 
     private static boolean applyWeaponDevelopment(Player player, ItemStack ticketStack, ItemStack targetStack, TicketType ticketType) {
         if (targetStack == null || targetStack.getType().isAir()) {
-            Message.send(player, "&c另一只手需要拿着要开发的物品。");
+            Message.send(player, "&c请将需要开发的物品放入铸造台左侧格子。");
             return false;
         }
         if (WeaponManager.getTemplate(targetStack) != null) {
@@ -355,14 +350,17 @@ public class TicketManager {
     }
 
     private static void confirmTicketA(Player player, TicketAChoice choice, String stat) {
-        ActiveTicketUse active = resolveActiveTicketUse(player, choice.ticketType, choice.weaponInstanceId);
-        if (active == null) {
-            Message.send(player, "&c强化目标已变化，请重新使用强化券。");
+        if (!isUsable(choice.ticket) || !isUsable(choice.weapon)) {
+            Message.send(player, "&c强化目标已变化，请重新放入铸造台使用强化券。");
             return;
         }
-        CustomWeapon template = active.template;
-        WeaponInstanceData data = active.data;
-        ItemStack weapon = active.weapon;
+        CustomWeapon template = WeaponManager.getTemplate(choice.weapon);
+        WeaponInstanceData data = WeaponInstanceData.fromItemStack(choice.weapon);
+        if (template == null || data == null) {
+            Message.send(player, "&c强化目标已变化，请重新放入铸造台使用强化券。");
+            return;
+        }
+        ItemStack weapon = choice.weapon;
         List<String> currentStats = getStrengthenableStats(template, data, weapon.getType());
         if (choice.availableStats.isEmpty()) {
             Message.send(player, "&c武器没有可强化的词条！");
@@ -381,7 +379,7 @@ public class TicketManager {
             data.saveToItemStack(weapon);
             WeaponManager.updateLore(weapon, template, data);
             WeaponManager.clearAttributes(player);
-            consumeTicket(active.ticket);
+            consumeTicket(choice.ticket);
             recordTicketUse(player, choice.ticketType);
             DevLog.debug(player.getName() + " ticket_a failed on " + template.getId() + ", stat=" + stat + ", useCount=" + choice.useCount);
             Message.send(player, "&c强化失败！");
@@ -401,7 +399,7 @@ public class TicketManager {
         data.saveToItemStack(weapon);
         WeaponManager.updateLore(weapon, template, data);
         WeaponManager.clearAttributes(player);
-        consumeTicket(active.ticket);
+        consumeTicket(choice.ticket);
         recordTicketUse(player, choice.ticketType);
         DevLog.debug(player.getName() + " " + choice.ticketType.getId() + " succeeded on " + template.getId() + ", stat=" + stat + ", old=" + baseValue + ", new=" + newValue);
 
@@ -415,7 +413,7 @@ public class TicketManager {
             Message.send(player, "&c武器已经拥有所有可能的词条！");
             return false;
         }
-        TicketBChoice choice = new TicketBChoice(false, data.getInstanceId());
+        TicketBChoice choice = new TicketBChoice(false, ticketStack, weaponStack, TicketType.TICKET_B);
         pendingBChoices.put(player.getUniqueId(), choice);
         DevLog.debug(player.getName() + " opened random ticket_b development for " + template.getId() + ", available=" + availableEffects.size());
         openTicketBChoiceGui(player, choice);
@@ -433,7 +431,7 @@ public class TicketManager {
             Message.send(player, "&c该工具已经拥有所有工具类词条！");
             return false;
         }
-        TicketBChoice choice = new TicketBChoice(false, data.getInstanceId(), TicketType.TOOL_TICKET_B);
+        TicketBChoice choice = new TicketBChoice(false, ticketStack, weaponStack, TicketType.TOOL_TICKET_B);
         pendingBChoices.put(player.getUniqueId(), choice);
         DevLog.debug(player.getName() + " opened tool_ticket_b development for " + template.getId() + ", available=" + availableEffects.size());
         openTicketBChoiceGui(player, choice);
@@ -476,7 +474,7 @@ public class TicketManager {
             Message.send(player, "&c武器没有可移除的词条！");
             return false;
         }
-        TicketCChoice choice = new TicketCChoice(ticketStack, weaponStack, availableStats, data.getInstanceId());
+        TicketCChoice choice = new TicketCChoice(ticketStack, weaponStack, false, availableStats);
         pendingCChoices.put(player.getUniqueId(), choice);
         openTicketCChoiceGui(player, choice);
         return false;
@@ -714,30 +712,30 @@ public class TicketManager {
 
     private static class TicketBChoice {
         final boolean armor;
-        final String weaponInstanceId;
+        final ItemStack ticket;
+        final ItemStack target;
         final TicketType ticketType;
 
-        TicketBChoice(boolean armor, String weaponInstanceId) {
-            this(armor, weaponInstanceId, TicketType.TICKET_B);
-        }
-
-        TicketBChoice(boolean armor, String weaponInstanceId, TicketType ticketType) {
+        TicketBChoice(boolean armor, ItemStack ticket, ItemStack target, TicketType ticketType) {
             this.armor = armor;
-            this.weaponInstanceId = weaponInstanceId;
+            this.ticket = ticket;
+            this.target = target;
             this.ticketType = ticketType;
         }
     }
 
     private static class TicketCChoice {
         final boolean armor;
+        final ItemStack ticket;
+        final ItemStack target;
         final List<String> removableStats;
-        final String weaponInstanceId;
         final Map<String, String> currentValues = new HashMap<>();
 
-        TicketCChoice(ItemStack ticket, ItemStack target, List<String> removableStats, String weaponInstanceId) {
-            this.armor = weaponInstanceId == null;
+        TicketCChoice(ItemStack ticket, ItemStack target, boolean armor, List<String> removableStats) {
+            this.ticket = ticket;
+            this.target = target;
+            this.armor = armor;
             this.removableStats = List.copyOf(removableStats);
-            this.weaponInstanceId = weaponInstanceId;
             for (String stat : removableStats) {
                 currentValues.put(stat, readCurrentValue(target, stat));
             }
@@ -764,6 +762,8 @@ public class TicketManager {
     }
 
     private static class TicketAChoice {
+        final ItemStack ticket;
+        final ItemStack weapon;
         final CustomWeapon template;
         final WeaponInstanceData initialData;
         final List<String> availableStats;
@@ -773,10 +773,11 @@ public class TicketManager {
         final double successRate;
         final boolean guaranteed;
         final TicketType ticketType;
-        final String weaponInstanceId;
 
         TicketAChoice(ItemStack ticket, ItemStack weapon, CustomWeapon template, WeaponInstanceData data,
                       List<String> availableStats, int useCount, double successRate, boolean guaranteed, TicketType ticketType) {
+            this.ticket = ticket;
+            this.weapon = weapon;
             this.template = template;
             this.initialData = data;
             this.availableStats = availableStats;
@@ -786,7 +787,6 @@ public class TicketManager {
             this.successRate = successRate;
             this.guaranteed = guaranteed;
             this.ticketType = ticketType;
-            this.weaponInstanceId = data.getInstanceId();
         }
     }
 
@@ -841,46 +841,50 @@ public class TicketManager {
             pendingBChoices.remove(uuid);
             player.closeInventory();
             if (choice.armor) {
-                confirmArmorTicketB(player);
+                confirmArmorTicketB(player, choice);
             } else {
                 confirmWeaponTicketB(player, choice);
             }
         }
 
         private void confirmWeaponTicketB(Player player, TicketBChoice choice) {
-            ActiveTicketUse active = resolveActiveTicketUse(player, choice.ticketType, choice.weaponInstanceId);
-            if (active == null) {
-                Message.send(player, "&c开发目标已变化，请重新使用开发券。");
+            if (!isUsable(choice.ticket) || !isUsable(choice.target)) {
+                Message.send(player, "&c开发目标已变化，请重新放入铸造台使用开发券。");
+                return;
+            }
+            CustomWeapon template = WeaponManager.getTemplate(choice.target);
+            WeaponInstanceData data = WeaponManager.getData(choice.target);
+            if (template == null || data == null) {
+                Message.send(player, "&c开发目标已变化，请重新放入铸造台使用开发券。");
                 return;
             }
             List<String> availableEffects = choice.ticketType == TicketType.TOOL_TICKET_B
-                    ? getAvailableToolEffects(active.template, active.data)
-                    : getAvailableEffects(active.template, active.data, active.weapon.getType());
+                    ? getAvailableToolEffects(template, data)
+                    : getAvailableEffects(template, data, choice.target.getType());
             if (availableEffects.isEmpty()) {
                 Message.send(player, choice.ticketType == TicketType.TOOL_TICKET_B ? "&c该工具已经拥有所有工具类词条！" : "&c武器已经拥有所有可能的词条！");
                 return;
             }
             String selectedStat = availableEffects.get(RANDOM.nextInt(availableEffects.size()));
             double baseValue = generateBaseValue(selectedStat);
-            active.data.setEffectBonus(selectedStat, baseValue);
-            active.data.incrementTicketBUses();
-            active.data.saveToItemStack(active.weapon);
-            WeaponManager.updateLore(active.weapon, active.template, active.data);
+            data.setEffectBonus(selectedStat, baseValue);
+            data.incrementTicketBUses();
+            data.saveToItemStack(choice.target);
+            WeaponManager.updateLore(choice.target, template, data);
             WeaponManager.clearAttributes(player);
-            consumeTicket(active.ticket);
+            consumeTicket(choice.ticket);
             recordTicketUse(player, choice.ticketType);
 
-            DevLog.debug(player.getName() + " randomly developed " + choice.ticketType.getId() + " stat " + selectedStat + "=" + baseValue + " for " + active.template.getId());
+            DevLog.debug(player.getName() + " randomly developed " + choice.ticketType.getId() + " stat " + selectedStat + "=" + baseValue + " for " + template.getId());
             Message.send(player, "&a随机获得词条: &f" + statName(selectedStat) + " &e" + format(baseValue, selectedStat));
         }
 
-        private void confirmArmorTicketB(Player player) {
-            ActiveArmorTicketUse active = resolveActiveArmorTicketUse(player, TicketType.TICKET_B);
-            if (active == null) {
-                Message.send(player, "&c开发目标已变化，请重新使用开发券。");
+        private void confirmArmorTicketB(Player player, TicketBChoice choice) {
+            if (!isUsable(choice.ticket) || !isUsable(choice.target)) {
+                Message.send(player, "&c开发目标已变化，请重新放入铸造台使用开发券。");
                 return;
             }
-            List<String> available = availableArmorAffixes(active.armor);
+            List<String> available = availableArmorAffixes(choice.target);
             if (available.isEmpty()) {
                 Message.send(player, "&c该防具已经拥有所有可用防具词条。");
                 return;
@@ -888,8 +892,8 @@ public class TicketManager {
 
             String id = available.get(RANDOM.nextInt(available.size()));
             int level = AffixManager.generateArmorBaseLevel(id, RANDOM);
-            AffixManager.applyArmorEnchant(active.armor, id, level);
-            consumeTicket(active.ticket);
+            AffixManager.applyArmorEnchant(choice.target, id, level);
+            consumeTicket(choice.ticket);
             recordTicketUse(player, TicketType.TICKET_B);
             Message.send(player, "&a随机获得防具词条: &f" + AffixManager.displayName(com.roguelike.equipment.EquipmentKind.ARMOR, id) + " &e" + AffixManager.formatArmor(id, level));
         }
@@ -931,7 +935,7 @@ public class TicketManager {
                     pendingCChoices.remove(uuid);
                     player.closeInventory();
                     if (choice.armor) {
-                        confirmArmorTicketC(player, stat);
+                        confirmArmorTicketC(player, choice, stat);
                     } else {
                         confirmWeaponTicketC(player, choice, stat);
                     }
@@ -941,43 +945,47 @@ public class TicketManager {
         }
 
         private void confirmWeaponTicketC(Player player, TicketCChoice choice, String stat) {
-            ActiveTicketUse active = resolveActiveTicketUse(player, TicketType.TICKET_C, choice.weaponInstanceId);
-            if (active == null) {
-                Message.send(player, "&c移除目标已变化，请重新使用移除券。");
+            if (!isUsable(choice.ticket) || !isUsable(choice.target)) {
+                Message.send(player, "&c移除目标已变化，请重新放入铸造台使用移除券。");
                 return;
             }
-            if (!getRemovableWeaponStats(active.data).contains(stat)) {
+            CustomWeapon template = WeaponManager.getTemplate(choice.target);
+            WeaponInstanceData data = WeaponManager.getData(choice.target);
+            if (template == null || data == null) {
+                Message.send(player, "&c移除目标已变化，请重新放入铸造台使用移除券。");
+                return;
+            }
+            if (!getRemovableWeaponStats(data).contains(stat)) {
                 Message.send(player, "&c该词条当前不可移除，请重新使用移除券。");
                 return;
             }
 
-            active.data.removeEffectBonus(stat);
-            active.data.addTicketAFailBonus(REMOVE_AFFIX_SUCCESS_BONUS);
-            active.data.incrementTicketCUses();
-            active.data.saveToItemStack(active.weapon);
-            WeaponManager.updateLore(active.weapon, active.template, active.data);
+            data.removeEffectBonus(stat);
+            data.addTicketAFailBonus(REMOVE_AFFIX_SUCCESS_BONUS);
+            data.incrementTicketCUses();
+            data.saveToItemStack(choice.target);
+            WeaponManager.updateLore(choice.target, template, data);
             WeaponManager.clearAttributes(player);
-            consumeTicket(active.ticket);
+            consumeTicket(choice.ticket);
             recordTicketUse(player, TicketType.TICKET_C);
-            DevLog.debug(player.getName() + " removed stat " + stat + " from " + active.template.getId() + " with ticket_c");
+            DevLog.debug(player.getName() + " removed stat " + stat + " from " + template.getId() + " with ticket_c");
             Message.send(player, "&9移除成功！ &f" + statName(stat) + " &7已移除");
             Message.send(player, "&7下次普通强化券成功率: &a+" + formatPercent(REMOVE_AFFIX_SUCCESS_BONUS));
         }
 
-        private void confirmArmorTicketC(Player player, String stat) {
-            ActiveArmorTicketUse active = resolveActiveArmorTicketUse(player, TicketType.TICKET_C);
-            if (active == null) {
-                Message.send(player, "&c移除目标已变化，请重新使用移除券。");
+        private void confirmArmorTicketC(Player player, TicketCChoice choice, String stat) {
+            if (!isUsable(choice.ticket) || !isUsable(choice.target)) {
+                Message.send(player, "&c移除目标已变化，请重新放入铸造台使用移除券。");
                 return;
             }
-            if (!currentArmorAffixes(active.armor).contains(stat)) {
+            if (!currentArmorAffixes(choice.target).contains(stat)) {
                 Message.send(player, "&c该防具词条当前不可移除，请重新使用移除券。");
                 return;
             }
 
             ArmorAffix affix = ArmorAffixManager.get(stat);
-            ArmorAffixManager.removeAppliedAffix(active.armor, stat);
-            consumeTicket(active.ticket);
+            ArmorAffixManager.removeAppliedAffix(choice.target, stat);
+            consumeTicket(choice.ticket);
             recordTicketUse(player, TicketType.TICKET_C);
             Message.send(player, "&9已移除防具词条: &f" + (affix == null ? stat : affix.displayName()));
             Message.send(player, "&7防具强化为必定成功，不使用强化成功率加成。");
@@ -1003,35 +1011,83 @@ public class TicketManager {
         };
     }
 
-    private static ActiveTicketUse resolveActiveTicketUse(Player player, TicketType ticketType, String weaponInstanceId) {
-        ActiveTicketUse mainTicket = resolveActiveTicketUse(player.getInventory().getItemInMainHand(), player.getInventory().getItemInOffHand(), ticketType, weaponInstanceId);
-        if (mainTicket != null) return mainTicket;
-        return resolveActiveTicketUse(player.getInventory().getItemInOffHand(), player.getInventory().getItemInMainHand(), ticketType, weaponInstanceId);
+    private static boolean isUsable(ItemStack stack) {
+        return stack != null && !stack.getType().isAir() && stack.getAmount() > 0;
     }
 
-    private static ActiveArmorTicketUse resolveActiveArmorTicketUse(Player player, TicketType ticketType) {
-        ActiveArmorTicketUse mainTicket = resolveActiveArmorTicketUse(player.getInventory().getItemInMainHand(), player.getInventory().getItemInOffHand(), ticketType);
-        if (mainTicket != null) return mainTicket;
-        return resolveActiveArmorTicketUse(player.getInventory().getItemInOffHand(), player.getInventory().getItemInMainHand(), ticketType);
+    public static ItemStack previewForge(ItemStack ticketStack, ItemStack targetStack) {
+        TicketType type = getTicketType(ticketStack);
+        if (type == null || targetStack == null || targetStack.getType().isAir()) return null;
+        boolean armor = EquipmentTypeResolver.isWearable(targetStack.getType());
+        return switch (type) {
+            case TICKET_A, SUPER_TICKET_A -> previewTicketA(targetStack, armor, type);
+            case TICKET_B -> previewTicketB(targetStack, armor);
+            case TOOL_TICKET_B -> previewToolTicketB(targetStack, armor);
+            case TICKET_C -> previewTicketC(targetStack, armor);
+        };
     }
 
-    private static ActiveArmorTicketUse resolveActiveArmorTicketUse(ItemStack ticket, ItemStack armor, TicketType ticketType) {
-        if (getTicketType(ticket) != ticketType) return null;
-        if (armor == null || armor.getType().isAir() || !EquipmentTypeResolver.isWearable(armor.getType())) return null;
-        return new ActiveArmorTicketUse(ticket, armor);
+    private static ItemStack previewTicketA(ItemStack target, boolean armor, TicketType type) {
+        if (armor) {
+            if (strengthenableArmorAffixes(target).isEmpty()) {
+                return previewItem("&c防具没有可强化的词条");
+            }
+            return previewItem(type == TicketType.SUPER_TICKET_A ? "&e点击强化防具词条（必定成功）" : "&e点击强化防具词条",
+                    "&7将随机强化一个防具词条");
+        }
+        CustomWeapon template = WeaponManager.getTemplate(target);
+        WeaponInstanceData data = WeaponInstanceData.fromItemStack(target);
+        if (template == null || data == null) return previewItem("&c目标不是 Roguelike 武器");
+        List<String> stats = getStrengthenableStats(template, data, target.getType());
+        if (stats.isEmpty()) return previewItem("&c武器没有可强化的词条");
+        double rate = type == TicketType.SUPER_TICKET_A
+                ? 1.0
+                : calculateSuccessRate(data.getTicketAUses(), data.getTicketAFailBonus(), template.getRarity());
+        return previewItem(type == TicketType.SUPER_TICKET_A ? "&e点击选择词条强化（必定成功）" : "&e点击选择词条强化",
+                "&7可强化词条: &f" + stats.size() + " 个",
+                "&7成功率: &f" + formatPercent(rate));
     }
 
-    private static ActiveTicketUse resolveActiveTicketUse(ItemStack ticket, ItemStack weapon, TicketType ticketType, String weaponInstanceId) {
-        if (getTicketType(ticket) != ticketType) return null;
-        CustomWeapon template = WeaponManager.getTemplate(weapon);
-        WeaponInstanceData data = WeaponManager.getData(weapon);
-        if (template == null || data == null || !data.getInstanceId().equals(weaponInstanceId)) return null;
-        return new ActiveTicketUse(ticket, weapon, template, data);
+    private static ItemStack previewTicketB(ItemStack target, boolean armor) {
+        if (armor) {
+            if (availableArmorAffixes(target).isEmpty()) return previewItem("&c防具已拥有所有词条");
+            return previewItem("&e点击随机添加防具词条", "&7从当前可用词条中随机获得一个");
+        }
+        CustomWeapon template = WeaponManager.getTemplate(target);
+        WeaponInstanceData data = WeaponInstanceData.fromItemStack(target);
+        if (template == null || data == null) {
+            return previewItem("&e点击开发为武器", "&7将普通物品开发为特殊武器");
+        }
+        if (getAvailableEffects(template, data, target.getType()).isEmpty()) {
+            return previewItem("&c武器已拥有所有词条");
+        }
+        return previewItem("&e点击随机添加武器词条", "&7从当前可用词条中随机获得一个");
     }
 
-    private record ActiveTicketUse(ItemStack ticket, ItemStack weapon, CustomWeapon template, WeaponInstanceData data) {
+    private static ItemStack previewToolTicketB(ItemStack target, boolean armor) {
+        if (armor || !EquipmentTypeResolver.isTool(target.getType())) {
+            return previewItem("&c工具开发券只能用于 Roguelike 工具");
+        }
+        CustomWeapon template = WeaponManager.getTemplate(target);
+        WeaponInstanceData data = WeaponInstanceData.fromItemStack(target);
+        if (template == null || data == null) return previewItem("&c目标不是 Roguelike 工具");
+        if (getAvailableToolEffects(template, data).isEmpty()) return previewItem("&c工具已拥有所有工具词条");
+        return previewItem("&e点击添加工具词条", "&7从工具限定词条池中随机获得一个");
     }
 
-    private record ActiveArmorTicketUse(ItemStack ticket, ItemStack armor) {
+    private static ItemStack previewTicketC(ItemStack target, boolean armor) {
+        if (armor) {
+            if (currentArmorAffixes(target).isEmpty()) return previewItem("&c防具没有可移除的词条");
+            return previewItem("&e点击选择移除防具词条", "&7移除后下次强化成功率 +" + formatPercent(REMOVE_AFFIX_SUCCESS_BONUS));
+        }
+        CustomWeapon template = WeaponManager.getTemplate(target);
+        WeaponInstanceData data = WeaponInstanceData.fromItemStack(target);
+        if (template == null || data == null) return previewItem("&c目标不是 Roguelike 武器");
+        if (getRemovableWeaponStats(data).isEmpty()) return previewItem("&c武器没有可移除的词条");
+        return previewItem("&e点击选择移除武器词条", "&7移除后下次强化成功率 +" + formatPercent(REMOVE_AFFIX_SUCCESS_BONUS));
+    }
+
+    private static ItemStack previewItem(String name, String... loreLines) {
+        return createGuiItem(Material.PAPER, name, List.of(loreLines));
     }
 }
