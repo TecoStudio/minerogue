@@ -66,6 +66,7 @@ public class RoguelikePlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        DamageTestDummyManager.shutdown();
         BossEventManager.shutdown();
         MobManager.shutdown();
         WeaponAbilityManager.shutdown();
