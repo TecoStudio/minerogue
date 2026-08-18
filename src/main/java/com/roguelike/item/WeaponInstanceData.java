@@ -214,11 +214,9 @@ public class WeaponInstanceData {
 
     public void saveToItemStack(ItemStack stack) {
         if (stack == null || stack.getType().isAir()) return;
-        ItemMeta meta = stack.getItemMeta();
-        if (meta == null) return;
-        PersistentDataContainer pdc = meta.getPersistentDataContainer();
-        pdc.set(KEY, PersistentDataType.STRING, GSON.toJson(this));
-        stack.setItemMeta(meta);
+        stack.editMeta(meta -> {
+            meta.getPersistentDataContainer().set(KEY, PersistentDataType.STRING, GSON.toJson(this));
+        });
     }
 
     public static WeaponInstanceData fromItemStack(ItemStack stack) {

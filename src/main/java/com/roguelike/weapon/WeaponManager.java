@@ -28,6 +28,10 @@ public class WeaponManager {
     private static final NamespacedKey ATTACK_RANGE_KEY = new NamespacedKey("roguelike", "attack_range");
     private static final NamespacedKey MOVEMENT_SPEED_KEY = new NamespacedKey("roguelike", "movement_speed");
     private static final String RESOURCE_PACK_NAMESPACE = "minerogue";
+    /** Minecraft processes at most 20 attack swings per second (one per tick). */
+    public static final double MAX_ATTACK_SPEED = 20.0;
+    /** Vanilla base value of the player {@code GENERIC_ATTACK_SPEED} attribute. */
+    private static final double VANILLA_BASE_ATTACK_SPEED = 4.0;
 
     public static void init(RoguelikePlugin plugin) {
         WeaponManager.plugin = plugin;
@@ -36,6 +40,21 @@ public class WeaponManager {
 
     public static String[] getEffectKeys() {
         return AffixManager.weaponEffectIds().toArray(String[]::new);
+    }
+
+    /** Final attack speed for a weapon instance, including the 急速契约 x2 multiplier. */
+    public static double getTotalAttackSpeed(CustomWeapon template, WeaponInstanceData data) {
+        double speed = data.getTotalAttackSpeed(template);
+        if (data.getTotalEffect(template, "neutral_attack_speed_200", 0.0) > 0) speed *= 2.0;
+        return speed;
+    }
+
+    static boolean usesTemplateDisplay(CustomWeapon template) {
+        return template != null && !"special_weapon".equalsIgnoreCase(template.getId());
+    }
+
+    static boolean usesResourcePackModel(CustomWeapon template) {
+        return usesTemplateDisplay(template);
     }
 
     private static Material inferMaterial(CustomWeapon template) {
@@ -78,9 +97,6 @@ public class WeaponManager {
     public static void makeWeapon(ItemStack stack, CustomWeapon template) {
         if (stack == null || stack.getType().isAir()) return;
         WeaponInstanceData data = new WeaponInstanceData(template.getId());
-        if ("special".equalsIgnoreCase(template.getRarity())) {
-            data.setCustomName(getRarityColor(template.getRarity()) + "§l特殊 " + formatMaterialName(stack.getType()));
-        }
         data.saveToItemStack(stack);
         updateLore(stack, template, data);
     }
@@ -88,17 +104,16 @@ public class WeaponManager {
     public static void makeSpecialWeaponPreservingAttributes(ItemStack stack, CustomWeapon template) {
         if (stack == null || stack.getType().isAir()) return;
         WeaponInstanceData data = new WeaponInstanceData(template.getId());
-        data.setCustomName(getRarityColor(template.getRarity()) + "§l特殊 " + formatMaterialName(stack.getType()));
 
-        double sourceDamage = readItemAttributeValue(stack, Attribute.ATTACK_DAMAGE, getVanillaMainHandDamage(stack.getType()));
-        double sourceSpeed = readItemAttributeValue(stack, Attribute.ATTACK_SPEED, getVanillaMainHandAttackSpeed(stack.getType()));
+        double sourceDamage = readItemAttributeValue(stack, Attribute.ATTACK_DAMAGE, 1.0);
+        double sourceSpeed = readItemAttributeValue(stack, Attribute.ATTACK_SPEED, VANILLA_BASE_ATTACK_SPEED);
         double sourceRange = readItemAttributeValue(stack, getRangeAttribute(), template.getEffect("attack_range", 3.0));
 
         data.setDamageBonus(sourceDamage - template.getBaseDamage());
         data.setAttackSpeedBonus(sourceSpeed - template.getAttackSpeed());
         data.setEffectBonus("attack_range", sourceRange - template.getEffect("attack_range", 3.0));
         data.saveToItemStack(stack);
-        updateLore(stack, template, data);
+        updateLore(stack, template, data, false, false);
     }
 
     private static double readItemAttributeValue(ItemStack stack, Attribute attribute, double defaultValue) {
@@ -125,25 +140,21 @@ public class WeaponManager {
         return ATTACK_DAMAGE_KEY.equals(key) || ATTACK_SPEED_KEY.equals(key) || ATTACK_RANGE_KEY.equals(key) || MOVEMENT_SPEED_KEY.equals(key);
     }
 
-    private static String formatMaterialName(Material material) {
-        String[] parts = material.name().toLowerCase(Locale.ROOT).split("_");
-        StringBuilder builder = new StringBuilder();
-        for (String part : parts) {
-            if (part.isEmpty()) continue;
-            if (!builder.isEmpty()) builder.append(' ');
-            builder.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1));
-        }
-        return builder.isEmpty() ? material.name() : builder.toString();
+    public static void updateLore(ItemStack stack, CustomWeapon template, WeaponInstanceData data) {
+        updateLore(stack, template, data, usesTemplateDisplay(template), usesResourcePackModel(template));
     }
 
-    public static void updateLore(ItemStack stack, CustomWeapon template, WeaponInstanceData data) {
+    private static void updateLore(ItemStack stack, CustomWeapon template, WeaponInstanceData data,
+                                   boolean applyTemplateDisplay, boolean applyResourcePackModel) {
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) meta = plugin.getServer().getItemFactory().getItemMeta(stack.getType());
         if (meta == null) return;
 
-        String rarityColor = getRarityColor(template.getRarity());
-        String name = data.getCustomName() != null ? data.getCustomName() : rarityColor + "§l" + template.getName();
-        meta.displayName(Message.toComponent(name));
+        if (applyTemplateDisplay) {
+            String rarityColor = getRarityColor(template.getRarity());
+            String name = data.getCustomName() != null ? data.getCustomName() : rarityColor + "§l" + template.getName();
+            meta.displayName(Message.toComponent(name));
+        }
 
         List<Component> lore = new ArrayList<>();
         lore.add(Message.toComponent("§7========== §6武器属性 §7=========="));
@@ -157,28 +168,27 @@ public class WeaponManager {
         lore.add(Message.toComponent("§7─────────────────"));
 
         double totalDamage = data.getTotalDamage(template);
-        double totalSpeed = data.getTotalAttackSpeed(template);
-        if (data.getTotalEffect(template, "neutral_attack_speed_200", 0.0) > 0) totalSpeed *= 2.0;
+        double totalSpeed = getTotalAttackSpeed(template, data);
         double totalRange = data.getTotalEffect(template, "attack_range", 3.0);
         if (data.getTotalEffect(template, "neutral_range_200", 0.0) > 0) totalRange *= 2.0;
 
         lore.add(Message.toComponent("§a⚔ 基础伤害: §f" + format(totalDamage, 1)));
         lore.add(Message.toComponent("§b⚡ 攻击速度: §f" + format(totalSpeed, 2)));
+        if (totalSpeed > MAX_ATTACK_SPEED) {
+            lore.add(Message.toComponent("§7└ §b攻速封顶 §f" + format(MAX_ATTACK_SPEED, 0)
+                    + " §7次/秒，溢出转伤害 §fx" + format(totalSpeed / MAX_ATTACK_SPEED, 2)));
+        }
         lore.add(Message.toComponent("§e⬛ 攻击距离: §f" + format(totalRange, 1) + "格"));
 
         appendEffectLore(lore, template, data);
-
         appendVanillaEnchantLore(lore, meta);
-
         if (data.getStoredDamage() > 0) {
             lore.add(Message.toComponent("§6⚡ 爆发存储: §f" + format(data.getStoredDamage(), 1) + "伤害 §7(" + data.getStoredDamageHits() + "/" + getDamageStoreRequiredHits(template, data) + ")"));
         }
-
         if (!data.getAppliedModifiers().isEmpty()) {
             lore.add(Message.toComponent("§7─────────────────"));
             lore.add(Message.toComponent("§7已应用强化: §e" + data.getAppliedModifiers().size()));
         }
-
         int a = data.getTicketAUses();
         int b = data.getTicketBUses();
         int c = data.getTicketCUses();
@@ -191,27 +201,31 @@ public class WeaponManager {
             lore.add(Message.toComponent(sb.toString()));
         }
 
+        String rarityColor = getRarityColor(template.getRarity());
         lore.add(Message.toComponent("§7========== " + rarityColor + "品质: " + getRarityDisplayName(template.getRarity()) + " §7=========="));
-
         meta.lore(lore);
-        meta.setItemModel(new NamespacedKey(RESOURCE_PACK_NAMESPACE, template.getId()));
-        applyVanillaItemAttributes(meta, stack.getType(), totalDamage, totalSpeed);
+        if (applyResourcePackModel) {
+            meta.setItemModel(new NamespacedKey(RESOURCE_PACK_NAMESPACE, template.getId()));
+        } else {
+            meta.setItemModel(null);
+        }
+        applyVanillaItemAttributes(meta, totalDamage, totalSpeed);
         stack.setItemMeta(meta);
     }
 
-    private static void applyVanillaItemAttributes(ItemMeta meta, Material material, double damage, double speed) {
+    private static void applyVanillaItemAttributes(ItemMeta meta, double damage, double speed) {
         meta.removeAttributeModifier(Attribute.ATTACK_DAMAGE);
         meta.removeAttributeModifier(Attribute.ATTACK_SPEED);
         double damageBonus = damage - 1.0;
         if (damageBonus != 0) {
             meta.addAttributeModifier(Attribute.ATTACK_DAMAGE,
                     new AttributeModifier(ATTACK_DAMAGE_KEY, damageBonus,
-                            AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.HAND));
+                            AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
         }
-        double vanillaSpeed = getVanillaMainHandAttackSpeed(material);
+        double effectiveSpeed = Math.min(speed, MAX_ATTACK_SPEED);
         meta.addAttributeModifier(Attribute.ATTACK_SPEED,
-                new AttributeModifier(ATTACK_SPEED_KEY, speed - vanillaSpeed,
-                        AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.HAND));
+                new AttributeModifier(ATTACK_SPEED_KEY, effectiveSpeed - VANILLA_BASE_ATTACK_SPEED,
+                        AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
     }
 
     private static void appendEffectLore(List<Component> lore, CustomWeapon template, WeaponInstanceData data) {
@@ -314,66 +328,6 @@ public class WeaponManager {
         } catch (IllegalArgumentException e) {
             return null;
         }
-    }
-
-    public static double getVanillaMainHandAttackSpeed(Material material) {
-        String name = material.name();
-        if (name.endsWith("_SWORD")) return 1.6;
-        if (name.endsWith("_SHOVEL")) return 1.0;
-        if (name.endsWith("_PICKAXE")) return 1.2;
-        if (name.endsWith("_AXE")) {
-            if (name.startsWith("WOODEN_") || name.startsWith("STONE_")) return 0.8;
-            if (name.startsWith("IRON_") || name.startsWith("NETHERITE_")) return 0.9;
-            if (name.startsWith("DIAMOND_")) return 1.0;
-            if (name.startsWith("GOLDEN_")) return 1.0;
-            return 0.9;
-        }
-        if (name.endsWith("_HOE")) {
-            if (name.startsWith("WOODEN_")) return 1.0;
-            if (name.startsWith("STONE_")) return 2.0;
-            if (name.startsWith("IRON_")) return 3.0;
-            if (name.startsWith("DIAMOND_") || name.startsWith("NETHERITE_")) return 4.0;
-            if (name.startsWith("GOLDEN_")) return 1.0;
-        }
-        return 4.0;
-    }
-
-    public static double getVanillaMainHandDamage(Material material) {
-        String name = material.name();
-        if (name.endsWith("_SWORD")) {
-            if (name.startsWith("WOODEN_") || name.startsWith("GOLDEN_")) return 4.0;
-            if (name.startsWith("STONE_")) return 5.0;
-            if (name.startsWith("IRON_")) return 6.0;
-            if (name.startsWith("DIAMOND_")) return 7.0;
-            if (name.startsWith("NETHERITE_")) return 8.0;
-        }
-        if (name.endsWith("_AXE")) {
-            if (name.startsWith("WOODEN_") || name.startsWith("GOLDEN_")) return 7.0;
-            if (name.startsWith("STONE_") || name.startsWith("IRON_") || name.startsWith("DIAMOND_")) return 9.0;
-            if (name.startsWith("NETHERITE_")) return 10.0;
-        }
-        if (name.endsWith("_PICKAXE")) {
-            if (name.startsWith("WOODEN_") || name.startsWith("GOLDEN_")) return 2.0;
-            if (name.startsWith("STONE_")) return 3.0;
-            if (name.startsWith("IRON_")) return 4.0;
-            if (name.startsWith("DIAMOND_")) return 5.0;
-            if (name.startsWith("NETHERITE_")) return 6.0;
-        }
-        if (name.endsWith("_SHOVEL")) {
-            if (name.startsWith("WOODEN_") || name.startsWith("GOLDEN_")) return 2.5;
-            if (name.startsWith("STONE_")) return 3.5;
-            if (name.startsWith("IRON_")) return 4.5;
-            if (name.startsWith("DIAMOND_")) return 5.5;
-            if (name.startsWith("NETHERITE_")) return 6.5;
-        }
-        if (name.endsWith("_HOE")) {
-            if (name.startsWith("WOODEN_") || name.startsWith("GOLDEN_")) return 1.0;
-            if (name.startsWith("STONE_")) return 1.0;
-            if (name.startsWith("IRON_")) return 1.0;
-            if (name.startsWith("DIAMOND_")) return 1.0;
-            if (name.startsWith("NETHERITE_")) return 1.0;
-        }
-        return 1.0;
     }
 
     public static CustomWeapon getTemplate(ItemStack stack) {

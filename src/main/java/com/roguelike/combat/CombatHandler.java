@@ -44,25 +44,24 @@ public class CombatHandler {
     }
 
     public static double processAttack(Player player, LivingEntity target, double baseDamage) {
-        return processAttack(player, target, baseDamage, false);
-    }
-
-    public static double processAttack(Player player, LivingEntity target, double baseDamage, boolean vanillaCritical) {
         CustomWeapon template = WeaponManager.getTemplate(player.getInventory().getItemInMainHand());
         WeaponInstanceData data = WeaponInstanceData.fromItemStack(player.getInventory().getItemInMainHand());
         if (template == null || data == null) return baseDamage;
 
-        double weaponDamage = data.getTotalDamage(template);
-        double vanillaBonus = vanillaBonus(baseDamage, weaponDamage, vanillaCritical);
-        double damage = weaponDamage + vanillaBonus;
+        double damage = baseDamage;
+        double totalSpeed = WeaponManager.getTotalAttackSpeed(template, data);
         List<String> damageParts = new ArrayList<>();
         List<FormulaPart> formulaParts = new ArrayList<>();
         List<String> extraParts = new ArrayList<>();
-        damageParts.add("基础 " + WeaponManager.format(weaponDamage, 1));
-        formulaParts.add(FormulaPart.add("§a", weaponDamage));
-        if (vanillaBonus > 0.05) {
-            damageParts.add("原版跳劈/附魔 +" + WeaponManager.format(vanillaBonus, 1));
-            formulaParts.add(FormulaPart.add("§b", vanillaBonus));
+        damageParts.add("原版基础 " + WeaponManager.format(damage, 1));
+        formulaParts.add(FormulaPart.add("§a", damage));
+        double speedMultiplier = attackSpeedOverflowMultiplier(totalSpeed);
+        if (speedMultiplier > 1.0) {
+            double before = damage;
+            damage *= speedMultiplier;
+            damageParts.add("攻速溢出 x" + WeaponManager.format(speedMultiplier, 2)
+                    + "：" + WeaponManager.format(before, 1) + " -> " + WeaponManager.format(damage, 1));
+            formulaParts.add(FormulaPart.multiply("§b", speedMultiplier));
         }
 
         List<String> neutralSources = new ArrayList<>();
@@ -246,7 +245,6 @@ public class CombatHandler {
             }
         }
 
-        WeaponManager.updateLore(player.getInventory().getItemInMainHand(), template, data);
         sendDamageFormula(player, damage, formulaParts, damageParts, extraParts);
         return damage;
     }
@@ -261,10 +259,10 @@ public class CombatHandler {
         };
     }
 
-    static double vanillaBonus(double eventDamage, double weaponDamage, boolean vanillaCritical) {
-        double existingBonus = Math.max(0.0, eventDamage - weaponDamage);
-        double criticalBonus = vanillaCritical ? Math.max(0.0, weaponDamage * 0.5) : 0.0;
-        return existingBonus >= criticalBonus ? existingBonus : existingBonus + criticalBonus;
+    static double attackSpeedOverflowMultiplier(double totalSpeed) {
+        return totalSpeed > WeaponManager.MAX_ATTACK_SPEED
+                ? totalSpeed / WeaponManager.MAX_ATTACK_SPEED
+                : 1.0;
     }
 
     private static void sendDamageFormula(Player player, double damage, List<FormulaPart> formulaParts, List<String> damageParts, List<String> extraParts) {

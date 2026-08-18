@@ -19,7 +19,7 @@ This file is the canonical guide for coding agents working in this repository. T
 - Do not commit RCON passwords, generated worlds, logs, plugin runtime config, caches, or jars copied into `server/plugins`.
 - Do not delete worlds or reset player data unless the user explicitly asks.
 - Do not change unrelated dirty files. This repository may already contain user edits.
-- Keep Paper/Minecraft behavior changes minimal and verify them in game when possible.
+- Keep Paper/Minecraft behavior changes minimal.
 - Preserve Chinese user-facing documentation style unless the user asks for English or bilingual docs.
 
 ## Build
@@ -50,9 +50,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\build-script-check.p
 
 ## Project-Specific User Preferences
 
-- Deploy the newest `minerogue-*.jar`; remove stale duplicate plugin jars first so Paper/PlugManX cannot load an older build.
 - Use docs-first, root-cause fixes. If the user updated docs, treat those docs as the intended spec before editing code.
-- Do not stop/start/restart/regenerate production servers without explicit approval; preserve freeform survival gameplay.
 - UX constraints: no VIP/supporter rank; main GUI title is “菜单”; compass opens the menu on right-click only; Quests are removed; teleport center includes `/delhome home`.
 - Boss events: no buildings or marker blocks; use a red particle-only beam; announce `"<boss> 已经苏醒，在 x y z 位置。"`.
 - Armor design: armor set names should reflect built-in armor affixes such as thorns/swift/explosive; remove random armor affixes that merely duplicate vanilla enchants; keep both vanilla Protection and custom `damage_reduction` because they are not considered conflicting.
@@ -74,125 +72,7 @@ The user may intentionally edit `docs/` first and then ask agents to implement t
 2. Treat the latest docs as the product intent, then inspect the matching Java/config/test files to map that intent onto the current implementation.
 3. If docs and current code conflict, implement the documented behavior and keep source defaults, command help, tests, and public docs synchronized.
 4. Do not invent undocumented systems; ask only when the docs leave a behavior-changing ambiguity that cannot be resolved from surrounding docs/code.
-5. Verify with focused tests plus `./gradlew.bat build`; for gameplay behavior, also request or perform local in-game smoke testing according to the server safety rules below.
-
-## Local Paper Test Server
-
-The local Paper server, when present, lives at:
-
-```text
-server/
-```
-
-`start-test-server.bat` bootstraps it on first run: it creates `server/`, downloads the Paper 1.21.11 jar from the PaperMC v3 API if `server.jar` is missing, writes `eula=true`, deploys the newest `minerogue-*.jar` build, and starts the server.
-
-Important local settings normally used for smoke tests:
-
-- Minecraft address: `127.0.0.1:25565`
-- RCON address: `127.0.0.1:25575`
-- `server-ip=127.0.0.1`
-- `server-port=25565`
-- `online-mode=false` for localhost bot testing.
-- `enforce-secure-profile=false` for offline-mode bot compatibility.
-- `enable-rcon=true` for command automation.
-- `rcon.port=25575`
-- `white-list=false`
-- `gamemode=survival`
-- `difficulty=easy`
-- `level-name=world`
-- `view-distance=10`
-- `simulation-distance=10`
-- `spawn-protection=16`
-
-The user manually starts and stops the local server by default. Agents must not start, stop, restart, kill, or otherwise control the Paper server process unless the user explicitly asks in that turn. When the user explicitly asks the agent to run server-side tests, run the server directly in a terminal window with `start-test-server.bat`.
-
-The RCON password is stored only in ignored local `server/server.properties`. Do not copy it into tracked files, logs, docs, or commit messages. Prefer not to use RCON when the user is manually operating the server.
-
-### Direct Terminal Test Server
-
-When the user explicitly asks the agent to start or manage the local test server for automation, run it directly in a terminal window:
-
-```text
-start-test-server.bat
-```
-
-Rules for terminal testing:
-
-- Use `start-test-server.bat` only when the user explicitly authorizes agent-controlled server startup/testing in the current turn.
-- Keep the server console in its terminal window; use RCON for console commands and Minecraft MCP for player/bot actions.
-- Before deploying a rebuilt plugin jar, remove duplicate stale `server/plugins/minerogue-*.jar` files so Paper/PlugManX cannot load an older jar.
-- After each automated test run, clean up test state: kill temporary hostile/test entities near the bot, restore the bot to creative mode when appropriate, clear short-lived effects/items created only for the test, and check `server/logs/latest.log` for new Roguelike errors.
-- Do not close or kill the server terminal window; ask the user to stop the server when testing is done.
-
-## Deploy And Hot Reload
-
-From the repository root, build first:
-
-```powershell
-.\gradlew.bat build
-```
-
-The user has installed PlugManX for local hot-reload testing. After a successful build, ask the user to copy or deploy the newest `build/libs/minerogue-*.jar` into `server/plugins` and run the server manually if it is not already running.
-
-Use PlugManX for manual in-server reload checks. Suggested console or in-game commands:
-
-```text
-plugman reload minerogue
-plugins
-rw reload
-```
-
-If PlugManX command syntax differs on the installed version, use its help command and adapt only the command spelling, not the test intent.
-
-Expected hot-reload evidence in console or `server/logs/latest.log`:
-
-```text
-[minerogue] Enabling minerogue v0.2
-[minerogue] Roguelike plugin enabled.
-```
-
-Do not run `start-test-server.bat`, `java -jar server.jar`, RCON `stop`, task killing, or process-control commands as part of normal verification. Server lifecycle is user-operated.
-
-## Manual In-Game Smoke Tests
-
-After the user confirms the server is running and the plugin has been hot-reloaded, connect a local client or bot to:
-
-```text
-127.0.0.1:25565
-```
-
-Useful smoke commands:
-
-```text
-/plugins
-/rl
-/rl status
-/rl tickets
-/rw help
-/rw reload
-/rw debug status
-/rw list weapons
-/rw list armor
-/rw list items
-/rw give weapon wooden_sword <player> 1
-/rw give ticket ticket_a <player> 1
-/rw stats <player>
-```
-
-When testing player-facing behavior, verify both chat output and server log errors.
-
-## Future Automation Direction
-
-Preferred local verification path:
-
-1. Build with `./gradlew.bat build`.
-2. Have the user deploy the newest `minerogue-*.jar` into `server/plugins`.
-3. Have the user run or keep running the local server.
-4. Use PlugManX manual commands such as `plugman reload minerogue`, `plugins`, and `/rw reload` to verify plugin reload behavior.
-5. Use a Minecraft client or bot only when the user has the server running and the test requires true in-game actions such as joining, chatting, moving, mining, eating, attacking, opening GUIs, and checking inventory.
-6. Ask the user to stop the server when needed; do not stop it yourself.
-
-Do not introduce external hosting for tests unless the user explicitly asks. Keep all game tests local and reproducible.
+5. Verify with focused tests plus `./gradlew.bat build`.
 
 ## Verification Checklist
 
@@ -200,7 +80,3 @@ Before reporting completion after code changes:
 
 - Run `./gradlew.bat build`.
 - If build script behavior changed, run `tests/build-script-check.ps1`.
-- If plugin runtime behavior changed, ask the user to run the server and hot-reload `minerogue` with PlugManX, then confirm the plugin enables.
-- For gameplay changes, perform or request an in-game/client/bot smoke test that exercises the changed feature on the user-run server.
-- Ask the user to check `server/logs/latest.log` or paste relevant errors if the server log is needed; do not rely on direct server process control.
-- Confirm no ignored `server/` files or secrets are staged.
