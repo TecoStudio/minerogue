@@ -47,7 +47,7 @@ public class CombatHandler {
         CustomWeapon template = WeaponManager.getTemplate(player.getInventory().getItemInMainHand());
         WeaponInstanceData data = WeaponInstanceData.fromItemStack(player.getInventory().getItemInMainHand());
         if (template == null || data == null) {
-            player.sendActionBar(Message.toComponent(formatDamageActionBar("§f" + WeaponManager.format(baseDamage, 1), baseDamage, List.of())));
+            player.sendActionBar(Message.toComponent(formatDamageActionBar(baseDamage)));
             return baseDamage;
         }
 
@@ -287,7 +287,7 @@ public class CombatHandler {
             }
             player.sendMessage(message.hoverEvent(HoverEvent.showText(Message.toComponent(hover))));
         } else {
-            player.sendActionBar(Message.toComponent(formatDamageActionBar(formula.toString(), damage, extraParts)));
+            player.sendActionBar(Message.toComponent(formatDamageActionBar(damage)));
         }
     }
 
@@ -295,13 +295,8 @@ public class CombatHandler {
         return "§7伤害: " + formula + " §8= §f" + WeaponManager.format(damage, 1);
     }
 
-    static String formatDamageActionBar(String formula, double damage, List<String> extraParts) {
-        StringBuilder message = new StringBuilder("§7伤害: ").append(formula)
-                .append(" §8= §f").append(WeaponManager.format(damage, 1));
-        if (!extraParts.isEmpty()) {
-            message.append(" §8| §e").append(String.join("、", extraParts));
-        }
-        return message.toString();
+    static String formatDamageActionBar(double damage) {
+        return "§7伤害: §f" + WeaponManager.format(damage, 1);
     }
 
     private static double contractBonus(CustomWeapon template, WeaponInstanceData data, String id, double value) {
