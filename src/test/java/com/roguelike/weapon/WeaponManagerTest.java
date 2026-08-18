@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -15,6 +16,12 @@ class WeaponManagerTest {
 
         assertFalse(WeaponManager.usesTemplateDisplay(template));
         assertFalse(WeaponManager.usesResourcePackModel(template));
+    }
+
+    @Test
+    void vanillaMainHandDamageUsesMaterialDefaults() {
+        assertEquals(4.0, WeaponManager.getVanillaMainHandDamage(org.bukkit.Material.WOODEN_SWORD), 0.001);
+        assertEquals(8.0, WeaponManager.getVanillaMainHandDamage(org.bukkit.Material.NETHERITE_SWORD), 0.001);
     }
 
     @Test

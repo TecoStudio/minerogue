@@ -51,13 +51,19 @@ public class CombatHandler {
             return baseDamage;
         }
 
-        double damage = baseDamage;
+        double weaponDamage = data.getTotalDamage(template);
+        double vanillaBonus = vanillaBonus(baseDamage, weaponDamage, false);
+        double damage = weaponDamage + vanillaBonus;
         double totalSpeed = WeaponManager.getTotalAttackSpeed(template, data);
         List<String> damageParts = new ArrayList<>();
         List<FormulaPart> formulaParts = new ArrayList<>();
         List<String> extraParts = new ArrayList<>();
-        damageParts.add("原版基础 " + WeaponManager.format(damage, 1));
-        formulaParts.add(FormulaPart.add("§a", damage));
+        damageParts.add("基础 " + WeaponManager.format(weaponDamage, 1));
+        formulaParts.add(FormulaPart.add("§a", weaponDamage));
+        if (vanillaBonus > 0.05) {
+            damageParts.add("原版跳劈/附魔 +" + WeaponManager.format(vanillaBonus, 1));
+            formulaParts.add(FormulaPart.add("§b", vanillaBonus));
+        }
         double speedMultiplier = attackSpeedOverflowMultiplier(totalSpeed);
         if (speedMultiplier > 1.0) {
             double before = damage;
@@ -69,11 +75,11 @@ public class CombatHandler {
 
         List<String> neutralSources = new ArrayList<>();
         double neutralMultiplier = 1.0;
-        if (data.getTotalEffect(template, "neutral_damage_200", 0.0) > 0) {
+        if (data.getTotalEffect(template, "contract_damage_200", 0.0) > 0) {
             neutralMultiplier *= 2.0;
             neutralSources.add("狂战契约 x2.0");
         }
-        if (data.getTotalEffect(template, "neutral_berserk_self_harm", 0.0) > 0) {
+        if (data.getTotalEffect(template, "contract_berserk_self_harm", 0.0) > 0) {
             neutralMultiplier *= 3.0;
             neutralSources.add("血怒契约 x3.0");
             double selfDamage = maxHealth(player) * 0.10;
@@ -99,10 +105,8 @@ public class CombatHandler {
 
         boolean wasBurning = target.getFireTicks() > 0;
         boolean wasPoisoned = target.hasPotionEffect(PotionEffectType.POISON);
-        boolean wasBleeding = isBleeding(target);
         double burningBonus = data.getTotalEffect(template, "burning_target_damage_percent", 0.0);
         double poisonedBonus = data.getTotalEffect(template, "poisoned_target_damage_percent", 0.0);
-        double bleedingBonus = data.getTotalEffect(template, "bleeding_target_damage_percent", 0.0);
         if (wasBurning && burningBonus > 0) {
             double before = damage;
             damage *= 1 + burningBonus;
@@ -119,18 +123,10 @@ public class CombatHandler {
                     + "：" + WeaponManager.format(before, 1) + " -> " + WeaponManager.format(damage, 1));
             formulaParts.add(FormulaPart.multiply("§2", multiplier));
         }
-        if (wasBleeding && bleedingBonus > 0) {
-            double before = damage;
-            damage *= 1 + bleedingBonus;
-            double multiplier = 1 + bleedingBonus;
-            damageParts.add("流血目标增伤 x" + WeaponManager.format(multiplier, 2)
-                    + "：" + WeaponManager.format(before, 1) + " -> " + WeaponManager.format(damage, 1));
-            formulaParts.add(FormulaPart.multiply("§4", multiplier));
-        }
 
         // 暴击
-        double critChance = chance(data.getTotalEffect(template, "crit_chance", 0.0) + neutralBonus(template, data, "neutral_crit_chance_100", 1.0));
-        double critDamage = data.getTotalEffect(template, "crit_damage", 1.5) + neutralBonus(template, data, "neutral_crit_damage_300", 1.5);
+        double critChance = chance(data.getTotalEffect(template, "crit_chance", 0.0) + contractBonus(template, data, "contract_crit_chance_100", 1.0));
+        double critDamage = data.getTotalEffect(template, "crit_damage", 1.5) + contractBonus(template, data, "contract_crit_damage_300", 1.5);
         boolean crit = critChance > 0 && RANDOM.nextDouble() < critChance;
         if (crit) {
             double before = damage;
@@ -164,7 +160,7 @@ public class CombatHandler {
         }
 
         // 吸血
-        double lifePercent = data.getTotalEffect(template, "lifesteal_percent", 0.0) + neutralBonus(template, data, "neutral_lifesteal_100", 1.0);
+        double lifePercent = data.getTotalEffect(template, "lifesteal_percent", 0.0) + contractBonus(template, data, "contract_lifesteal_100", 1.0);
         double lifeFlat = data.getTotalEffect(template, "lifesteal_flat", 0.0);
         double heal = damage * lifePercent + lifeFlat;
         if (heal > 0) {
@@ -201,17 +197,10 @@ public class CombatHandler {
             extraParts.add("中毒触发");
         }
 
-        // 流血
-        double bleedChance = chance(data.getTotalEffect(template, "bleed_chance", 0.0));
-        if (bleedChance > 0 && RANDOM.nextDouble() < bleedChance) {
-            applyBleeding(player, target);
-            extraParts.add("流血触发");
-        }
-
         // 雷电
         int stormPieces = ArmorAffixManager.stormPieces(player);
         double lightning = chance(data.getTotalEffect(template, "lightning_chance", 0.0)
-                + neutralBonus(template, data, "neutral_thunder_100", 1.0)
+                + contractBonus(template, data, "contract_thunder_100", 1.0)
                 + stormLightningChance(stormPieces));
         if (lightning > 0 && RANDOM.nextDouble() < lightning) {
             protectFromOwnLightning(player);
@@ -220,7 +209,7 @@ public class CombatHandler {
         }
 
         // 爆炸
-        double explosionChance = chance(data.getTotalEffect(template, "explosion_chance", 0.0) + neutralBonus(template, data, "neutral_explosion_100", 1.0));
+        double explosionChance = chance(data.getTotalEffect(template, "explosion_chance", 0.0) + contractBonus(template, data, "contract_explosion_100", 1.0));
         if (explosionChance > 0 && RANDOM.nextDouble() < explosionChance) {
             target.getWorld().createExplosion(target.getLocation(), 2.0f, false, false, player);
             extraParts.add("爆炸触发");
@@ -259,6 +248,16 @@ public class CombatHandler {
             case 4 -> 0.36;
             default -> 0.0;
         };
+    }
+
+    static double vanillaBonus(double eventDamage, double weaponDamage, boolean vanillaCritical) {
+        double existingBonus = Math.max(0.0, eventDamage - weaponDamage);
+        double criticalBonus = vanillaCritical ? Math.max(0.0, weaponDamage * 0.5) : 0.0;
+        return existingBonus >= criticalBonus ? existingBonus : existingBonus + criticalBonus;
+    }
+
+    static double resolveWeaponBaseDamage(double eventDamage, double weaponDamage, boolean vanillaCritical) {
+        return weaponDamage + vanillaBonus(eventDamage, weaponDamage, vanillaCritical);
     }
 
     static double attackSpeedOverflowMultiplier(double totalSpeed) {
@@ -305,11 +304,11 @@ public class CombatHandler {
         return message.toString();
     }
 
-    private static double neutralBonus(CustomWeapon template, WeaponInstanceData data, String id, double value) {
+    private static double contractBonus(CustomWeapon template, WeaponInstanceData data, String id, double value) {
         return data.getTotalEffect(template, id, 0.0) > 0 ? value : 0.0;
     }
 
-    public static double applyIncomingNeutralDamage(Player player, double damage) {
+    public static double applyIncomingContractDamage(Player player, double damage) {
         CustomWeapon template = WeaponManager.getTemplate(player.getInventory().getItemInMainHand());
         WeaponInstanceData data = WeaponManager.getData(player.getInventory().getItemInMainHand());
         if (template == null || data == null) return damage;
@@ -334,7 +333,7 @@ public class CombatHandler {
     }
 
     private static boolean hasAnyIncomingDamageDouble(CustomWeapon template, WeaponInstanceData data) {
-        return data.getTotalEffect(template, "neutral_damage_200", 0.0) > 0
+        return data.getTotalEffect(template, "contract_damage_200", 0.0) > 0
                 || data.getTotalEffect(template, "chain_targets", 0.0) > 0
                 || data.getTotalEffect(template, "chain_damage_percent", 0.0) > 0
                 || data.getTotalEffect(template, "crit_chance", 0.0) > 0
@@ -344,41 +343,17 @@ public class CombatHandler {
                 || data.getTotalEffect(template, "damage_store_percent", 0.0) > 0
                 || data.getTotalEffect(template, "burning_target_damage_percent", 0.0) > 0
                 || data.getTotalEffect(template, "poisoned_target_damage_percent", 0.0) > 0
-                || data.getTotalEffect(template, "bleed_chance", 0.0) > 0
-                || data.getTotalEffect(template, "bleeding_target_damage_percent", 0.0) > 0
                 || data.getTotalEffect(template, "explosion_chance", 0.0) > 0
                 || data.getTotalEffect(template, "big_explosion_chance", 0.0) > 0
                 || data.getTotalEffect(template, "smash", 0.0) > 0
-                || data.getTotalEffect(template, "neutral_speed_200", 0.0) > 0
-                || data.getTotalEffect(template, "neutral_attack_speed_200", 0.0) > 0
-                || data.getTotalEffect(template, "neutral_range_200", 0.0) > 0
-                || data.getTotalEffect(template, "neutral_crit_chance_100", 0.0) > 0
-                || data.getTotalEffect(template, "neutral_crit_damage_300", 0.0) > 0
-                || data.getTotalEffect(template, "neutral_lifesteal_100", 0.0) > 0
-                || data.getTotalEffect(template, "neutral_thunder_100", 0.0) > 0
-                || data.getTotalEffect(template, "neutral_explosion_100", 0.0) > 0;
-    }
-
-    private static boolean isBleeding(LivingEntity target) {
-        long now = System.currentTimeMillis();
-        for (MetadataValue value : target.getMetadata(BLEEDING_METADATA)) {
-            if (value.asLong() > now) return true;
-        }
-        return false;
-    }
-
-    private static void applyBleeding(Player player, LivingEntity target) {
-        if (plugin == null) return;
-        long until = System.currentTimeMillis() + 5_000L;
-        target.setMetadata(BLEEDING_METADATA, new FixedMetadataValue(plugin, until));
-        target.getWorld().spawnParticle(Particle.DAMAGE_INDICATOR, target.getEyeLocation(), 8, 0.25, 0.35, 0.25);
-        for (int i = 1; i <= 5; i++) {
-            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                if (target.isDead() || !target.isValid() || !isBleeding(target)) return;
-                applyInternalDamage(target, 1.0, player);
-                target.getWorld().spawnParticle(Particle.DAMAGE_INDICATOR, target.getEyeLocation(), 3, 0.2, 0.25, 0.2);
-            }, i * 20L);
-        }
+                || data.getTotalEffect(template, "contract_speed_200", 0.0) > 0
+                || data.getTotalEffect(template, "contract_attack_speed_200", 0.0) > 0
+                || data.getTotalEffect(template, "contract_range_200", 0.0) > 0
+                || data.getTotalEffect(template, "contract_crit_chance_100", 0.0) > 0
+                || data.getTotalEffect(template, "contract_crit_damage_300", 0.0) > 0
+                || data.getTotalEffect(template, "contract_lifesteal_100", 0.0) > 0
+                || data.getTotalEffect(template, "contract_thunder_100", 0.0) > 0
+                || data.getTotalEffect(template, "contract_explosion_100", 0.0) > 0;
     }
 
     private static void sendStoreProgress(Player player, int hits, int requiredHits) {

@@ -45,7 +45,7 @@ public class WeaponManager {
     /** Final attack speed for a weapon instance, including the 急速契约 x2 multiplier. */
     public static double getTotalAttackSpeed(CustomWeapon template, WeaponInstanceData data) {
         double speed = data.getTotalAttackSpeed(template);
-        if (data.getTotalEffect(template, "neutral_attack_speed_200", 0.0) > 0) speed *= 2.0;
+        if (data.getTotalEffect(template, "contract_attack_speed_200", 0.0) > 0) speed *= 2.0;
         return speed;
     }
 
@@ -105,7 +105,7 @@ public class WeaponManager {
         if (stack == null || stack.getType().isAir()) return;
         WeaponInstanceData data = new WeaponInstanceData(template.getId());
 
-        double sourceDamage = readItemAttributeValue(stack, Attribute.ATTACK_DAMAGE, 1.0);
+        double sourceDamage = readItemAttributeValue(stack, Attribute.ATTACK_DAMAGE, getVanillaMainHandDamage(stack.getType()));
         double sourceSpeed = readItemAttributeValue(stack, Attribute.ATTACK_SPEED, VANILLA_BASE_ATTACK_SPEED);
         double sourceRange = readItemAttributeValue(stack, getRangeAttribute(), template.getEffect("attack_range", 3.0));
 
@@ -170,7 +170,7 @@ public class WeaponManager {
         double totalDamage = data.getTotalDamage(template);
         double totalSpeed = getTotalAttackSpeed(template, data);
         double totalRange = data.getTotalEffect(template, "attack_range", 3.0);
-        if (data.getTotalEffect(template, "neutral_range_200", 0.0) > 0) totalRange *= 2.0;
+        if (data.getTotalEffect(template, "contract_range_200", 0.0) > 0) totalRange *= 2.0;
 
         lore.add(Message.toComponent("§a⚔ 基础伤害: §f" + format(totalDamage, 1)));
         lore.add(Message.toComponent("§b⚡ 攻击速度: §f" + format(totalSpeed, 2)));
@@ -278,10 +278,10 @@ public class WeaponManager {
         if (template == null || data == null) return;
 
         double totalRange = data.getTotalEffect(template, "attack_range", 3.0);
-        if (data.getTotalEffect(template, "neutral_range_200", 0.0) > 0) totalRange *= 2.0;
+        if (data.getTotalEffect(template, "contract_range_200", 0.0) > 0) totalRange *= 2.0;
 
         applyRangeAttribute(player, totalRange);
-        applyMovementSpeedAttribute(player, data.getTotalEffect(template, "neutral_speed_200", 0.0) > 0 ? 1.0 : 0.0);
+        applyMovementSpeedAttribute(player, data.getTotalEffect(template, "contract_speed_200", 0.0) > 0 ? 1.0 : 0.0);
     }
 
     private static void applyRangeAttribute(Player player, double range) {
@@ -328,6 +328,37 @@ public class WeaponManager {
         } catch (IllegalArgumentException e) {
             return null;
         }
+    }
+
+    public static double getVanillaMainHandDamage(Material material) {
+        String name = material.name();
+        if (name.endsWith("_SWORD")) {
+            if (name.startsWith("WOODEN_") || name.startsWith("GOLDEN_")) return 4.0;
+            if (name.startsWith("STONE_")) return 5.0;
+            if (name.startsWith("IRON_")) return 6.0;
+            if (name.startsWith("DIAMOND_")) return 7.0;
+            if (name.startsWith("NETHERITE_")) return 8.0;
+        }
+        if (name.endsWith("_AXE")) {
+            if (name.startsWith("WOODEN_") || name.startsWith("GOLDEN_")) return 7.0;
+            if (name.startsWith("STONE_") || name.startsWith("IRON_") || name.startsWith("DIAMOND_")) return 9.0;
+            if (name.startsWith("NETHERITE_")) return 10.0;
+        }
+        if (name.endsWith("_PICKAXE")) {
+            if (name.startsWith("WOODEN_") || name.startsWith("GOLDEN_")) return 2.0;
+            if (name.startsWith("STONE_")) return 3.0;
+            if (name.startsWith("IRON_")) return 4.0;
+            if (name.startsWith("DIAMOND_")) return 5.0;
+            if (name.startsWith("NETHERITE_")) return 6.0;
+        }
+        if (name.endsWith("_SHOVEL")) {
+            if (name.startsWith("WOODEN_") || name.startsWith("GOLDEN_")) return 2.5;
+            if (name.startsWith("STONE_")) return 3.5;
+            if (name.startsWith("IRON_")) return 4.5;
+            if (name.startsWith("DIAMOND_")) return 5.5;
+            if (name.startsWith("NETHERITE_")) return 6.5;
+        }
+        return 1.0;
     }
 
     public static CustomWeapon getTemplate(ItemStack stack) {

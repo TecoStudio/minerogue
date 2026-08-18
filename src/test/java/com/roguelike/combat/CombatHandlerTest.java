@@ -13,8 +13,19 @@ class CombatHandlerTest {
 
     @Test
     void damageActionBarShowsFormulaFinalDamageAndExtraTriggers() {
-        assertEquals("§7伤害: §a5.0 &8x §b1.50 §8= §f7.5 §8| §e流血触发",
-                CombatHandler.formatDamageActionBar("§a5.0 &8x §b1.50", 7.5, java.util.List.of("流血触发")));
+        assertEquals("§7伤害: §a5.0 &8x §b1.50 §8= §f7.5", 
+                CombatHandler.formatDamageActionBar("§a5.0 &8x §b1.50", 7.5, java.util.List.of()));
+    }
+
+    @Test
+    void pluginWeaponDamageReplacesOnePointEventDamage() {
+        assertEquals(8.0, CombatHandler.resolveWeaponBaseDamage(1.0, 8.0, false), 0.001);
+    }
+
+    @Test
+    void vanillaBonusPreservesOnlyDamageAboveWeaponValue() {
+        assertEquals(2.0, CombatHandler.vanillaBonus(10.0, 8.0, false), 0.001);
+        assertEquals(4.0, CombatHandler.vanillaBonus(8.0, 8.0, true), 0.001);
     }
 
     @Test
