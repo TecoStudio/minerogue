@@ -6,9 +6,11 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.persistence.PersistentDataType;
 
 public final class DamageTestDummyManager {
+    public static final double TEST_DUMMY_HEALTH = 1000.0;
     private static NamespacedKey markerKey;
 
     private DamageTestDummyManager() {
@@ -39,6 +41,11 @@ public final class DamageTestDummyManager {
                 continue;
             }
             stand.getPersistentDataContainer().set(markerKey, PersistentDataType.BYTE, (byte) 1);
+            var maxHealth = stand.getAttribute(Attribute.MAX_HEALTH);
+            if (maxHealth != null) {
+                maxHealth.setBaseValue(TEST_DUMMY_HEALTH);
+                stand.setHealth(TEST_DUMMY_HEALTH);
+            }
         }
     }
 
