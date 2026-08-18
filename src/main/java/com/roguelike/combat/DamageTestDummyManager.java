@@ -59,6 +59,14 @@ public final class DamageTestDummyManager {
         return woolLocation.clone().add(0.5, 1.0, 0.5);
     }
 
+    public static boolean isProtectionActive(boolean hasAnchor, boolean anchorWool, boolean currentBelowWool) {
+        return hasAnchor ? anchorWool : currentBelowWool;
+    }
+
+    public static boolean shouldAdoptWoolAnchor(boolean hasAnchor, boolean currentBelowWool) {
+        return !hasAnchor && currentBelowWool;
+    }
+
     public static void markArmorStandAbove(Block woolBlock) {
         if (!isWool(woolBlock.getType())) return;
         for (Entity entity : woolBlock.getWorld().getNearbyEntities(
@@ -69,14 +77,15 @@ public final class DamageTestDummyManager {
                     || stand.getLocation().getBlockZ() != woolBlock.getZ()) {
                 continue;
             }
-            PersistentDataContainer data = stand.getPersistentDataContainer();
-            data.set(markerKey, PersistentDataType.BYTE, (byte) 1);
-            data.set(anchorWorldKey, PersistentDataType.STRING, woolBlock.getWorld().getUID().toString());
-            data.set(anchorXKey, PersistentDataType.INTEGER, woolBlock.getX());
-            data.set(anchorYKey, PersistentDataType.INTEGER, woolBlock.getY());
-            data.set(anchorZKey, PersistentDataType.INTEGER, woolBlock.getZ());
-            setTestDummyHealth(stand);
+            markArmorStand(stand, woolBlock);
         }
+    }
+
+    private static void markArmorStand(ArmorStand stand, Block woolBlock) {
+        PersistentDataContainer data = stand.getPersistentDataContainer();
+        data.set(markerKey, PersistentDataType.BYTE, (byte) 1);
+        saveAnchor(stand, woolBlock);
+        setTestDummyHealth(stand);
     }
 
     private static void setTestDummyHealth(ArmorStand stand) {
@@ -91,19 +100,43 @@ public final class DamageTestDummyManager {
         if (markerKey == null) return;
         for (World world : Bukkit.getWorlds()) {
             for (ArmorStand stand : world.getEntitiesByClass(ArmorStand.class)) {
-                if (isTestDummy(stand)) restore(stand);
+                if (isTestDummy(stand)) {
+                    restore(stand);
+                } else {
+                    adoptIfStandingOnWool(stand);
+                }
             }
         }
     }
 
+    private static void adoptIfStandingOnWool(ArmorStand stand) {
+        Block below = stand.getLocation().getBlock().getRelative(0, -1, 0);
+        if (!shouldAdoptWoolAnchor(false, isWool(below.getType()))) return;
+        markArmorStand(stand, below);
+    }
+
     private static void restore(ArmorStand stand) {
         Location anchor = getAnchor(stand);
-        if (anchor == null || !isWool(anchor.getBlock().getType())) return;
+        if (anchor == null) {
+            Block below = stand.getLocation().getBlock().getRelative(0, -1, 0);
+            if (!isWool(below.getType())) return;
+            saveAnchor(stand, below);
+            anchor = below.getLocation();
+        }
+        if (!isWool(anchor.getBlock().getType())) return;
         Location target = returnLocationAbove(anchor);
         if (stand.getLocation().distanceSquared(target) <= 0.01) return;
         stand.teleport(target);
         stand.setVelocity(new Vector());
         setTestDummyHealth(stand);
+    }
+
+    private static void saveAnchor(ArmorStand stand, Block woolBlock) {
+        PersistentDataContainer data = stand.getPersistentDataContainer();
+        data.set(anchorWorldKey, PersistentDataType.STRING, woolBlock.getWorld().getUID().toString());
+        data.set(anchorXKey, PersistentDataType.INTEGER, woolBlock.getX());
+        data.set(anchorYKey, PersistentDataType.INTEGER, woolBlock.getY());
+        data.set(anchorZKey, PersistentDataType.INTEGER, woolBlock.getZ());
     }
 
     private static Location getAnchor(Entity entity) {
@@ -130,6 +163,7 @@ public final class DamageTestDummyManager {
     public static boolean isProtected(Entity entity) {
         if (!isTestDummy(entity)) return false;
         Location anchor = getAnchor(entity);
-        return anchor != null && isWool(anchor.getBlock().getType());
+        if (anchor != null) return isWool(anchor.getBlock().getType());
+        return isWool(entity.getLocation().getBlock().getRelative(0, -1, 0).getType());
     }
 }

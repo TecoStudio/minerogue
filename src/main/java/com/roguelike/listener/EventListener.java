@@ -159,7 +159,8 @@ public class EventListener implements Listener {
             Message.send(player, "&c武器暂时无法使用。");
             return;
         }
-        if (WeaponInstanceData.isRoguelikeWeapon(hand)) {
+        if (CombatHandler.shouldProcessAttack(WeaponInstanceData.isRoguelikeWeapon(hand),
+                DamageTestDummyManager.isProtected(target))) {
             double damage = CombatHandler.processAttack(player, target, event.getDamage());
             event.setDamage(damage);
         }

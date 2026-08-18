@@ -22,6 +22,14 @@ class DamageTestDummyManagerTest {
     }
 
     @Test
+    void protectionUsesCurrentWoolWhenAnchorIsMissing() {
+        assertTrue(DamageTestDummyManager.isProtectionActive(false, false, true));
+        assertFalse(DamageTestDummyManager.isProtectionActive(false, false, false));
+        assertTrue(DamageTestDummyManager.isProtectionActive(true, true, false));
+        assertFalse(DamageTestDummyManager.isProtectionActive(true, false, true));
+    }
+
+    @Test
     void calculatesReturnLocationAboveWoolAnchor() {
         Location wool = new Location(null, 10.0, 64.0, -4.0);
 

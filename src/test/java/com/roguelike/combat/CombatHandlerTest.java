@@ -3,6 +3,8 @@ package com.roguelike.combat;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CombatHandlerTest {
     @Test
@@ -16,6 +18,11 @@ class CombatHandlerTest {
                 CombatHandler.formatDamageChatText("§a5.0", 5.0));
     }
 
+    @Test
+    void protectedDummyProcessesVanillaWeaponAttacksForFormulaFeedback() {
+        assertTrue(CombatHandler.shouldProcessAttack(false, true));
+        assertFalse(CombatHandler.shouldProcessAttack(false, false));
+    }
     @Test
     void pluginWeaponDamageReplacesOnePointEventDamage() {
         assertEquals(8.0, CombatHandler.resolveWeaponBaseDamage(1.0, 8.0, false), 0.001);

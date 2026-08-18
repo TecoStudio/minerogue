@@ -43,11 +43,19 @@ public class CombatHandler {
         return internalDamage;
     }
 
+    public static boolean shouldProcessAttack(boolean roguelikeWeapon, boolean protectedDummy) {
+        return roguelikeWeapon || protectedDummy;
+    }
+
     public static double processAttack(Player player, LivingEntity target, double baseDamage) {
         CustomWeapon template = WeaponManager.getTemplate(player.getInventory().getItemInMainHand());
         WeaponInstanceData data = WeaponInstanceData.fromItemStack(player.getInventory().getItemInMainHand());
         if (template == null || data == null) {
-            player.sendActionBar(Message.toComponent(formatDamageActionBar(baseDamage)));
+            if (DamageTestDummyManager.isProtected(target)) {
+                sendBaseDamageFormula(player, baseDamage);
+            } else {
+                player.sendActionBar(Message.toComponent(formatDamageActionBar(baseDamage)));
+            }
             return baseDamage;
         }
 
@@ -266,7 +274,17 @@ public class CombatHandler {
                 : 1.0;
     }
 
-    private static void sendDamageFormula(Player player, LivingEntity target, double damage, List<FormulaPart> formulaParts, List<String> damageParts, List<String> extraParts) {
+    private static void sendBaseDamageFormula(Player player, double damage) {
+        Component message = Message.toComponent("&7伤害: &a" + WeaponManager.format(damage, 1)
+                + " &8= &f" + WeaponManager.format(damage, 1));
+        String hover = "§f" + WeaponManager.format(damage, 1) + " §7(基础伤害 "
+                + WeaponManager.format(damage, 1) + ")";
+        player.sendMessage(message.hoverEvent(HoverEvent.showText(Message.toComponent(hover))));
+    }
+
+    private static void sendDamageFormula(Player player, LivingEntity target, double damage,
+                                          List<FormulaPart> formulaParts, List<String> damageParts,
+                                          List<String> extraParts) {
         Component message = Message.toComponent("&7伤害: ");
         StringBuilder formula = new StringBuilder();
         for (int i = 0; i < formulaParts.size(); i++) {
