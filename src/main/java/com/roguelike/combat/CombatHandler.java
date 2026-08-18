@@ -5,10 +5,10 @@ import com.roguelike.armor.affix.ArmorAffixManager;
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.item.WeaponInstanceData;
 import com.roguelike.util.Message;
-import com.roguelike.weapon.WeaponAbilityManager;
-import com.roguelike.weapon.WeaponManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.HoverEvent;
+import com.roguelike.weapon.WeaponAbilityManager;
+import com.roguelike.weapon.WeaponManager;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -46,7 +46,10 @@ public class CombatHandler {
     public static double processAttack(Player player, LivingEntity target, double baseDamage) {
         CustomWeapon template = WeaponManager.getTemplate(player.getInventory().getItemInMainHand());
         WeaponInstanceData data = WeaponInstanceData.fromItemStack(player.getInventory().getItemInMainHand());
-        if (template == null || data == null) return baseDamage;
+        if (template == null || data == null) {
+            player.sendActionBar(Message.toComponent(formatDamageActionBar("§f" + WeaponManager.format(baseDamage, 1), baseDamage, List.of())));
+            return baseDamage;
+        }
 
         double damage = baseDamage;
         double totalSpeed = WeaponManager.getTotalAttackSpeed(template, data);
@@ -157,7 +160,6 @@ public class CombatHandler {
                 Message.send(player, "&6&l爆发！ 额外 " + WeaponManager.format(burst, 1) + " 伤害");
                 player.getWorld().spawnParticle(Particle.EXPLOSION, target.getLocation(), 1);
             }
-            sendStoreProgress(player, data.getStoredDamageHits(), requiredHits);
             data.saveToItemStack(player.getInventory().getItemInMainHand());
         }
 
@@ -245,7 +247,7 @@ public class CombatHandler {
             }
         }
 
-        sendDamageFormula(player, damage, formulaParts, damageParts, extraParts);
+        sendDamageFormula(player, target, damage, formulaParts, damageParts, extraParts);
         return damage;
     }
 
@@ -265,21 +267,42 @@ public class CombatHandler {
                 : 1.0;
     }
 
-    private static void sendDamageFormula(Player player, double damage, List<FormulaPart> formulaParts, List<String> damageParts, List<String> extraParts) {
+    private static void sendDamageFormula(Player player, LivingEntity target, double damage, List<FormulaPart> formulaParts, List<String> damageParts, List<String> extraParts) {
         Component message = Message.toComponent("&7伤害: ");
+        StringBuilder formula = new StringBuilder();
         for (int i = 0; i < formulaParts.size(); i++) {
             FormulaPart part = formulaParts.get(i);
-            if (i > 0) message = message.append(Message.toComponent(part.operator));
-            message = message.append(Message.toComponent(part.color + WeaponManager.format(part.value, part.decimals)));
+            if (i > 0) {
+                message = message.append(Message.toComponent(part.operator));
+                formula.append(part.operator);
+            }
+            String value = part.color + WeaponManager.format(part.value, part.decimals);
+            message = message.append(Message.toComponent(value));
+            formula.append(value);
         }
         message = message.append(Message.toComponent(" &8= &f" + WeaponManager.format(damage, 1)));
-
-        String hover = "§f" + WeaponManager.format(damage, 1) + " §7(" + String.join("§7, ", damageParts) + "§7)";
-        if (!extraParts.isEmpty()) {
-            hover += "\n§7额外: §e" + String.join("§7, §e", extraParts);
+        if (DamageTestDummyManager.isProtected(target)) {
+            String hover = "§f" + WeaponManager.format(damage, 1) + " §7(" + String.join("§7, ", damageParts) + "§7)";
+            if (!extraParts.isEmpty()) {
+                hover += "\n§7额外: §e" + String.join("§7, §e", extraParts);
+            }
+            player.sendMessage(message.hoverEvent(HoverEvent.showText(Message.toComponent(hover))));
+        } else {
+            player.sendActionBar(Message.toComponent(formatDamageActionBar(formula.toString(), damage, extraParts)));
         }
-        message = message.hoverEvent(HoverEvent.showText(Message.toComponent(hover)));
-        player.sendMessage(message);
+    }
+
+    static String formatDamageChatText(String formula, double damage) {
+        return "§7伤害: " + formula + " §8= §f" + WeaponManager.format(damage, 1);
+    }
+
+    static String formatDamageActionBar(String formula, double damage, List<String> extraParts) {
+        StringBuilder message = new StringBuilder("§7伤害: ").append(formula)
+                .append(" §8= §f").append(WeaponManager.format(damage, 1));
+        if (!extraParts.isEmpty()) {
+            message.append(" §8| §e").append(String.join("、", extraParts));
+        }
+        return message.toString();
     }
 
     private static double neutralBonus(CustomWeapon template, WeaponInstanceData data, String id, double value) {

@@ -6,6 +6,7 @@ import com.roguelike.armor.ArmorSetManager;
 import com.roguelike.armor.affix.ArmorAffixManager;
 import com.roguelike.boss.BossEventManager;
 import com.roguelike.combat.CombatHandler;
+import com.roguelike.combat.DamageTestDummyManager;
 import com.roguelike.config.ConfigManager;
 import com.roguelike.data.PlayerDataManager;
 import com.roguelike.forge.ForgeTableManager;
@@ -42,6 +43,7 @@ public class RoguelikePlugin extends JavaPlugin {
         BossEventManager.init(this);
         LevelManager.init(this);
         CombatHandler.init(this);
+        DamageTestDummyManager.init(this);
         BowAbilityManager.init(this);
         WeaponAbilityManager.init(this);
         ToolAbilityManager.init(this);

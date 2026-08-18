@@ -4,6 +4,7 @@ import com.roguelike.RoguelikePlugin;
 import com.roguelike.armor.ArmorSetManager;
 import com.roguelike.armor.affix.ArmorAffixManager;
 import com.roguelike.combat.CombatHandler;
+import com.roguelike.combat.DamageTestDummyManager;
 import com.roguelike.config.ConfigManager;
 import com.roguelike.config.MobExperienceConfig;
 import com.roguelike.data.PlayerData;
@@ -35,6 +36,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.*;
@@ -143,6 +145,9 @@ public class EventListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onDamage(EntityDamageByEntityEvent event) {
+        if (DamageTestDummyManager.isProtected(event.getEntity())) {
+            event.setCancelled(true);
+        }
         if (BowAbilityManager.handleArrowDamage(event)) return;
         if (!(event.getDamager() instanceof Player player)) return;
         if (!(event.getEntity() instanceof LivingEntity target)) return;
@@ -154,9 +159,17 @@ public class EventListener implements Listener {
             Message.send(player, "&c武器暂时无法使用。");
             return;
         }
-        if (WeaponManager.getTemplate(player.getInventory().getItemInMainHand()) != null) {
+        if (WeaponInstanceData.isRoguelikeWeapon(hand)) {
             double damage = CombatHandler.processAttack(player, target, event.getDamage());
             event.setDamage(damage);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = false)
+    public void onTestDummyDamage(EntityDamageEvent event) {
+        if (event instanceof EntityDamageByEntityEvent) return;
+        if (DamageTestDummyManager.isProtected(event.getEntity())) {
+            event.setCancelled(true);
         }
     }
 
@@ -261,6 +274,11 @@ public class EventListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true)
+    public void onBlockPlace(BlockPlaceEvent event) {
+        DamageTestDummyManager.markArmorStandAbove(event.getBlockPlaced());
+    }
+
+    @EventHandler(ignoreCancelled = true)
     public void onItemConsume(PlayerItemConsumeEvent event) {
         if (applyCustomItemConsume(event.getPlayer(), event.getItem())) return;
         if (!countsForFoodExperience(event.getItem().getType())) return;
@@ -273,6 +291,7 @@ public class EventListener implements Listener {
             PlayerDataManager.save(event.getPlayer());
         }
     }
+
 
     private boolean applyCustomItemConsume(Player player, ItemStack stack) {
         String id = CustomItemStackFactory.getCustomItemId(stack);
