@@ -14,7 +14,10 @@ After finishing each requested task:
 4. Do not include unrelated pre-existing changes in the task commit.
 
 
-When the user says they have modified docs and asks to implement the plugin from those docs, treat the latest repository documentation as the product specification.
+## Minecraft Test Workflow
+
+When Minecraft MCP is available but in-game commands are unavailable to the bot, use the configured RCON connection to run authorized test commands. Use RCON only for this local server's controlled testing, never expose credentials, and never commit RCON passwords or runtime server files. After changing server state for a test, restore or document the test state as appropriate.
+
 
 Workflow:
 
