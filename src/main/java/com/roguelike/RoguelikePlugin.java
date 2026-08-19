@@ -70,6 +70,7 @@ public class RoguelikePlugin extends JavaPlugin {
         BossEventManager.shutdown();
         MobManager.shutdown();
         WeaponAbilityManager.shutdown();
+        ToolAbilityManager.shutdown();
         BowAbilityManager.shutdown();
         RoguelikeScoreboard.shutdown();
         PlayerDataManager.shutdown();

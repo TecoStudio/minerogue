@@ -16,7 +16,8 @@ public final class DefaultMobs {
     }
 
     public static ConfigManager.ScriptedMobConfig scriptedMob() {
-        return new ConfigManager.ScriptedMobConfig(false, 0.0, "", 1.0, 0.0, 1.0, 0.0, 0.0, 20L, 0.0, false);
+        return new ConfigManager.ScriptedMobConfig(false, 0.0, "", 1.0, 0.0, 1.0, 0.0, 0.0, 20L, 0.0, false,
+                false, 0L, 0.0, false, 1_000L);
     }
 
     public static Map<String, Integer> experience() {

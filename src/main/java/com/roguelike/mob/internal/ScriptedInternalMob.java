@@ -49,6 +49,7 @@ public class ScriptedInternalMob implements InternalMob {
     private final RoguelikePlugin plugin;
     private final ConfigManager.InternalMobDefinition definition;
     private final NamespacedKey mobKey;
+    private final NamespacedKey spawnedAtKey;
     private final NamespacedKey nextPrimaryKey;
     private final NamespacedKey nextSecondaryKey;
     private final Map<UUID, BossBar> bossBars = new HashMap<>();
@@ -57,6 +58,7 @@ public class ScriptedInternalMob implements InternalMob {
         this.plugin = plugin;
         this.definition = definition;
         this.mobKey = new NamespacedKey(plugin, "internal_mob");
+        this.spawnedAtKey = new NamespacedKey(plugin, "scripted_spawned_at_" + safeKey(definition.id()));
         this.nextPrimaryKey = new NamespacedKey(plugin, "scripted_next_primary_" + safeKey(definition.id()));
         this.nextSecondaryKey = new NamespacedKey(plugin, "scripted_next_secondary_" + safeKey(definition.id()));
     }
@@ -99,6 +101,7 @@ public class ScriptedInternalMob implements InternalMob {
 
     private void apply(LivingEntity entity, ConfigManager.ScriptedMobConfig config) {
         entity.getPersistentDataContainer().set(mobKey, PersistentDataType.STRING, id());
+        entity.getPersistentDataContainer().set(spawnedAtKey, PersistentDataType.LONG, entity.getWorld().getGameTime());
         entity.customName(Message.toComponent(config.name()));
         entity.setCustomNameVisible(false);
         entity.setRemoveWhenFarAway(false);
@@ -283,6 +286,11 @@ public class ScriptedInternalMob implements InternalMob {
                     removeBossBar(entity);
                     continue;
                 }
+                if (shouldCleanup(entity, config)) {
+                    removeBossBar(entity);
+                    entity.remove();
+                    continue;
+                }
                 updateBossBar(entity, config);
                 LivingEntity target = mob.getTarget();
                 if (target instanceof Player player && !MobManager.shouldBossAffectPlayer(player.getGameMode(), player.isDead())) {
@@ -298,6 +306,26 @@ public class ScriptedInternalMob implements InternalMob {
             }
         }
         cleanupMissingBossBars(detected);
+    }
+
+    static boolean shouldCleanup(long now, long spawnedAt, long maxLifetimeTicks, long worldTime,
+                                 boolean removeAtMorning, long morningWindowTicks, boolean nearbyPlayer) {
+        boolean timedOut = maxLifetimeTicks > 0L && now - spawnedAt >= maxLifetimeTicks;
+        boolean morning = removeAtMorning && worldTime >= 0L && worldTime < morningWindowTicks;
+        return !nearbyPlayer && (timedOut || morning);
+    }
+
+    private boolean shouldCleanup(LivingEntity entity, ConfigManager.ScriptedMobConfig config) {
+        if (!config.cleanupEnabled() || config.cleanupRange() <= 0.0) return false;
+        var pdc = entity.getPersistentDataContainer();
+        Long spawnedAt = pdc.get(spawnedAtKey, PersistentDataType.LONG);
+        if (spawnedAt == null) {
+            spawnedAt = entity.getWorld().getGameTime();
+            pdc.set(spawnedAtKey, PersistentDataType.LONG, spawnedAt);
+        }
+        boolean nearbyPlayer = nearestPlayer(entity, config.cleanupRange()) != null;
+        return shouldCleanup(entity.getWorld().getGameTime(), spawnedAt, config.maxLifetimeTicks(),
+                entity.getWorld().getTime(), config.removeAtMorning(), config.morningWindowTicks(), nearbyPlayer);
     }
 
     private void runScriptedActions(LivingEntity entity, LivingEntity target, ConfigManager.ScriptedMobConfig config) {

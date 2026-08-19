@@ -1,6 +1,7 @@
 package com.roguelike.weapon;
 
 import com.roguelike.RoguelikePlugin;
+import com.roguelike.equipment.EquipmentTypeResolver;
 import com.roguelike.equipment.affix.AffixManager;
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.item.WeaponInstanceData;
@@ -18,17 +19,51 @@ import org.bukkit.event.player.PlayerItemDamageEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.concurrent.ThreadLocalRandom;
-
 public class ToolAbilityManager {
     private static RoguelikePlugin plugin;
+    private static BukkitTask task;
     private static final BlockFace[] VISIBLE_FACES = {
             BlockFace.UP, BlockFace.DOWN, BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST
     };
 
     public static void init(RoguelikePlugin plugin) {
+        shutdown();
         ToolAbilityManager.plugin = plugin;
+        task = plugin.getServer().getScheduler().runTaskTimer(plugin, ToolAbilityManager::tick, 1L, 1L);
+    }
+
+    public static void shutdown() {
+        if (task != null) {
+            task.cancel();
+            task = null;
+        }
+        plugin = null;
+    }
+
+    private static void tick() {
+        if (plugin == null) return;
+        for (Player player : plugin.getServer().getOnlinePlayers()) {
+            applyCrazyMinerHaste(player);
+        }
+    }
+
+    private static void applyCrazyMinerHaste(Player player) {
+        ItemStack tool = player.getInventory().getItemInMainHand();
+        if (!hasCrazyMiner(tool)) return;
+        player.addPotionEffect(new PotionEffect(PotionEffectType.HASTE, 10, 2, true, false, false));
+    }
+
+    private static boolean hasCrazyMiner(ItemStack stack) {
+        CustomWeapon template = WeaponManager.getTemplate(stack);
+        WeaponInstanceData data = WeaponManager.getData(stack);
+        return template != null && data != null
+                && EquipmentTypeResolver.isPickaxe(stack.getType())
+                && data.getTotalEffect(template, "crazy_miner", 0.0) > 0.0;
     }
 
     public static void handleItemDamage(PlayerItemDamageEvent event) {
@@ -57,6 +92,10 @@ public class ToolAbilityManager {
         CustomWeapon template = WeaponManager.getTemplate(tool);
         WeaponInstanceData data = WeaponManager.getData(tool);
         if (template == null || data == null) return;
+
+        if (hasCrazyMiner(tool) && ThreadLocalRandom.current().nextDouble() < 0.12) {
+            player.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, 5, 0, true, false, false));
+        }
 
         if (data.getTotalEffect(template, "ore_highlight", 0.0) > 0 && ThreadLocalRandom.current().nextDouble() < 0.10) {
             highlightNearbyOres(player, event.getBlock().getLocation());

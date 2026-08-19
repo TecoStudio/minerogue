@@ -28,6 +28,18 @@ class ScriptedInternalMobTest {
     }
 
     @Test
+    void cleanupRequiresNoNearbyPlayerForTimeoutOrMorning() {
+        assertTrue(ScriptedInternalMob.shouldCleanup(12_000L, 0L, 12_000L, 6_000L, true, 1_000L, false));
+        assertFalse(ScriptedInternalMob.shouldCleanup(12_000L, 0L, 12_000L, 6_000L, true, 1_000L, true));
+        assertTrue(ScriptedInternalMob.shouldCleanup(1_000L, 900L, 12_000L, 500L, true, 1_000L, false));
+        assertFalse(ScriptedInternalMob.shouldCleanup(1_000L, 900L, 12_000L, 500L, true, 1_000L, true));
+    }
+
+    @Test
+    void cleanupIgnoresMorningWhenDisabled() {
+        assertFalse(ScriptedInternalMob.shouldCleanup(1_000L, 900L, 12_000L, 500L, false, 1_000L, false));
+    }
+    @Test
     void chainedAfterConditionOnlyMatchesCompletedAction() {
         ConfigManager.ScriptedMobConfig config = new ConfigManager.ScriptedMobConfig(
                 true, 0.0, "test", 20.0, 2.0, 1.0, 10.0, 3.0, 20L, 4.0, false);

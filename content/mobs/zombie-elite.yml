@@ -30,7 +30,12 @@ detect-range: 16.0
 skill-range: 3.0
 skill-cooldown-ticks: 60
 skill-damage: 5.0
-bossbar: false
+cleanup:
+  enabled: true
+  max-lifetime-ticks: 12000
+  range: 32.0
+  remove-at-morning: true
+  morning-window-ticks: 1000
 actions:
   - when: target_close
     do: melee-burst

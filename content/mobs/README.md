@@ -34,7 +34,24 @@
 | `skill-range` | `3.2` | `0.0` | 技能距离。 |
 | `skill-cooldown-ticks` | `100` | `20` | 默认技能冷却。 |
 | `skill-damage` | `5.0` | `0.0` | 默认技能伤害。 |
-| `actions` | 见下方 | 空 | 额外动作编排。 |
+| `cleanup` | 见下方 | 默认关闭 | 精英怪自动清理策略；周期 Boss 应显式关闭。 |
+
+## cleanup
+
+```yaml
+cleanup:
+  enabled: true
+  max-lifetime-ticks: 12000
+  range: 32.0
+  remove-at-morning: true
+  morning-window-ticks: 1000
+```
+
+- `max-lifetime-ticks` 使用世界累计 tick 计时；达到时间后，只有清理范围内没有有效玩家才会移除实体。
+- `remove-at-morning` 开启后，在世界时间 `0` 到 `morning-window-ticks` 的清晨窗口内，附近没有有效玩家也会移除实体。
+- 有效玩家不包括死亡、创造模式和旁观模式玩家。
+- 自动移除不会触发死亡掉落、经验或击杀统计。
+- 周期 Boss 使用独立事件生命周期，应设置 `cleanup.enabled: false`。
 
 ## actions
 

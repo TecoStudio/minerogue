@@ -587,13 +587,23 @@ public class TicketManager {
     }
 
     private static List<String> getAvailableToolEffects(CustomWeapon template, WeaponInstanceData data) {
+        return getAvailableToolEffects(template, data, templateMaterial(template));
+    }
+
+    private static List<String> getAvailableToolEffects(CustomWeapon template, WeaponInstanceData data, Material material) {
         List<String> available = new ArrayList<>();
         for (String key : AffixManager.toolOnlyEffectIds()) {
-            if (AffixManager.isToolOnlyWeaponAffixAvailable(template, data, key)) {
-                available.add(key);
-            }
+            if (AffixManager.isWeaponAffixAvailable(template, data, key, material)) available.add(key);
         }
         return available;
+    }
+
+    private static Material templateMaterial(CustomWeapon template) {
+        if (template == null || template.getItem() == null) return null;
+        String value = template.getItem().trim();
+        int colon = value.indexOf(':');
+        if (colon >= 0) value = value.substring(colon + 1);
+        return Material.matchMaterial(value);
     }
 
     private static double getStatBaseValue(CustomWeapon template, WeaponInstanceData data, String stat) {

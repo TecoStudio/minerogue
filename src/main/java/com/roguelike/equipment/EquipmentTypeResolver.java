@@ -17,6 +17,9 @@ public final class EquipmentTypeResolver {
         return name.endsWith("_PICKAXE") || name.endsWith("_AXE");
     }
 
+    public static boolean isPickaxe(Material material) {
+        return material != null && material.name().endsWith("_PICKAXE");
+    }
     public static boolean isBow(Material material) {
         if (material == null) return false;
         return material == Material.BOW || material == Material.CROSSBOW;

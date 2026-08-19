@@ -23,7 +23,7 @@ public class ArmorAffixManager {
     private static NamespacedKey VANILLA_LEVELS_KEY;
 
     static {
-        register(new SimpleArmorAffix("dash", "Dash！", null, 1, ArmorSlot.ARMOR) {
+        register(new SimpleArmorAffix("dash", "Dash！", null, 1, ArmorSlot.LEGGINGS) {
             @Override
             public String format(int level) {
                 return "5秒冷却，2次充能";

@@ -73,7 +73,15 @@ public final class AffixManager {
     }
 
     public static boolean isToolOnlyWeaponAffixAvailable(CustomWeapon template, WeaponInstanceData data, String id) {
-        return WeaponAffixManager.isToolOnly(id) && WeaponAffixManager.isAvailable(template, data, id);
+        return WeaponAffixManager.isToolOnly(id) && WeaponAffixManager.isAvailable(template, data, id, materialOf(template));
+    }
+
+    private static Material materialOf(CustomWeapon template) {
+        if (template == null || template.getItem() == null) return null;
+        String value = template.getItem().trim();
+        int colon = value.indexOf(':');
+        if (colon >= 0) value = value.substring(colon + 1);
+        return Material.matchMaterial(value);
     }
 
     public static double strengthenWeapon(String id, double currentValue, int useCount, Random random) {

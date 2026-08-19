@@ -31,7 +31,8 @@ detect-range: 24.0
 skill-range: 5.0
 skill-cooldown-ticks: 120
 skill-damage: 8.0
-bossbar: true
+cleanup:
+  enabled: false
 actions:
   - when: target_far
     do: leap

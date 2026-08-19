@@ -30,7 +30,8 @@ detect-range: 26.0
 skill-range: 4.5
 skill-cooldown-ticks: 90
 skill-damage: 6.0
-bossbar: true
+cleanup:
+  enabled: false
 actions:
   - when: target_detected
     do: blink

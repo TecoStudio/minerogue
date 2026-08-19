@@ -508,6 +508,12 @@ public class ConfigManager {
     private static ScriptedMobConfig parseScriptedMobConfig(ConfigurationSection section) {
         ScriptedMobConfig defaults = DefaultMobs.scriptedMob();
         if (section == null) return defaults;
+        ConfigurationSection cleanup = section.getConfigurationSection("cleanup");
+        boolean cleanupEnabled = cleanup != null && cleanup.getBoolean("enabled", false);
+        long maxLifetimeTicks = cleanup == null ? 0L : Math.max(0L, cleanup.getLong("max-lifetime-ticks", 0L));
+        double cleanupRange = cleanup == null ? 0.0 : Math.max(0.0, cleanup.getDouble("range", 0.0));
+        boolean removeAtMorning = cleanup != null && cleanup.getBoolean("remove-at-morning", false);
+        long morningWindowTicks = cleanup == null ? 1_000L : Math.max(0L, cleanup.getLong("morning-window-ticks", 1_000L));
         return new ScriptedMobConfig(
                 section.getBoolean("enabled", defaults.enabled()),
                 clampChance(section.getDouble("spawn-chance", defaults.spawnChance())),
@@ -519,7 +525,8 @@ public class ConfigManager {
                 Math.max(0.0, section.getDouble("skill-range", defaults.skillRange())),
                 Math.max(1L, section.getLong("skill-cooldown-ticks", defaults.skillCooldownTicks())),
                 Math.max(0.0, section.getDouble("skill-damage", defaults.skillDamage())),
-                section.getBoolean("bossbar", defaults.bossBar())
+                section.getBoolean("bossbar", defaults.bossBar()),
+                cleanupEnabled, maxLifetimeTicks, cleanupRange, removeAtMorning, morningWindowTicks
         );
     }
 
@@ -880,7 +887,14 @@ public class ConfigManager {
 
     public record ScriptedMobConfig(boolean enabled, double spawnChance, String name, double health, double damage, double speedMultiplier,
                                     double detectRange, double skillRange, long skillCooldownTicks, double skillDamage,
-                                    boolean bossBar) {
+                                    boolean bossBar, boolean cleanupEnabled, long maxLifetimeTicks, double cleanupRange,
+                                    boolean removeAtMorning, long morningWindowTicks) {
+        public ScriptedMobConfig(boolean enabled, double spawnChance, String name, double health, double damage, double speedMultiplier,
+                                  double detectRange, double skillRange, long skillCooldownTicks, double skillDamage,
+                                  boolean bossBar) {
+            this(enabled, spawnChance, name, health, damage, speedMultiplier, detectRange, skillRange, skillCooldownTicks,
+                    skillDamage, bossBar, false, 0L, 0.0, false, 1_000L);
+        }
     }
 
     @FunctionalInterface

@@ -71,6 +71,14 @@ class WeaponAffixManagerTest {
     }
 
     @Test
+    void crazyMinerIsPickaxeOnlyToolAffix() {
+        assertTrue(WeaponAffixManager.toolOnlyEffectIds().contains("crazy_miner"));
+        assertTrue(WeaponAffixManager.isApplicable("crazy_miner", org.bukkit.Material.DIAMOND_PICKAXE));
+        assertFalse(WeaponAffixManager.isApplicable("crazy_miner", org.bukkit.Material.DIAMOND_AXE));
+        assertFalse(WeaponAffixManager.isApplicable("crazy_miner", org.bukkit.Material.DIAMOND_SWORD));
+        assertFalse(WeaponAffixManager.isApplicable("crazy_miner", org.bukkit.Material.BOW));
+    }
+    @Test
     void scatterShotUsesExplicitArrowCountsFromTwoToFive() {
         Random random = new Random(42);
 

@@ -12,8 +12,11 @@ class ArmorAffixManagerTest {
     void dashMovedFromWeaponAffixesToArmorAffixes() {
         assertFalse(WeaponAffixManager.effectIds().contains("dash"));
         assertTrue(ArmorAffixManager.effectIds().contains("dash"));
-        assertTrue(ArmorAffixManager.isApplicable("dash", Material.CHAINMAIL_CHESTPLATE));
-        assertTrue(ArmorAffixManager.isApplicable("dash", Material.ELYTRA));
+        assertTrue(ArmorAffixManager.isApplicable("dash", Material.IRON_LEGGINGS));
+        assertFalse(ArmorAffixManager.isApplicable("dash", Material.CHAINMAIL_HELMET));
+        assertFalse(ArmorAffixManager.isApplicable("dash", Material.CHAINMAIL_CHESTPLATE));
+        assertFalse(ArmorAffixManager.isApplicable("dash", Material.CHAINMAIL_BOOTS));
+        assertFalse(ArmorAffixManager.isApplicable("dash", Material.ELYTRA));
         assertFalse(WeaponAffixManager.rollableEffectIds().contains("dash"));
     }
 

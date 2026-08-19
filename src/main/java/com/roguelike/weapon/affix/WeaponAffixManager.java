@@ -21,7 +21,7 @@ public class WeaponAffixManager {
     private static final Map<String, String> CATEGORIES = new LinkedHashMap<>();
     private static final Map<String, String> SYNERGY_HINTS = new LinkedHashMap<>();
 
-    private enum Target { WEAPON, BOW, TOOL, ALL }
+    private enum Target { WEAPON, BOW, TOOL, PICKAXE, ALL }
 
     static {
         register(percent("lifesteal_percent", "吸血百分比", 0.10, 0.20, (lore, template, data) -> {
@@ -124,6 +124,11 @@ public class WeaponAffixManager {
             if (level > 0) lore.add(Message.toComponent("§a✦ 用不坏: §f" + level + "级 (" + WeaponManager.format(durabilityRestoreChance(level) * 100, 0) + "%返还3耐久)"));
         }), Target.ALL);
         register(toggle("ore_highlight", "高亮矿物", "§e✦ 高亮矿物: §f挖掘时10%概率高亮附近矿物1秒", false), Target.TOOL);
+        register(level("crazy_miner", "疯狂矿工", 1, 1, (lore, template, data) -> {
+            if (total(template, data, "crazy_miner", 0.0) > 0) {
+                lore.add(Message.toComponent("§e✦ 疯狂矿工: §f手持时急迫III，挖掘方块时12%概率获得饱和5tick"));
+            }
+        }), Target.PICKAXE);
         register(new SimpleAffix("scatter_shot", "散射", true, 2, 5, true, (lore, template, data) -> {
             int arrows = (int) total(template, data, "scatter_shot", 0.0);
             if (arrows > 0) lore.add(Message.toComponent("§b➹ 散射: §f总计发射 " + arrows + " 支箭"));
@@ -181,7 +186,8 @@ public class WeaponAffixManager {
     }
 
     public static boolean isToolOnly(String id) {
-        return TARGETS.getOrDefault(id, Target.WEAPON) == Target.TOOL;
+        Target target = TARGETS.getOrDefault(id, Target.WEAPON);
+        return target == Target.TOOL || target == Target.PICKAXE;
     }
 
     public static WeaponAffix get(String id) {
@@ -247,6 +253,8 @@ public class WeaponAffixManager {
     }
 
     public static boolean isApplicable(String id, Material material) {
+        Target target = TARGETS.getOrDefault(id, Target.WEAPON);
+        if (target == Target.PICKAXE) return EquipmentTypeResolver.isPickaxe(material);
         return isApplicable(id, EquipmentTypeResolver.resolve(material));
     }
 
@@ -257,6 +265,7 @@ public class WeaponAffixManager {
         return target == Target.ALL
                 || (target == Target.WEAPON && kind != EquipmentKind.BOW)
                 || (target == Target.TOOL && kind == EquipmentKind.TOOL)
+                || (target == Target.PICKAXE && kind == EquipmentKind.TOOL)
                 || (target == Target.BOW && kind == EquipmentKind.BOW);
     }
 
