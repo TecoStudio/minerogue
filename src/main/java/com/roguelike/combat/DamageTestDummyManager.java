@@ -10,6 +10,8 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitTask;
@@ -19,6 +21,8 @@ import java.util.UUID;
 
 public final class DamageTestDummyManager {
     public static final double TEST_DUMMY_HEALTH = 1000.0;
+    public static final int TEST_DUMMY_REGENERATION_AMPLIFIER = 3;
+    private static final int TEST_DUMMY_REGENERATION_DURATION = 20 * 60 * 60;
     private static NamespacedKey markerKey;
     private static NamespacedKey anchorWorldKey;
     private static NamespacedKey anchorXKey;
@@ -94,6 +98,14 @@ public final class DamageTestDummyManager {
             maxHealth.setBaseValue(TEST_DUMMY_HEALTH);
             stand.setHealth(TEST_DUMMY_HEALTH);
         }
+        stand.addPotionEffect(new PotionEffect(
+                PotionEffectType.REGENERATION,
+                TEST_DUMMY_REGENERATION_DURATION,
+                TEST_DUMMY_REGENERATION_AMPLIFIER,
+                false,
+                false,
+                false
+        ));
     }
 
     private static void restoreAll() {
@@ -125,9 +137,10 @@ public final class DamageTestDummyManager {
         }
         if (!isWool(anchor.getBlock().getType())) return;
         Location target = returnLocationAbove(anchor);
-        if (stand.getLocation().distanceSquared(target) <= 0.01) return;
-        stand.teleport(target);
-        stand.setVelocity(new Vector());
+        if (stand.getLocation().distanceSquared(target) > 0.01) {
+            stand.teleport(target);
+            stand.setVelocity(new Vector());
+        }
         setTestDummyHealth(stand);
     }
 

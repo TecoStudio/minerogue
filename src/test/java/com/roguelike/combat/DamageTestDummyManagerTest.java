@@ -15,11 +15,16 @@ class DamageTestDummyManagerTest {
     }
 
     @Test
+    void testDummyRegenerationUsesLevelFour() {
+        assertEquals(3, DamageTestDummyManager.TEST_DUMMY_REGENERATION_AMPLIFIER);
+    }
+    @Test
     void recognizesWoolMaterialsAsTestDummyBase() {
         assertTrue(DamageTestDummyManager.isWool(Material.WHITE_WOOL));
         assertTrue(DamageTestDummyManager.isWool(Material.RED_WOOL));
         assertFalse(DamageTestDummyManager.isWool(Material.STONE));
     }
+
 
     @Test
     void protectionUsesCurrentWoolWhenAnchorIsMissing() {
