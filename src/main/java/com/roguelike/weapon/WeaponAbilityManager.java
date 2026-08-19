@@ -8,12 +8,10 @@ import com.roguelike.item.WeaponInstanceData;
 import com.roguelike.util.Message;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
-import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.inventory.ItemStack;
@@ -30,10 +28,8 @@ import java.util.UUID;
 
 public class WeaponAbilityManager {
     private static int taskId = -1;
-    private static final Map<UUID, Long> bombCooldowns = new HashMap<>();
     private static final Map<UUID, DashState> dashStates = new HashMap<>();
     private static final Map<UUID, GiftHeal> giftHeals = new HashMap<>();
-    private static final List<TrackedTnt> trackedTnt = new ArrayList<>();
 
     public static void init(RoguelikePlugin plugin) {
         taskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, WeaponAbilityManager::tick, 1L, 1L);
@@ -44,10 +40,8 @@ public class WeaponAbilityManager {
             Bukkit.getScheduler().cancelTask(taskId);
             taskId = -1;
         }
-        bombCooldowns.clear();
         dashStates.clear();
         giftHeals.clear();
-        trackedTnt.clear();
     }
 
     public static boolean hasEffect(ItemStack stack, String effect) {
@@ -96,18 +90,12 @@ public class WeaponAbilityManager {
     public static void handleSneak(PlayerToggleSneakEvent event) {
         if (!event.isSneaking()) return;
         Player player = event.getPlayer();
-        ItemStack hand = player.getInventory().getItemInMainHand();
-        if (hasEffect(hand, "bomb")) throwBomb(player);
         if (hasDash(player)) dash(player);
     }
 
     public static List<String> getSidebarLines(Player player) {
         List<String> lines = new ArrayList<>();
         long now = System.currentTimeMillis();
-        Long bombUntil = bombCooldowns.get(player.getUniqueId());
-        if (bombUntil != null && bombUntil > now) {
-            lines.add("§6炸弹: §f" + secondsLeft(bombUntil, now) + "s");
-        }
         if (!hasDash(player)) return lines;
         DashState dash = dashStates.computeIfAbsent(player.getUniqueId(), id -> new DashState());
         int maxCharges = maxDashCharges(player);
@@ -116,27 +104,6 @@ public class WeaponAbilityManager {
             lines.add(dash.charges > 0 ? "§bDash: §f" + dash.charges + "/" + maxCharges : "§bDash: §f" + secondsLeft(dash.nextChargeAt, now) + "s");
         }
         return lines;
-    }
-
-    private static void throwBomb(Player player) {
-        long now = System.currentTimeMillis();
-        long until = bombCooldowns.getOrDefault(player.getUniqueId(), 0L);
-        if (until > now) {
-            Message.send(player, "&c小心炸弹！冷却中: &f" + secondsLeft(until, now) + "秒");
-            return;
-        }
-        Location spawn = player.getEyeLocation().add(player.getLocation().getDirection().normalize().multiply(0.8));
-        TNTPrimed tnt = player.getWorld().spawn(spawn, TNTPrimed.class, entity -> {
-            entity.setSource(player);
-            entity.setFuseTicks(60);
-            entity.setYield(4.0f);
-            entity.setIsIncendiary(true);
-            entity.setVelocity(player.getLocation().getDirection().normalize().multiply(2.1).setY(0.55));
-        });
-        trackedTnt.add(new TrackedTnt(tnt, spawn.clone(), player.getUniqueId()));
-        bombCooldowns.put(player.getUniqueId(), now + 30_000L);
-        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_TNT_PRIMED, 1f, 1.3f);
-        Message.send(player, "&6小心炸弹！");
     }
 
     private static void dash(Player player) {
@@ -161,7 +128,6 @@ public class WeaponAbilityManager {
 
     private static void tick() {
         tickGiftHeals();
-        tickTnt();
     }
 
     private static void tickGiftHeals() {
@@ -176,25 +142,6 @@ public class WeaponAbilityManager {
             player.setHealth(Math.min(maxHealth(player), player.getHealth() + heal.totalHeal / heal.totalTicks));
             heal.ticksLeft--;
             if (heal.ticksLeft <= 0) iterator.remove();
-        }
-    }
-
-    private static void tickTnt() {
-        Iterator<TrackedTnt> iterator = trackedTnt.iterator();
-        while (iterator.hasNext()) {
-            TrackedTnt tracked = iterator.next();
-            TNTPrimed tnt = tracked.tnt;
-            if (tnt == null || tnt.isDead() || !tnt.isValid()) {
-                iterator.remove();
-                continue;
-            }
-            if (tnt.getLocation().distanceSquared(tracked.start) >= 400.0) {
-                Location location = tnt.getLocation();
-                tnt.remove();
-                Player source = Bukkit.getPlayer(tracked.ownerId);
-                location.getWorld().createExplosion(location, 4.0f, true, true, source);
-                iterator.remove();
-            }
         }
     }
 
@@ -244,8 +191,5 @@ public class WeaponAbilityManager {
             this.totalTicks = totalTicks;
             this.ticksLeft = totalTicks;
         }
-    }
-
-    private record TrackedTnt(TNTPrimed tnt, Location start, UUID ownerId) {
     }
 }

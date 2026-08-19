@@ -553,6 +553,7 @@ public class ConfigManager {
         List<String> files = plugin.getConfig().getStringList("content.github-sync.files");
         for (String relative : files) {
             if (relative == null || relative.isBlank() || relative.contains("..")) continue;
+            if (relative.equals("recipes/forge-recipes.yml")) continue;
             String normalized = relative.replace('\\', '/');
             File target = new File(contentDirectory, normalized);
             if (target.exists()) continue;
@@ -570,8 +571,10 @@ public class ConfigManager {
         List<String> files = plugin.getConfig().getStringList("content.github-sync.files");
         if (baseUrl == null || baseUrl.isBlank() || files.isEmpty()) return;
         boolean overwrite = plugin.getConfig().getBoolean("content.github-sync.overwrite-existing", true);
+        boolean downloadRecipes = plugin.getConfig().getBoolean("content.github-sync.download-recipes", true);
         HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
         for (String relative : files) {
+            if (relative != null && relative.equals("recipes/forge-recipes.yml") && !downloadRecipes) continue;
             if (relative == null || relative.isBlank() || relative.contains("..")) continue;
             Path target = contentDirectory.toPath().resolve(relative.replace('\\', '/')).normalize();
             if (!target.startsWith(contentDirectory.toPath())) continue;

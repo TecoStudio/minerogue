@@ -57,6 +57,6 @@ recipes:
 - `ingredients`：字符对应材料 ID
 - `result.type`：`armor`、`weapon` 或 `material`；`result.id` 为防具 ID、weapons.yml 武器 ID 或原版材料 ID
 
-运行时文件：`plugins/minerogue/forge-recipes.yml`。修改后执行 `/rw reload`。旧版 3x3 配方会在重载时跳过并提示，可删除文件后重载重新导出默认配方。
+运行时文件：`plugins/minerogue/content/recipes/forge-recipes.yml`。`config.yml` 中 `content.github-sync.download-recipes: true` 时，该文件由 GitHub 内容仓库下载；设为 `false` 时不下载，继续使用本地文件。修改后执行 `/rw reload`。旧版 3x3 配方会在重载时跳过并提示，需在 GitHub 内容源或本地文件中改为 2x2 格式。
 
 建议低级装备和药水放在轻量配方中，高价值套装和传奇武器绑定 Boss、事件或稀有材料。

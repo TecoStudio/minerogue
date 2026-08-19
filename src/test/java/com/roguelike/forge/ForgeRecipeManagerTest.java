@@ -3,54 +3,37 @@ package com.roguelike.forge;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Map;
+import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ForgeRecipeManagerTest {
-    @TempDir
-    Path tempDir;
-
     @Test
-    void defaultForgeRecipesExposeExpansionWeaponRecipes() throws IOException {
-        File file = tempDir.resolve("forge-recipes.yml").toFile();
-
-        ForgeRecipeManager.saveDefaultsForTest(file);
+    void bundledRecipeSourceUsesTwoByTwoShapes() {
+        File file = Path.of("content", "recipes", "forge-recipes.yml").toFile();
+        assertTrue(file.isFile(), "missing content recipe source");
 
         YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
-        Map<String, String> recipes = Map.of(
-                "ember_knife", "minecraft:stone_sword",
-                "frost_cleaver", "minecraft:iron_axe",
-                "storm_spear", "minecraft:trident",
-                "plague_saber", "minecraft:golden_sword",
-                "echo_blade", "minecraft:diamond_sword",
-                "glass_cannon_hammer", "minecraft:netherite_axe"
-        );
-
-        assertAll(recipes.entrySet().stream()
-                .map(entry -> () -> assertWeaponRecipe(config, entry.getKey(), entry.getValue())));
+        ConfigurationSection recipes = config.getConfigurationSection("recipes");
+        assertNotNull(recipes);
+        assertFalse(recipes.getKeys(false).isEmpty());
+        recipes.getKeys(false).forEach(id -> {
+            List<String> shape = config.getStringList("recipes." + id + ".shape");
+            assertEquals(2, shape.size(), id + " must have 2 shape rows");
+            assertEquals(2, shape.get(0).length(), id + " first row must have 2 chars");
+            assertEquals(2, shape.get(1).length(), id + " second row must have 2 chars");
+        });
     }
 
-
-    private static void assertWeaponRecipe(YamlConfiguration config, String id, String coreMaterial) {
-        String path = "recipes." + id + ".";
-        ConfigurationSection section = config.getConfigurationSection("recipes." + id);
-        assertNotNull(section, "missing forge recipe " + id);
-        assertEquals("weapon", config.getString(path + "result.type"));
-        assertEquals(id, config.getString(path + "result.id"));
-        assertEquals(1, config.getInt(path + "result.amount"));
-        assertEquals(coreMaterial, config.getString(path + "ingredients.W"));
-        java.util.List<String> shape = config.getStringList(path + "shape");
-        assertEquals(2, shape.size(), "shape must be 2 rows");
-        assertEquals(2, shape.get(0).length(), "shape row must be 2 chars");
-        assertEquals(2, shape.get(1).length(), "shape row must be 2 chars");
-        assertEquals(true, shape.get(0).contains("W"), "weapon symbol must be in the first row");
+    @Test
+    void recipeDownloadCanBeControlledInConfig() {
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(new File("src/main/resources/config.yml"));
+        assertTrue(config.getBoolean("content.github-sync.download-recipes"));
     }
 }

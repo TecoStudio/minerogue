@@ -55,6 +55,7 @@ processResources {
     filteringCharset = 'UTF-8'
     from('content') {
         into 'content'
+        exclude 'recipes/forge-recipes.yml'
     }
     filesMatching('plugin.yml') {
         expand props

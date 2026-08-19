@@ -1,0 +1,123 @@
+# Roguelike 铸造台配方内容。由 GitHub 内容同步下载到 plugins/minerogue/content/recipes/forge-recipes.yml。
+# shape 必须是 2 行，每行 2 个字符。空格表示空槽。
+# ingredients 中的字符对应 shape 里的符号。
+# result.type 可选 armor、weapon、material。
+# result.id 在 armor 类型下填写插件防具 ID，在 weapon 类型下填写武器 ID，在 material 类型下填写原版材料 ID。
+
+recipes:
+  explosive_helmet:
+    shape:
+      - "TC"
+      - "CT"
+    ingredients:
+      C: minecraft:copper_ingot
+      T: minecraft:tnt
+    result:
+      type: armor
+      id: explosive_helmet
+      amount: 1
+  explosive_chestplate:
+    shape:
+      - "CT"
+      - "TC"
+    ingredients:
+      C: minecraft:copper_ingot
+      T: minecraft:tnt
+    result:
+      type: armor
+      id: explosive_chestplate
+      amount: 1
+  explosive_leggings:
+    shape:
+      - "TC"
+      - "T "
+    ingredients:
+      C: minecraft:copper_ingot
+      T: minecraft:tnt
+    result:
+      type: armor
+      id: explosive_leggings
+      amount: 1
+  explosive_boots:
+    shape:
+      - "C "
+      - "T "
+    ingredients:
+      C: minecraft:copper_ingot
+      T: minecraft:tnt
+    result:
+      type: armor
+      id: explosive_boots
+      amount: 1
+  ember_knife:
+    shape:
+      - "WF"
+      - "S "
+    ingredients:
+      W: minecraft:stone_sword
+      F: minecraft:flint
+      S: minecraft:stick
+    result:
+      type: weapon
+      id: ember_knife
+      amount: 1
+  frost_cleaver:
+    shape:
+      - "WI"
+      - "B "
+    ingredients:
+      W: minecraft:iron_axe
+      I: minecraft:blue_ice
+      B: minecraft:iron_block
+    result:
+      type: weapon
+      id: frost_cleaver
+      amount: 1
+  storm_spear:
+    shape:
+      - "WC"
+      - "R "
+    ingredients:
+      W: minecraft:trident
+      C: minecraft:copper_ingot
+      R: minecraft:redstone
+    result:
+      type: weapon
+      id: storm_spear
+      amount: 1
+  plague_saber:
+    shape:
+      - "WP"
+      - "G "
+    ingredients:
+      W: minecraft:golden_sword
+      P: minecraft:spider_eye
+      G: minecraft:gold_ingot
+    result:
+      type: weapon
+      id: plague_saber
+      amount: 1
+  echo_blade:
+    shape:
+      - "WA"
+      - "D "
+    ingredients:
+      W: minecraft:diamond_sword
+      A: minecraft:amethyst_shard
+      D: minecraft:diamond
+    result:
+      type: weapon
+      id: echo_blade
+      amount: 1
+  glass_cannon_hammer:
+    shape:
+      - "WN"
+      - "B "
+    ingredients:
+      W: minecraft:netherite_axe
+      N: minecraft:netherite_ingot
+      B: minecraft:diamond_block
+    result:
+      type: weapon
+      id: glass_cannon_hammer
+      amount: 1

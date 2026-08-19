@@ -12,7 +12,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -27,13 +26,13 @@ public final class ForgeRecipeManager {
     }
 
     public static void init(RoguelikePlugin plugin) {
-        recipesFile = new File(plugin.getDataFolder(), "forge-recipes.yml");
-        exportDefaultsIfMissing();
+        recipesFile = new File(plugin.getDataFolder(), "content/recipes/forge-recipes.yml");
         reload();
     }
 
     public static void reload() {
         RECIPES.clear();
+        if (!recipesFile.isFile()) return;
         YamlConfiguration config = YamlConfiguration.loadConfiguration(recipesFile);
         ConfigurationSection section = config.getConfigurationSection("recipes");
         if (section == null) return;
@@ -59,7 +58,7 @@ public final class ForgeRecipeManager {
         if (section == null) return null;
         List<String> shape = section.getStringList("shape");
         if (shape.size() == 3) {
-            RoguelikePlugin.getInstance().getLogger().warning("配方 " + id + " 使用旧版 3x3 格式，已跳过。请删除 forge-recipes.yml 后执行 /rw reload 重新导出，或手动改为 2x2 格式。");
+            RoguelikePlugin.getInstance().getLogger().warning("配方 " + id + " 使用旧版 3x3 格式，已跳过。请将 GitHub 内容源中的 content/recipes/forge-recipes.yml 改为 2x2 格式后执行 /rw reload。");
             return null;
         }
         if (shape.size() != 2) return null;
@@ -116,70 +115,6 @@ public final class ForgeRecipeManager {
         };
         if (result != null) result.setAmount(amount);
         return result;
-    }
-
-    private static void exportDefaultsIfMissing() {
-        if (recipesFile.exists()) return;
-        try {
-            saveDefaults(recipesFile);
-        } catch (IOException e) {
-            RoguelikePlugin.getInstance().getLogger().warning("无法导出默认铸造配方: " + e.getMessage());
-        }
-    }
-
-    private static void saveDefaults(File file) throws IOException {
-        YamlConfiguration config = new YamlConfiguration();
-        config.options().header("""
-                Roguelike 铸造台配方。修改后使用 /rw reload 重载。
-
-                shape 必须是 2 行，每行 2 个字符。空格表示空槽。
-                ingredients 中的字符对应 shape 里的符号。
-                result.type 可选 armor、weapon、material。
-                result.id 在 armor 类型下填写插件防具 ID，在 weapon 类型下填写 weapons.yml 武器 ID，在 material 类型下填写原版材料 ID。
-                """);
-        addDefault(config, "explosive_helmet", "explosive_helmet");
-        addDefault(config, "explosive_chestplate", "explosive_chestplate");
-        addDefault(config, "explosive_leggings", "explosive_leggings");
-        addDefault(config, "explosive_boots", "explosive_boots");
-        addWeaponDefault(config, "ember_knife", "minecraft:stone_sword", 'F', "minecraft:flint", 'S', "minecraft:stick");
-        addWeaponDefault(config, "frost_cleaver", "minecraft:iron_axe", 'I', "minecraft:blue_ice", 'B', "minecraft:iron_block");
-        addWeaponDefault(config, "storm_spear", "minecraft:trident", 'C', "minecraft:copper_ingot", 'R', "minecraft:redstone");
-        addWeaponDefault(config, "plague_saber", "minecraft:golden_sword", 'P', "minecraft:spider_eye", 'G', "minecraft:gold_ingot");
-        addWeaponDefault(config, "echo_blade", "minecraft:diamond_sword", 'A', "minecraft:amethyst_shard", 'D', "minecraft:diamond");
-        addWeaponDefault(config, "glass_cannon_hammer", "minecraft:netherite_axe", 'N', "minecraft:netherite_ingot", 'B', "minecraft:diamond_block");
-
-        File parent = file.getParentFile();
-        if (parent != null && !parent.exists() && !parent.mkdirs()) {
-            throw new IOException("无法创建目录: " + parent.getAbsolutePath());
-        }
-        config.save(file);
-    }
-
-    static void saveDefaultsForTest(File file) throws IOException {
-        saveDefaults(file);
-    }
-
-    private static void addDefault(YamlConfiguration config, String id, String armorId) {
-        String path = "recipes." + id + ".";
-        config.set(path + "shape", List.of("TC", "CT"));
-        config.set(path + "ingredients.C", "minecraft:copper_ingot");
-        config.set(path + "ingredients.T", "minecraft:tnt");
-        config.set(path + "result.type", "armor");
-        config.set(path + "result.id", armorId);
-        config.set(path + "result.amount", 1);
-    }
-
-    private static void addWeaponDefault(YamlConfiguration config, String id,
-                                         String weaponMaterial, char catalystSymbol, String catalyst,
-                                         char baseSymbol, String baseMaterial) {
-        String path = "recipes." + id + ".";
-        config.set(path + "shape", List.of("W" + catalystSymbol, baseSymbol + " "));
-        config.set(path + "ingredients.W", weaponMaterial);
-        config.set(path + "ingredients." + catalystSymbol, catalyst);
-        config.set(path + "ingredients." + baseSymbol, baseMaterial);
-        config.set(path + "result.type", "weapon");
-        config.set(path + "result.id", id);
-        config.set(path + "result.amount", 1);
     }
 
     public record ForgeRecipe(String id, String[] shape, Map<Character, Material> ingredients, ItemStack result) {

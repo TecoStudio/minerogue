@@ -14,8 +14,6 @@ import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
-import org.bukkit.metadata.FixedMetadataValue;
-import org.bukkit.metadata.MetadataValue;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
@@ -29,7 +27,6 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class CombatHandler {
-    private static final String BLEEDING_METADATA = "roguelike_bleeding_until";
     private static final Random RANDOM = ThreadLocalRandom.current();
     private static final Map<UUID, Long> lightningImmuneUntil = new HashMap<>();
     private static boolean internalDamage = false;
@@ -81,25 +78,25 @@ public class CombatHandler {
             formulaParts.add(FormulaPart.multiply("§b", speedMultiplier));
         }
 
-        List<String> neutralSources = new ArrayList<>();
-        double neutralMultiplier = 1.0;
+        List<String> contractSources = new ArrayList<>();
+        double contractMultiplier = 1.0;
         if (data.getTotalEffect(template, "contract_damage_200", 0.0) > 0) {
-            neutralMultiplier *= 2.0;
-            neutralSources.add("狂战契约 x2.0");
+            contractMultiplier *= 2.0;
+            contractSources.add("狂战契约 x2.0");
         }
         if (data.getTotalEffect(template, "contract_berserk_self_harm", 0.0) > 0) {
-            neutralMultiplier *= 3.0;
-            neutralSources.add("血怒契约 x3.0");
+            contractMultiplier *= 3.0;
+            contractSources.add("血怒契约 x3.0");
             double selfDamage = maxHealth(player) * 0.10;
             if (selfDamage > 0) applyInternalDamage(player, selfDamage, player);
         }
-        if (neutralMultiplier > 1.0) {
+        if (contractMultiplier > 1.0) {
             double before = damage;
-            damage *= neutralMultiplier;
-            damageParts.add("契约增伤 x" + WeaponManager.format(neutralMultiplier, 1)
+            damage *= contractMultiplier;
+            damageParts.add("契约增伤 x" + WeaponManager.format(contractMultiplier, 1)
                     + "：" + WeaponManager.format(before, 1) + " -> " + WeaponManager.format(damage, 1)
-                    + "，来源 " + String.join("、", neutralSources));
-            formulaParts.add(FormulaPart.multiply("§6", neutralMultiplier));
+                    + "，来源 " + String.join("、", contractSources));
+            formulaParts.add(FormulaPart.multiply("§6", contractMultiplier));
         }
 
         double beforeSmash = damage;
@@ -223,10 +220,10 @@ public class CombatHandler {
             extraParts.add("爆炸触发");
         }
 
-        // 大爆炸：TNT 级别爆炸，会点火并破坏方块。
+        // 大爆炸：造成范围实体伤害，但不点火或破坏方块。
         double bigExplosionChance = chance(data.getTotalEffect(template, "big_explosion_chance", 0.0));
         if (bigExplosionChance > 0 && RANDOM.nextDouble() < bigExplosionChance) {
-            target.getWorld().createExplosion(target.getLocation(), 4.0f, true, true, player);
+            target.getWorld().createExplosion(target.getLocation(), 4.0f, false, false, player);
             extraParts.add("大爆炸触发");
         }
 

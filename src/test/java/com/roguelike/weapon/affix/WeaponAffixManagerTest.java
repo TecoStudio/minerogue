@@ -15,29 +15,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class WeaponAffixManagerTest {
     @Test
-    void deadCellsInspiredAffixesAreGroupedAndExposeSynergyHooks() {
-        List<String> ids = WeaponAffixManager.effectIds();
-
-        assertFalse(ids.contains("oil_chance"));
-        assertFalse(ids.contains("oiled_target_fire_damage_percent"));
-        assertTrue(ids.contains("bleed_chance"));
-        assertTrue(ids.contains("bleeding_target_damage_percent"));
-        assertTrue(ids.contains("victim_explosion_chance"));
-        assertEquals("击杀触发", WeaponAffixManager.category("victim_explosion_chance"));
-        assertTrue(WeaponAffixManager.synergyHint("bleeding_target_damage_percent").contains("流血"));
+    void removedBombAffixIsNotAvailable() {
+        assertFalse(WeaponAffixManager.effectIds().contains("bomb"));
+        assertFalse(WeaponAffixManager.rollableEffectIds().contains("bomb"));
     }
-
     @Test
     void chanceAffixesGenerateWithinConfiguredRange() {
         Random random = new Random(1234);
 
-        for (String id : List.of("bleed_chance", "victim_explosion_chance")) {
+        for (String id : List.of("victim_explosion_chance")) {
             double value = WeaponAffixManager.generateBaseValue(id, random);
             assertTrue(value > 0.0, id + " should generate a positive chance");
             assertTrue(value <= 0.30, id + " should stay in low-proc affix range");
             assertTrue(WeaponAffixManager.format(id, value).endsWith("%"));
         }
     }
+
 
     @Test
     void weaponScalingTagsDefaultToDeadCellsStyleColors() {
@@ -58,8 +51,9 @@ class WeaponAffixManagerTest {
 
         assertFalse(rollable.contains("oil_chance"));
         assertFalse(rollable.contains("oiled_target_fire_damage_percent"));
-        assertTrue(rollable.contains("bleed_chance"));
-        assertTrue(rollable.contains("bleeding_target_damage_percent"));
+        assertFalse(rollable.contains("bleed_chance"));
+        assertFalse(rollable.contains("bleeding_target_damage_percent"));
+        assertTrue(rollable.contains("contract_damage_200"));
         assertEquals("通用词条", WeaponAffixManager.category("oil_chance"));
     }
 

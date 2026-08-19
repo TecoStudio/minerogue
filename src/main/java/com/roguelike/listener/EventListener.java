@@ -178,7 +178,7 @@ public class EventListener implements Listener {
     public void onPlayerDamaged(EntityDamageEvent event) {
         if (CombatHandler.cancelLightningDamageForImmunePlayer(event)) return;
         if (event.getEntity() instanceof Player player && !CombatHandler.isInternalDamage()) {
-            double damage = CombatHandler.applyIncomingNeutralDamage(player, event.getDamage());
+            double damage = CombatHandler.applyIncomingContractDamage(player, event.getDamage());
             double reduction = ArmorAffixManager.damageReductionPercent(player);
             if (reduction > 0.0) {
                 damage *= 1.0 - reduction;
@@ -340,11 +340,6 @@ public class EventListener implements Listener {
     static boolean shouldTriggerChance(double chance, double roll) {
         double clamped = Math.max(0.0, Math.min(1.0, chance));
         return roll < clamped;
-    }
-
-    static double damageWithBleedingBonus(double damage, boolean bleeding, double bonus) {
-        if (!bleeding || bonus <= 0.0) return damage;
-        return damage * (1.0 + bonus);
     }
 
     private boolean countsForMiningExperience(Material material) {

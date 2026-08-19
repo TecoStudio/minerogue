@@ -20,11 +20,4 @@ class EventListenerTest {
         assertTrue(EventListener.shouldTriggerChance(0.25, 0.24));
         assertFalse(EventListener.shouldTriggerChance(0.25, 0.25));
     }
-
-    @Test
-    void bleedingDamageBonusOnlyAppliesToBleedingTargets() {
-        assertEquals(12.5, EventListener.damageWithBleedingBonus(10.0, true, 0.25), 0.001);
-        assertEquals(10.0, EventListener.damageWithBleedingBonus(10.0, false, 0.25), 0.001);
-        assertEquals(10.0, EventListener.damageWithBleedingBonus(10.0, true, -0.25), 0.001);
-    }
 }

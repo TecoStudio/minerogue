@@ -146,23 +146,24 @@ public class WeaponInstanceData {
     }
 
     public double getEffectBonus(String key) {
-        return effectBonuses.getOrDefault(key, 0.0);
+        return effectBonuses.getOrDefault(canonicalEffectId(key), 0.0);
     }
 
     public double getEffectBonus(String key, double defaultValue) {
-        return effectBonuses.getOrDefault(key, defaultValue);
+        return effectBonuses.getOrDefault(canonicalEffectId(key), defaultValue);
     }
 
     public void addEffectBonus(String key, double amount) {
-        effectBonuses.put(key, effectBonuses.getOrDefault(key, 0.0) + amount);
+        String canonicalKey = canonicalEffectId(key);
+        effectBonuses.put(canonicalKey, effectBonuses.getOrDefault(canonicalKey, 0.0) + amount);
     }
 
     public void setEffectBonus(String key, double value) {
-        effectBonuses.put(key, value);
+        effectBonuses.put(canonicalEffectId(key), value);
     }
 
     public void removeEffectBonus(String key) {
-        effectBonuses.remove(key);
+        effectBonuses.remove(canonicalEffectId(key));
     }
 
     public List<String> getAppliedModifiers() {
@@ -261,6 +262,33 @@ public class WeaponInstanceData {
         if (gearLevel <= 0) gearLevel = 1;
         quality = normalizeQuality(quality);
         if (legendaryAffix == null) legendaryAffix = "";
+        migrateLegacyEffectIds();
+    }
+
+    private void migrateLegacyEffectIds() {
+        Map<String, Double> migrated = new HashMap<>();
+        for (Map.Entry<String, Double> entry : effectBonuses.entrySet()) {
+            migrated.merge(canonicalEffectId(entry.getKey()), entry.getValue(), Double::sum);
+        }
+        effectBonuses.clear();
+        effectBonuses.putAll(migrated);
+    }
+
+    private static String canonicalEffectId(String key) {
+        if (key == null) return null;
+        return switch (key) {
+            case "neutral_damage_200" -> "contract_damage_200";
+            case "neutral_speed_200" -> "contract_speed_200";
+            case "neutral_attack_speed_200" -> "contract_attack_speed_200";
+            case "neutral_range_200" -> "contract_range_200";
+            case "neutral_crit_chance_100" -> "contract_crit_chance_100";
+            case "neutral_crit_damage_300" -> "contract_crit_damage_300";
+            case "neutral_lifesteal_100" -> "contract_lifesteal_100";
+            case "neutral_thunder_100" -> "contract_thunder_100";
+            case "neutral_explosion_100" -> "contract_explosion_100";
+            case "neutral_berserk_self_harm" -> "contract_berserk_self_harm";
+            default -> key;
+        };
     }
 
     private static String normalizeQuality(String quality) {

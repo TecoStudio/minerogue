@@ -27,7 +27,7 @@ class TicketManagerTest {
         WeaponInstanceData data = new WeaponInstanceData("special_weapon");
         data.setQuality("base");
         data.setEffectBonus("crit_chance", 0.10);
-        data.setEffectBonus("bleed_chance", 0.10);
+        data.setEffectBonus("contract_crit_chance_100", 0.10);
 
         assertTrue(TicketManager.canDevelopWeaponAffix(template, data));
     }

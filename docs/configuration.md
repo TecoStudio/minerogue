@@ -10,22 +10,22 @@ plugins/minerogue/
 ├─ weapons.yml
 ├─ items.yml
 ├─ mobs.yml
-├─ forge-recipes.yml
 ├─ boss-events.yml
 ├─ sidebar.yml
 ├─ content/
 │  ├─ weapons/*.yml
 │  ├─ items/*.yml
 │  ├─ armor/*.yml
-│  └─ mobs/*.yml
+│  ├─ mobs/*.yml
+│  └─ recipes/forge-recipes.yml
 └─ roguelike.db / player_data/
 ```
 
-`content/` 是推荐维护位置。复制新 jar 不会覆盖已存在的运行时 `content/` 文件；内容变更需要同步 YAML 或手动修改运行时文件。
+`content/` 是推荐维护位置。复制新 jar 不会覆盖已存在的运行时 `content/` 文件；内容变更由 GitHub 同步或手动更新运行时 YAML。铸造配方源为 `content/recipes/forge-recipes.yml`，不随 jar 打包，运行时下载到 `plugins/minerogue/content/recipes/forge-recipes.yml`。
 
 ## `config.yml`
 
-关键段落：storage、debug、content.github-sync、gameplay.exp-multiplier、gameplay.progression-exp-multiplier、gameplay.weapon-drop-multiplier、integrations、scoreboard。
+关键段落：storage、debug、content.github-sync（包括 `enabled`、`download-recipes`、`base-url`、`files` 和 `overwrite-existing`）、gameplay.exp-multiplier、gameplay.progression-exp-multiplier、gameplay.weapon-drop-multiplier、integrations、scoreboard。
 
 ## 防具 YAML
 

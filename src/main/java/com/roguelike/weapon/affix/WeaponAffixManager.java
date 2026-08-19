@@ -90,14 +90,6 @@ public class WeaponAffixManager {
             double value = chance(total(template, data, "poison_chance", 0.0));
             if (value > 0) lore.add(Message.toComponent("§2☠ 中毒概率: §f" + WeaponManager.format(value * 100, 0) + "%"));
         }), Target.WEAPON, "状态附加");
-        register(percent("bleed_chance", "流血概率", 0.08, 0.25, (lore, template, data) -> {
-            double value = chance(total(template, data, "bleed_chance", 0.0));
-            if (value > 0) lore.add(Message.toComponent("§4🩸 流血概率: §f" + WeaponManager.format(value * 100, 0) + "%"));
-        }), Target.WEAPON, "状态附加");
-        register(percent("bleeding_target_damage_percent", "流血目标增伤", 0.15, 0.45, (lore, template, data) -> {
-            double value = total(template, data, "bleeding_target_damage_percent", 0.0);
-            if (value > 0) lore.add(Message.toComponent("§4⚖ 流血增伤: §f" + WeaponManager.format(value * 100, 0) + "%"));
-        }), Target.WEAPON, "协同增伤", "对已流血目标造成更高直接伤害，可与流血概率词条自洽成套。");
         register(percent("explosion_chance", "爆炸概率", 0.05, 0.15, (lore, template, data) -> {
             double value = chance(total(template, data, "explosion_chance", 0.0));
             if (value > 0) lore.add(Message.toComponent("§6⚖ 爆炸概率: §f" + WeaponManager.format(value * 100, 0) + "%，受到伤害 200%"));
@@ -111,8 +103,7 @@ public class WeaponAffixManager {
             if (value > 0) lore.add(Message.toComponent("§6☄ 击杀爆炸: §f" + WeaponManager.format(value * 100, 0) + "% §7(击杀时触发)"));
         }), Target.WEAPON, "击杀触发", "击杀敌人时有概率引爆尸体，适合高爆发和连锁清怪武器。");
         register(toggle("smash", "猛击", "§6⚖ 猛击: §f3倍伤害，力量效果翻倍，使用后冷却7秒，受到伤害 200%", false));
-        register(toggle("bomb", "小心炸弹！", "§6☄ 小心炸弹！: §f潜行投掷常规大爆炸TNT，20格或3秒后爆炸，30秒冷却", false));
-        register(new SimpleAffix("hyper", "亢奋", true, 1, 1, true, (lore, template, data) -> {
+        register(new SimpleAffix("hyper", "亢奋", true, 1, 3, true, (lore, template, data) -> {
             int hyper = (int) total(template, data, "hyper", 0.0);
             if (hyper > 0) lore.add(Message.toComponent("§b✦ 亢奋: §f暴击后速度" + hyper + "、急迫" + hyper + " 3秒"));
         }) {
@@ -161,16 +152,16 @@ public class WeaponAffixManager {
             int level = (int) total(template, data, "charge_power", 0.0);
             if (level > 0) lore.add(Message.toComponent("§d➹ 蓄能: §f满弓后继续蓄力提高伤害，等级 " + level));
         }), Target.BOW);
-        register(neutral("neutral_damage_200", "狂战契约", "§6⚖ 狂战契约: §f对敌伤害 200%，受到伤害 200%"), Target.ALL);
-        register(neutral("neutral_speed_200", "疾行契约", "§6⚖ 疾行契约: §f移动速度 200%，受到伤害 200%"), Target.ALL);
-        register(neutral("neutral_attack_speed_200", "急速契约", "§6⚖ 急速契约: §f攻击速度 200%，受到伤害 200%"), Target.ALL);
-        register(neutral("neutral_range_200", "远击契约", "§6⚖ 远击契约: §f攻击距离 200%，受到伤害 200%"), Target.ALL);
-        register(neutral("neutral_crit_chance_100", "精准契约", "§6⚖ 精准契约: §f暴击率 +100%，受到伤害 200%"), Target.ALL);
-        register(neutral("neutral_crit_damage_300", "处刑契约", "§6⚖ 处刑契约: §f暴击伤害 300%，受到伤害 200%"), Target.ALL);
-        register(neutral("neutral_lifesteal_100", "鲜血契约", "§6⚖ 鲜血契约: §f吸血 +100%，受到伤害 200%"), Target.ALL);
-        register(neutral("neutral_thunder_100", "引雷契约", "§6⚖ 引雷契约: §f攻击必定雷击，受到伤害 200%"), Target.ALL);
-        register(neutral("neutral_explosion_100", "爆裂契约", "§6⚖ 爆裂契约: §f攻击必定爆炸，受到伤害 200%"), Target.ALL);
-        register(neutral("neutral_berserk_self_harm", "血怒契约", "§6⚖ 血怒契约: §f对敌伤害 300%，每次命中自损最大生命 10%"), Target.ALL);
+        register(neutral("contract_damage_200", "狂战契约", "§6⚖ 狂战契约: §f对敌伤害 200%，受到伤害 200%"), Target.ALL);
+        register(neutral("contract_speed_200", "疾行契约", "§6⚖ 疾行契约: §f移动速度 200%，受到伤害 200%"), Target.ALL);
+        register(neutral("contract_attack_speed_200", "急速契约", "§6⚖ 急速契约: §f攻击速度 200%，受到伤害 200%"), Target.ALL);
+        register(neutral("contract_range_200", "远击契约", "§6⚖ 远击契约: §f攻击距离 200%，受到伤害 200%"), Target.ALL);
+        register(neutral("contract_crit_chance_100", "精准契约", "§6⚖ 精准契约: §f暴击率 +100%，受到伤害 200%"), Target.ALL);
+        register(neutral("contract_crit_damage_300", "处刑契约", "§6⚖ 处刑契约: §f暴击伤害 300%，受到伤害 200%"), Target.ALL);
+        register(neutral("contract_lifesteal_100", "鲜血契约", "§6⚖ 鲜血契约: §f吸血 +100%，受到伤害 200%"), Target.ALL);
+        register(neutral("contract_thunder_100", "引雷契约", "§6⚖ 引雷契约: §f攻击必定雷击，受到伤害 200%"), Target.ALL);
+        register(neutral("contract_explosion_100", "爆裂契约", "§6⚖ 爆裂契约: §f攻击必定爆炸，受到伤害 200%"), Target.ALL);
+        register(neutral("contract_berserk_self_harm", "血怒契约", "§6⚖ 血怒契约: §f对敌伤害 300%，每次命中自损最大生命 10%"), Target.ALL);
     }
 
     public static List<String> effectIds() {
@@ -214,8 +205,6 @@ public class WeaponAffixManager {
         List<String> tags = new ArrayList<>();
         if (total(template, data, "fire_damage", 0.0) > 0
                 || total(template, data, "burning_target_damage_percent", 0.0) > 0
-                || total(template, data, "bleed_chance", 0.0) > 0
-                || total(template, data, "bleeding_target_damage_percent", 0.0) > 0
                 || total(template, data, "lifesteal_percent", 0.0) > 0
                 || total(template, data, "smash", 0.0) > 0) {
             tags.add("暴虐");

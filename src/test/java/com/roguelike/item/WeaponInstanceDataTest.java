@@ -29,7 +29,7 @@ class WeaponInstanceDataTest {
         data.setGearLevel(4);
         data.setQuality("plusplus");
         data.setEffectBonus("crit_chance", 0.12);
-        data.setEffectBonus("bleed_chance", 0.10);
+        data.setEffectBonus("contract_crit_chance_100", 1.0);
 
         assertEquals(8, data.getGearPower());
         assertEquals(3, data.getRandomAffixSlotLimit(template));
@@ -44,7 +44,7 @@ class WeaponInstanceDataTest {
 
         data.setQuality("base");
         data.setEffectBonus("crit_chance", 0.12);
-        data.setEffectBonus("bleed_chance", 0.10);
+        data.setEffectBonus("contract_crit_chance_100", 1.0);
         data.setEffectBonus("victim_explosion_chance", 0.10);
 
         assertEquals(1, data.getRandomAffixSlotLimit(template));
@@ -60,7 +60,7 @@ class WeaponInstanceDataTest {
 
         data.setQuality("plus");
         data.setEffectBonus("crit_chance", 0.12);
-        data.setEffectBonus("bleed_chance", 0.10);
+        data.setEffectBonus("contract_crit_chance_100", 1.0);
         data.setEffectBonus("victim_explosion_chance", 0.10);
         data.setEffectBonus("chain_targets", 2.0);
 
@@ -69,6 +69,17 @@ class WeaponInstanceDataTest {
         assertFalse(data.isOverflowingRandomAffixSlots(template));
     }
 
+    @Test
+    void legacyNeutralContractIdsAreCanonicalized() {
+        WeaponInstanceData data = new WeaponInstanceData("wooden_sword");
+
+        data.setEffectBonus("neutral_damage_200", 1.0);
+
+        assertEquals(1.0, data.getEffectBonus("contract_damage_200"), 0.001);
+        assertEquals(1.0, data.getEffectBonus("neutral_damage_200"), 0.001);
+        assertTrue(data.getEffectBonuses().containsKey("contract_damage_200"));
+        assertFalse(data.getEffectBonuses().containsKey("neutral_damage_200"));
+    }
     @Test
     void gearPowerScalesDamageWithoutChangingAttackSpeed() {
         WeaponInstanceData data = new WeaponInstanceData("flame_sword");

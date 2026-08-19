@@ -8,6 +8,11 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$utf8Encoding = [System.Text.UTF8Encoding]::new($false)
+[Console]::InputEncoding = $utf8Encoding
+[Console]::OutputEncoding = $utf8Encoding
+$OutputEncoding = $utf8Encoding
+
 $projectRoot = $PSScriptRoot
 $gradleBat = Join-Path $projectRoot "gradlew.bat"
 
@@ -22,7 +27,7 @@ Write-Host "Timeout: $TimeoutSeconds seconds" -ForegroundColor DarkGray
 
 $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
 $startInfo.FileName = $env:ComSpec
-$startInfo.Arguments = "/d /c call `"$gradleBat`" $($arguments -join ' ')"
+$startInfo.Arguments = "/d /c chcp 65001 >nul && call `"$gradleBat`" $($arguments -join ' ')"
 $startInfo.WorkingDirectory = $projectRoot
 $startInfo.UseShellExecute = $false
 

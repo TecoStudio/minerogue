@@ -26,6 +26,8 @@ content:
     # 开启后启动或 /rw reload 时会从 GitHub/raw 地址拉取内容 YAML 到 plugins/minerogue/content/。
     # 默认打开；base-url 为空时不会发起网络请求，适合仅使用本地 content 目录。
     enabled: true
+    # 是否从 GitHub 下载铸造配方。关闭后保留并使用本地 content/recipes/forge-recipes.yml。
+    download-recipes: true
     # 示例: https://raw.githubusercontent.com/TecoStudio/minerogue-content/main/content
     base-url: ""
     # 需要拉取的相对路径。路径会写入 plugins/minerogue/content/<相对路径>。
@@ -105,6 +107,7 @@ content:
       - mobs/vagrant.yml
       - mobs/zombie-elite.yml
       - mobs/zombified_piglin.yml
+      - recipes/forge-recipes.yml
     # true = 每次同步覆盖本地同名文件；false = 本地文件存在时跳过。
     overwrite-existing: true
 
