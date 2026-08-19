@@ -36,4 +36,4 @@
 | `/rw fixhand` | 刷新手持武器属性 |
 | `/rw help` | 管理员帮助 |
 
-券 ID：`ticket_a`、`super_ticket_a`、`ticket_b`、`tool_ticket_b`、`ticket_c`。
+券 ID：`ticket_a`、`super_ticket_a`、`ticket_b`、`super_ticket_b`、`ticket_c`、`super_ticket_c`。

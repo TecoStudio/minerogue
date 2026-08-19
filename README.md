@@ -46,7 +46,7 @@ Roguelike 经验 / 升级 / 券奖励
 | 防具 | 24 件，6 套，每套 4 件，位于 `content/armor/*.yml` |
 | 防具套装 | 荆棘、神速、炸药、守护、猩红、雷暴 |
 | 怪物内容 | 19 个 YAML，覆盖经验、普通怪强化、内置精英怪/Boss |
-| 券系统 | 强化券、超级强化券、开发券、工具开发券、移除券 |
+| 券系统 | 强化券、超级强化券、开发券、超级开发券、移除券、超级移除券 |
 | 管理 GUI | `/rw give` 图形化发放武器、物品、防具和券 |
 
 ### 防具套装
@@ -140,7 +140,7 @@ D:\LIPis\Documents\Minecraft\roguelike-production\plugins\minerogue-0.2-<commiti
 /rw give weapon <id> [玩家] [数量]
 /rw give item <id> [玩家] [数量]
 /rw give armor <id> [玩家] [数量]
-/rw give ticket <ticket_a|super_ticket_a|ticket_b|tool_ticket_b|ticket_c> [玩家] [数量]
+/rw give ticket <ticket_a|super_ticket_a|ticket_b|super_ticket_b|ticket_c|super_ticket_c> [玩家] [数量]
 /rw exp <数量> [玩家]
 /rw list <weapons|items|armor>
 /rw stats [玩家]
@@ -171,7 +171,7 @@ D:\LIPis\Documents\Minecraft\roguelike-production\plugins\minerogue-0.2-<commiti
 | [docs/game-content.md](docs/game-content.md) | 完整玩法与内容总览 |
 | [docs/equipment.md](docs/equipment.md) | 武器、物品、防具套装、YAML 防具字段 |
 | [docs/affixes.md](docs/affixes.md) | 武器/工具/弓/防具词条与重复附魔规则 |
-| [docs/tickets.md](docs/tickets.md) | 强化券、开发券、工具开发券、移除券 |
+| [docs/tickets.md](docs/tickets.md) | 强化券、开发券、超级开发券、移除券、超级移除券 |
 | [docs/commands.md](docs/commands.md) | 玩家/管理员命令 |
 | [docs/configuration.md](docs/configuration.md) | 配置文件与 YAML 内容格式 |
 | [docs/leveling.md](docs/leveling.md) | 经验、升级、死亡惩罚 |

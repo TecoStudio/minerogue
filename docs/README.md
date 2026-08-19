@@ -21,7 +21,7 @@
 | [leveling.md](leveling.md) | 经验来源、升级奖励、死亡惩罚 |
 | [equipment.md](equipment.md) | 武器、物品、防具、套装、YAML 字段 |
 | [affixes.md](affixes.md) | 武器/弓/工具/防具词条与显示说明 |
-| [tickets.md](tickets.md) | 强化券、超级强化券、开发券、工具开发券、移除券 |
+| [tickets.md](tickets.md) | 强化券、超级强化券、开发券、超级开发券、移除券、超级移除券 |
 | [forge.md](forge.md) | 铸造台结构、GUI、配方格式 |
 | [mobs.md](mobs.md) | 普通怪强化、精英怪、Boss、经验与掉落 |
 | [boss-events.md](boss-events.md) | 周期 Boss 事件、粒子提示、区域保护 |

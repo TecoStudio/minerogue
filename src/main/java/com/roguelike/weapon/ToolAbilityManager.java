@@ -23,10 +23,19 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+
 public class ToolAbilityManager {
     private static RoguelikePlugin plugin;
     private static BukkitTask task;
+    private static final long CRAZY_MINER_COOLDOWN_MILLIS = 30_000L;
+    private static final int CRAZY_MINER_SATURATION_TICKS = 3;
+    private static final Map<UUID, Long> crazyMinerCooldownUntil = new HashMap<>();
     private static final BlockFace[] VISIBLE_FACES = {
             BlockFace.UP, BlockFace.DOWN, BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST
     };
@@ -42,6 +51,7 @@ public class ToolAbilityManager {
             task.cancel();
             task = null;
         }
+        crazyMinerCooldownUntil.clear();
         plugin = null;
     }
 
@@ -64,6 +74,27 @@ public class ToolAbilityManager {
         return template != null && data != null
                 && EquipmentTypeResolver.isPickaxe(stack.getType())
                 && data.getTotalEffect(template, "crazy_miner", 0.0) > 0.0;
+    }
+
+    static boolean crazyMinerReady(long now, long cooldownUntil) {
+        return now >= cooldownUntil;
+    }
+
+    static String crazyMinerCooldownLine(long now, long cooldownUntil) {
+        if (crazyMinerReady(now, cooldownUntil)) return null;
+        long seconds = (long) Math.ceil((cooldownUntil - now) / 1000.0);
+        return "§e疯狂矿工: §f" + Math.max(1, seconds) + "s";
+    }
+
+    public static List<String> getSidebarLines(Player player) {
+        List<String> lines = new ArrayList<>();
+        ItemStack tool = player.getInventory().getItemInMainHand();
+        if (!hasCrazyMiner(tool)) return lines;
+        long now = System.currentTimeMillis();
+        long cooldownUntil = crazyMinerCooldownUntil.getOrDefault(player.getUniqueId(), 0L);
+        String line = crazyMinerCooldownLine(now, cooldownUntil);
+        if (line != null) lines.add(line);
+        return lines;
     }
 
     public static void handleItemDamage(PlayerItemDamageEvent event) {
@@ -93,8 +124,14 @@ public class ToolAbilityManager {
         WeaponInstanceData data = WeaponManager.getData(tool);
         if (template == null || data == null) return;
 
-        if (hasCrazyMiner(tool) && ThreadLocalRandom.current().nextDouble() < 0.12) {
-            player.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, 5, 0, true, false, false));
+        if (hasCrazyMiner(tool)) {
+            UUID uuid = player.getUniqueId();
+            long now = System.currentTimeMillis();
+            long cooldownUntil = crazyMinerCooldownUntil.getOrDefault(uuid, 0L);
+            if (crazyMinerReady(now, cooldownUntil) && ThreadLocalRandom.current().nextDouble() < 0.12) {
+                player.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, CRAZY_MINER_SATURATION_TICKS, 0, true, false, false));
+                crazyMinerCooldownUntil.put(uuid, now + CRAZY_MINER_COOLDOWN_MILLIS);
+            }
         }
 
         if (data.getTotalEffect(template, "ore_highlight", 0.0) > 0 && ThreadLocalRandom.current().nextDouble() < 0.10) {

@@ -126,7 +126,7 @@ public class WeaponAffixManager {
         register(toggle("ore_highlight", "高亮矿物", "§e✦ 高亮矿物: §f挖掘时10%概率高亮附近矿物1秒", false), Target.TOOL);
         register(level("crazy_miner", "疯狂矿工", 1, 1, (lore, template, data) -> {
             if (total(template, data, "crazy_miner", 0.0) > 0) {
-                lore.add(Message.toComponent("§e✦ 疯狂矿工: §f手持时急迫III，挖掘方块时12%概率获得饱和5tick"));
+                lore.add(Message.toComponent("§e✦ 疯狂矿工: §f手持时急迫III，挖掘方块时12%概率获得饱和3tick（30秒冷却）"));
             }
         }), Target.PICKAXE);
         register(new SimpleAffix("scatter_shot", "散射", true, 2, 5, true, (lore, template, data) -> {

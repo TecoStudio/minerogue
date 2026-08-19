@@ -166,6 +166,12 @@ public class WeaponInstanceData {
         effectBonuses.remove(canonicalEffectId(key));
     }
 
+    public void clearRandomAffixes() {
+        damageBonus = 0.0;
+        attackSpeedBonus = 0.0;
+        effectBonuses.clear();
+    }
+
     public List<String> getAppliedModifiers() {
         return new ArrayList<>(appliedModifiers);
     }

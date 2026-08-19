@@ -32,15 +32,26 @@ public final class ForgeRecipeManager {
 
     public static void reload() {
         RECIPES.clear();
-        if (!recipesFile.isFile()) return;
+        if (!recipesFile.isFile()) {
+            logRecipeCount();
+            return;
+        }
         YamlConfiguration config = YamlConfiguration.loadConfiguration(recipesFile);
         ConfigurationSection section = config.getConfigurationSection("recipes");
-        if (section == null) return;
+        if (section == null) {
+            logRecipeCount();
+            return;
+        }
 
         for (String id : section.getKeys(false)) {
             ForgeRecipe recipe = parseRecipe(id, section.getConfigurationSection(id));
             if (recipe != null) RECIPES.add(recipe);
         }
+        logRecipeCount();
+    }
+
+    private static void logRecipeCount() {
+        RoguelikePlugin.getInstance().getLogger().info("加载了 " + RECIPES.size() + " 份配方。");
     }
 
     public static ForgeRecipe match(Inventory inventory, int[] inputSlots) {

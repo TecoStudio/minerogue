@@ -6,6 +6,7 @@ import com.roguelike.data.PlayerData;
 import com.roguelike.data.PlayerDataManager;
 import com.roguelike.level.LevelManager;
 import com.roguelike.weapon.BowAbilityManager;
+import com.roguelike.weapon.ToolAbilityManager;
 import com.roguelike.weapon.WeaponAbilityManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -82,6 +83,7 @@ public class RoguelikeScoreboard {
         List<String> abilityLines = WeaponAbilityManager.getSidebarLines(player);
         abilityLines = new ArrayList<>(abilityLines);
         abilityLines.addAll(BowAbilityManager.getSidebarLines(player));
+        abilityLines.addAll(ToolAbilityManager.getSidebarLines(player));
         long levelRequiredExp = LevelManager.expForLevel(data.getLevel() + 1);
         for (String configured : ConfigManager.getSidebarLines()) {
             if (configured.contains("%ability_cooldowns%")) {
