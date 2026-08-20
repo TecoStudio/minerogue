@@ -142,3 +142,18 @@ scoreboard:
   enabled: true
   # 更新间隔 (ticks)
   update-interval: 20
+
+resource-pack:
+  # 进服时自动向玩家下发资源包。url 留空则关闭下发（玩家需手动安装）。
+  # 默认指向 minerogue-resourcepack 的每夜构建（nightly release，始终只有最新一份）。
+  url: "https://github.com/LIPiston/minerogue-resourcepack/releases/download/nightly/minerogue-resourcepack.zip"
+  # 资源包 zip 的 SHA1（小写十六进制 40 位）。客户端据此缓存：hash 不变则不重新下载。
+  # 留空（默认）时插件自动从 url + .sha1 异步拉取（nightly release 已配套发布 .sha1），无需手动维护。
+  # 填入固定值则跳过网络拉取直接使用该值（自托管/离线场景兜底）。
+  hash: ""
+  # true = 强制加载，拒绝的玩家会被踢出；false = 玩家可拒绝。
+  forced: false
+  # 下发时显示的提示语（留空用客户端默认）。
+  prompt: "§aRoguelike §f推荐安装资源包以显示自定义武器材质。"
+  # 玩家拒绝或下载失败时（非强制）发送的提示。
+  declined-message: "§7未安装资源包：部分自定义武器将显示为原版材质。"

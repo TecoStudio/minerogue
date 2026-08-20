@@ -9,6 +9,7 @@ import com.roguelike.item.CustomItem;
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.level.LevelManager;
 import com.roguelike.mob.MobManager;
+import com.roguelike.resourcepack.ResourcePackManager;
 import com.roguelike.scoreboard.RoguelikeScoreboard;
 import com.roguelike.util.DevLog;
 import com.roguelike.util.Message;
@@ -23,6 +24,7 @@ class AdminInfoCommands {
         ConfigManager.getPlugin().reloadConfig();
         DevLog.init(ConfigManager.getPlugin());
         ConfigManager.reload();
+        ResourcePackManager.reload();
         MobManager.reload();
         BossEventManager.reload();
         ForgeRecipeManager.reload();

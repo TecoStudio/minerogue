@@ -19,7 +19,11 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
+import java.io.File;
+import java.net.URL;
 import java.util.*;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
 public class WeaponManager {
     private static RoguelikePlugin plugin;
@@ -28,14 +32,83 @@ public class WeaponManager {
     private static final NamespacedKey ATTACK_RANGE_KEY = new NamespacedKey("roguelike", "attack_range");
     private static final NamespacedKey MOVEMENT_SPEED_KEY = new NamespacedKey("roguelike", "movement_speed");
     private static final String RESOURCE_PACK_NAMESPACE = "minerogue";
+    private static final String ITEM_MODEL_PREFIX = "resourcepack/assets/minerogue/items/";
+    private static final String TEXTURE_PREFIX = "resourcepack/assets/minerogue/textures/item/";
     /** Minecraft processes at most 20 attack swings per second (one per tick). */
     public static final double MAX_ATTACK_SPEED = 20.0;
     /** Vanilla base value of the player {@code GENERIC_ATTACK_SPEED} attribute. */
     private static final double VANILLA_BASE_ATTACK_SPEED = 4.0;
 
+    /**
+     * Weapon ids that have BOTH an item-model binding ({@code items/<id>.json})
+     * and a texture ({@code textures/item/<id>.png}) inside the bundled resource
+     * pack. Only these ids get the custom model; everything else falls back to
+     * its vanilla base material so a missing texture never renders as the
+     * purple/black missing tile.
+     */
+    private static Set<String> resourcePackModelIds = Collections.emptySet();
+
     public static void init(RoguelikePlugin plugin) {
         WeaponManager.plugin = plugin;
         WeaponInstanceData.init(plugin);
+        resourcePackModelIds = loadResourcePackModels();
+    }
+
+    /** Test-only hook to drive {@link #usesResourcePackModel} without jar scanning. */
+    static void setResourcePackModelIdsForTest(Set<String> ids) {
+        resourcePackModelIds = ids == null ? Collections.emptySet() : ids;
+    }
+
+    /**
+     * Scans the plugin jar's bundled {@code resourcepack/} directory for weapon
+     * ids whose custom model is fully defined. Returns the intersection of ids
+     * that have both the item-model binding JSON and the texture PNG. Any error
+     * (no jar on disk, submodule absent, IO failure) yields an empty set, which
+     * makes every weapon fall back to vanilla — the safe default.
+     */
+    private static Set<String> loadResourcePackModels() {
+        try {
+            URL location = WeaponManager.class.getProtectionDomain().getCodeSource().getLocation();
+            if (location == null) return Collections.emptySet();
+            File file = new File(location.toURI());
+            if (!file.isFile()) return Collections.emptySet();
+            List<String> entries = new ArrayList<>();
+            try (JarFile jar = new JarFile(file)) {
+                Enumeration<JarEntry> e = jar.entries();
+                while (e.hasMoreElements()) {
+                    entries.add(e.nextElement().getName());
+                }
+            }
+            Set<String> ids = collectResourcePackModelIds(entries);
+            if (!ids.isEmpty()) {
+                plugin.getLogger().info("资源包已加载 " + ids.size() + " 个自定义武器材质，未覆盖的武器将使用原版材质。");
+            } else {
+                plugin.getLogger().info("未在插件内置资源包中找到自定义武器材质，所有武器将使用原版材质。");
+            }
+            return ids;
+        } catch (Exception ex) {
+            plugin.getLogger().warning("无法扫描内置资源包材质清单，所有武器将使用原版材质: " + ex.getMessage());
+            return Collections.emptySet();
+        }
+    }
+
+    /**
+     * Pure helper: given jar entry names, returns the set of weapon ids that
+     * have both an item-model binding and a texture in the bundled resource pack.
+     */
+    static Set<String> collectResourcePackModelIds(List<String> entryNames) {
+        Set<String> itemModels = new HashSet<>();
+        Set<String> textures = new HashSet<>();
+        for (String name : entryNames) {
+            if (name == null) continue;
+            if (name.startsWith(ITEM_MODEL_PREFIX) && name.endsWith(".json")) {
+                itemModels.add(name.substring(ITEM_MODEL_PREFIX.length(), name.length() - ".json".length()));
+            } else if (name.startsWith(TEXTURE_PREFIX) && name.endsWith(".png")) {
+                textures.add(name.substring(TEXTURE_PREFIX.length(), name.length() - ".png".length()));
+            }
+        }
+        itemModels.retainAll(textures);
+        return itemModels;
     }
 
     public static String[] getEffectKeys() {
@@ -54,7 +127,7 @@ public class WeaponManager {
     }
 
     static boolean usesResourcePackModel(CustomWeapon template) {
-        return usesTemplateDisplay(template);
+        return usesTemplateDisplay(template) && resourcePackModelIds.contains(template.getId());
     }
 
     private static Material inferMaterial(CustomWeapon template) {

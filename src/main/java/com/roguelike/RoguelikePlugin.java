@@ -15,6 +15,7 @@ import com.roguelike.integration.IntegrationManager;
 import com.roguelike.level.LevelManager;
 import com.roguelike.listener.EventListener;
 import com.roguelike.mob.MobManager;
+import com.roguelike.resourcepack.ResourcePackManager;
 import com.roguelike.scoreboard.RoguelikeScoreboard;
 import com.roguelike.ticket.TicketManager;
 import com.roguelike.util.DevLog;
@@ -52,6 +53,7 @@ public class RoguelikePlugin extends JavaPlugin {
         ForgeRecipeManager.init(this);
         ForgeTableManager.init(this);
         RoguelikeScoreboard.init(this);
+        ResourcePackManager.init(this);
 
         getServer().getPluginManager().registerEvents(new EventListener(), this);
 
@@ -73,6 +75,7 @@ public class RoguelikePlugin extends JavaPlugin {
         ToolAbilityManager.shutdown();
         BowAbilityManager.shutdown();
         RoguelikeScoreboard.shutdown();
+        ResourcePackManager.shutdown();
         PlayerDataManager.shutdown();
         DevLog.info("Roguelike plugin disabled.");
     }

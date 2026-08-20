@@ -14,6 +14,7 @@ import com.roguelike.item.CustomItem;
 import com.roguelike.item.CustomItemStackFactory;
 import com.roguelike.level.LevelManager;
 import com.roguelike.mob.MobManager;
+import com.roguelike.resourcepack.ResourcePackManager;
 import com.roguelike.scoreboard.RoguelikeScoreboard;
 import com.roguelike.util.DevLog;
 import com.roguelike.util.Message;
@@ -24,10 +25,12 @@ import com.roguelike.weapon.ToolAbilityManager;
 import com.roguelike.weapon.BowAbilityManager;
 import com.roguelike.weapon.WeaponAbilityManager;
 import com.roguelike.weapon.WeaponManager;
+import net.kyori.adventure.text.Component;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
@@ -52,11 +55,48 @@ public class EventListener implements Listener {
         Player player = event.getPlayer();
         PlayerDataManager.get(player);
         LevelManager.updateExpBar(player);
+        sendResourcePackIfConfigured(player);
         player.getServer().getScheduler().runTaskLater(RoguelikePlugin.getInstance(), () -> {
             WeaponManager.refreshHeldWeapon(player);
             ArmorSetManager.applyPassiveEffects(player);
             RoguelikeScoreboard.updatePlayer(player);
         }, 1L);
+    }
+
+    /**
+     * Sends the configured resource pack on join. The client caches by hash, so
+     * an unchanged hash re-applies instantly without re-downloading; updating the
+     * pack and its hash makes the client fetch the new version next join. A blank
+     * url disables server-side dispatch (players must install it manually).
+     */
+    private void sendResourcePackIfConfigured(Player player) {
+        ConfigurationSection section = RoguelikePlugin.getInstance().getConfig().getConfigurationSection("resource-pack");
+        if (section == null) return;
+        String url = section.getString("url", "");
+        if (url == null || url.isBlank()) return;
+        String hash = ResourcePackManager.getHash();
+        boolean forced = section.getBoolean("forced", false);
+        String promptText = section.getString("prompt", "");
+        Component prompt = (promptText == null || promptText.isBlank()) ? null : Message.toComponent(promptText);
+        player.setResourcePack(url, hash, forced, prompt);
+    }
+
+    @EventHandler
+    public void onResourcePackStatus(PlayerResourcePackStatusEvent event) {
+        PlayerResourcePackStatusEvent.Status status = event.getStatus();
+        // ACCEPTED/DOWNLOADED are intermediate; SUCCESSFULLY_LOADED is the goal.
+        if (status == PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED
+                || status == PlayerResourcePackStatusEvent.Status.ACCEPTED
+                || status == PlayerResourcePackStatusEvent.Status.DOWNLOADED) {
+            return;
+        }
+        // forced packs kick the player automatically; only nudge otherwise.
+        ConfigurationSection section = RoguelikePlugin.getInstance().getConfig().getConfigurationSection("resource-pack");
+        if (section == null || section.getBoolean("forced", false)) return;
+        String message = section.getString("declined-message", "");
+        if (message != null && !message.isBlank()) {
+            event.getPlayer().sendMessage(Message.toComponent(message));
+        }
     }
 
     @EventHandler

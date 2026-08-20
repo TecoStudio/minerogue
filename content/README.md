@@ -19,7 +19,7 @@
 | 项目 | 写法 | 说明 |
 | --- | --- | --- |
 | ID | `id: flame_sword` | 内容唯一 ID。单文件 YAML 可省略，省略时使用文件名去掉 `.yml` / `.yaml`。建议只用小写英文、数字、`-`、`_`。 |
-| 材质 | `item: minecraft:diamond_sword` | 原版物品 ID。启用 Nova 集成时，武器可写 Nova 物品 ID。 |
+| 材质 | `item: minecraft:diamond_sword` | 原版基底物品 ID。启用 Nova 集成时，武器可写 Nova 物品 ID；资源包未提供该 id 的自定义材质时回退到此原版材质。 |
 | 显示名 | `name: 烈焰之剑` | 游戏内显示名称，可使用颜色代码。 |
 | 描述 | `description: 燃烧敌人的剑` | lore 描述文本。 |
 | 品质 | `rarity: common` | 常见值：`common`、`rare`、`epic`、`legendary`、`special`。 |
