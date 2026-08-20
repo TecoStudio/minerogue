@@ -6,7 +6,7 @@
 
 | 字段 | 类型/示例 | 默认值 | 说明 |
 | --- | --- | --- | --- |
-| `id` | `healing_potion` | 文件名 | 物品模板 ID。 |
+| `id` | `burger` | 文件名 | 物品模板 ID。 |
 | `item` | `minecraft:potion` | 按 `item-type` 推断 | 原版物品材质。`potion` / `tonic` 默认使用药水。 |
 | `name` | `治疗药水` | `id` | 游戏内显示名称。 |
 | `description` | `恢复生命值` | 空 | lore 描述。 |
@@ -28,12 +28,13 @@
 ## 示例
 
 ```yaml
-id: healing_potion
-item: minecraft:potion
-name: 治疗药水
-description: 恢复生命值
-item-type: potion
-rarity: common
+id: burger
+item: minecraft:player_head
+name: 汉堡
+description: 右键直接食用，回复30%最大生命值并补满饱食度
+item-type: food
+rarity: rare
 effects:
-  heal_amount: 10.0
+  heal_percent: 0.30
+  full_saturation: 1.0
 ```

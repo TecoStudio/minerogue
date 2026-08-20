@@ -29,6 +29,9 @@ import java.util.concurrent.ThreadLocalRandom;
 public class CombatHandler {
     private static final Random RANDOM = ThreadLocalRandom.current();
     private static final Map<UUID, Long> lightningImmuneUntil = new HashMap<>();
+    private static final Map<UUID, MomentumState> momentumStates = new HashMap<>();
+    private static final long MOMENTUM_DECAY_MS = 2000L;
+    private static final int MOMENTUM_MAX_STACKS = 20;
     private static boolean internalDamage = false;
     private static RoguelikePlugin plugin;
 
@@ -42,6 +45,15 @@ public class CombatHandler {
 
     public static boolean shouldProcessAttack(boolean roguelikeWeapon, boolean protectedDummy) {
         return roguelikeWeapon || protectedDummy;
+    }
+
+    public static void clearMomentum(Player player) {
+        momentumStates.remove(player.getUniqueId());
+    }
+
+    static int resolveMomentumStacks(int currentStacks, long elapsedMs) {
+        int base = elapsedMs > MOMENTUM_DECAY_MS ? 0 : currentStacks;
+        return Math.min(MOMENTUM_MAX_STACKS, base + 1);
     }
 
     public static double processAttack(Player player, LivingEntity target, double baseDamage) {
@@ -144,6 +156,22 @@ public class CombatHandler {
             formulaParts.add(FormulaPart.multiply("§d", critDamage));
         }
 
+        // 战意：每次命中叠层，超时或受击清零，按层数提升伤害。
+        double momentumPerStack = data.getTotalEffect(template, "momentum", 0.0);
+        if (momentumPerStack > 0) {
+            UUID playerId = player.getUniqueId();
+            MomentumState state = momentumStates.getOrDefault(playerId, new MomentumState(0, 0L));
+            long now = System.currentTimeMillis();
+            int stacks = resolveMomentumStacks(state.stacks(), now - state.lastHitTime());
+            double multiplier = 1 + momentumPerStack * stacks;
+            double before = damage;
+            damage *= multiplier;
+            momentumStates.put(playerId, new MomentumState(stacks, now));
+            damageParts.add("战意 x" + WeaponManager.format(multiplier, 2)
+                    + "（" + stacks + "层）：" + WeaponManager.format(before, 1) + " -> " + WeaponManager.format(damage, 1));
+            formulaParts.add(FormulaPart.multiply("§e", multiplier));
+        }
+
         // 伤害存储爆发：按攻击次数触发，默认 20 下，最低 5 下。
         double storePercent = data.getTotalEffect(template, "damage_store_percent", 0.0);
         int storeHitReduction = (int) data.getTotalEffect(template, "damage_store_hit_reduction", 0.0);
@@ -167,7 +195,8 @@ public class CombatHandler {
         // 吸血
         double lifePercent = data.getTotalEffect(template, "lifesteal_percent", 0.0) + contractBonus(template, data, "contract_lifesteal_100", 1.0);
         double lifeFlat = data.getTotalEffect(template, "lifesteal_flat", 0.0);
-        double heal = damage * lifePercent + lifeFlat;
+        double critLifesteal = crit ? data.getTotalEffect(template, "crit_lifesteal_percent", 0.0) : 0.0;
+        double heal = damage * (lifePercent + critLifesteal) + lifeFlat;
         if (heal > 0) {
             var maxHealthAttr = player.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
             double maxHealth = maxHealthAttr != null ? maxHealthAttr.getValue() : player.getHealth();
@@ -425,6 +454,9 @@ public class CombatHandler {
         private static FormulaPart multiply(String color, double value) {
             return new FormulaPart(" &8x ", color, value, 2);
         }
+    }
+
+    private record MomentumState(int stacks, long lastHitTime) {
     }
 
 }

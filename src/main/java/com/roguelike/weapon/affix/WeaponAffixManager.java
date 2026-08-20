@@ -47,6 +47,10 @@ public class WeaponAffixManager {
             if (critChance > 0) lore.add(Message.toComponent("§6⚖ 暴击: §f" + WeaponManager.format(critChance * 100, 0) + "% (" + WeaponManager.format(critDamage, 1) + "x)，受到伤害 200%"));
         }));
         register(number("crit_damage", "暴击倍率", 1.5, 2.0, null));
+        register(percent("crit_lifesteal_percent", "暴击吸血", 0.10, 0.25, (lore, template, data) -> {
+            double value = total(template, data, "crit_lifesteal_percent", 0.0);
+            if (value > 0) lore.add(Message.toComponent("§c❤ 暴击吸血: §f暴击时吸取伤害 " + WeaponManager.format(value * 100, 0) + "% 生命"));
+        }), Target.WEAPON);
         register(number("fire_damage", "火焰伤害", 2.0, 5.0, (lore, template, data) -> {
             double fireDamage = total(template, data, "fire_damage", 0.0);
             double fireDuration = total(template, data, "fire_duration", 0.0);
@@ -119,6 +123,10 @@ public class WeaponAffixManager {
             }
         });
         register(toggle("gift", "馈赠", "§d❤ 馈赠: §f击杀后7秒回复50%生命并获得抗性提升", false));
+        register(percent("momentum", "战意", 0.02, 0.05, (lore, template, data) -> {
+            double value = total(template, data, "momentum", 0.0);
+            if (value > 0) lore.add(Message.toComponent("§e⚔ 战意: §f连击叠层，每层 +" + WeaponManager.format(value * 100, 0) + "% 伤害（上限20层），受击或2秒未命中清零"));
+        }), Target.WEAPON);
         register(level("durability_restore", "用不坏", 1, 5, (lore, template, data) -> {
             int level = (int) total(template, data, "durability_restore", 0.0);
             if (level > 0) lore.add(Message.toComponent("§a✦ 用不坏: §f" + level + "级 (" + WeaponManager.format(durabilityRestoreChance(level) * 100, 0) + "%返还3耐久)"));
@@ -205,33 +213,6 @@ public class WeaponAffixManager {
 
     public static String synergyHint(String id) {
         return SYNERGY_HINTS.getOrDefault(id, "");
-    }
-
-    public static List<String> scalingTags(CustomWeapon template, WeaponInstanceData data) {
-        List<String> tags = new ArrayList<>();
-        if (total(template, data, "fire_damage", 0.0) > 0
-                || total(template, data, "burning_target_damage_percent", 0.0) > 0
-                || total(template, data, "lifesteal_percent", 0.0) > 0
-                || total(template, data, "smash", 0.0) > 0) {
-            tags.add("暴虐");
-        }
-        if (total(template, data, "lightning_chance", 0.0) > 0
-                || total(template, data, "chain_targets", 0.0) > 0
-                || total(template, data, "chain_damage_percent", 0.0) > 0
-                || total(template, data, "explosion_chance", 0.0) > 0
-                || total(template, data, "big_explosion_chance", 0.0) > 0
-                || total(template, data, "victim_explosion_chance", 0.0) > 0) {
-            tags.add("战术");
-        }
-        if (total(template, data, "slow_duration", 0.0) > 0
-                || total(template, data, "damage_store_percent", 0.0) > 0
-                || total(template, data, "poison_chance", 0.0) > 0
-                || total(template, data, "poisoned_target_damage_percent", 0.0) > 0
-                || total(template, data, "gift", 0.0) > 0) {
-            tags.add("生存");
-        }
-        if (tags.isEmpty()) tags.add("无色");
-        return List.copyOf(tags);
     }
 
     public static String format(String id, double value) {

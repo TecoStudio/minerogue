@@ -51,7 +51,7 @@ class BossEventConfigTest {
                 "drops", java.util.Map.of("items", java.util.List.of(
                         java.util.Map.of("material", "minecraft:diamond", "amount", 2, "chance", 1.0),
                         java.util.Map.of("weapon-template", "crimson_oath", "amount", 1, "chance", 0.25),
-                        java.util.Map.of("item-template", "greater_healing_potion", "amount", 3, "chance", 0.5)
+                        java.util.Map.of("item-template", "burger", "amount", 3, "chance", 0.5)
                 ))
         )));
 

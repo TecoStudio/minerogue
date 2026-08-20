@@ -64,6 +64,7 @@ public class EventListener implements Listener {
         PlayerDataManager.unload(event.getPlayer());
         RoguelikeScoreboard.clearPlayer(event.getPlayer());
         WeaponManager.clearAttributes(event.getPlayer());
+        CombatHandler.clearMomentum(event.getPlayer());
     }
 
     @EventHandler
@@ -184,6 +185,7 @@ public class EventListener implements Listener {
                 damage *= 1.0 - reduction;
             }
             event.setDamage(damage);
+            CombatHandler.clearMomentum(player);
         }
         WeaponAbilityManager.cancelGiftHeal(event);
     }

@@ -119,7 +119,7 @@ public record BossEventConfig(
                 Map.of("weapon-template", "crimson_oath", "amount", 1, "chance", 0.05)
         )));
         bosses.add(defaultBossMap("vagrant", 40, List.of(
-                Map.of("item-template", "greater_healing_potion", "amount", 2, "chance", 0.45),
+                Map.of("item-template", "burger", "amount", 2, "chance", 0.45),
                 Map.of("weapon-template", "echo_blade", "amount", 1, "chance", 0.05)
         )));
         yaml.set("boss-events.bosses", bosses);

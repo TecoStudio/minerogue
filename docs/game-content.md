@@ -11,7 +11,7 @@ Roguelike 面向自由生存服：主城负责出生、菜单、商店、教程�
 | 内容 | 数量 | 来源 |
 | --- | ---: | --- |
 | 武器 | 27 | `content/weapons/*.yml` |
-| 物品 | 5 | `content/items/*.yml` |
+| 物品 | 1 | `content/items/*.yml` |
 | 防具 | 24 | `content/armor/*.yml` |
 | 防具套装 | 6 | 荆棘、神速、炸药、守护、猩红、雷暴 |
 | 怪物 YAML | 19 | 经验、普通怪强化、内置精英怪/Boss |

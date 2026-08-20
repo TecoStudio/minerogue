@@ -45,4 +45,20 @@ class CombatHandlerTest {
         assertEquals(1.5, CombatHandler.attackSpeedOverflowMultiplier(30.0), 0.001);
         assertEquals(2.0, CombatHandler.attackSpeedOverflowMultiplier(40.0), 0.001);
     }
+
+    @Test
+    void momentumResetsStacksAfterDecayWindow() {
+        assertEquals(1, CombatHandler.resolveMomentumStacks(5, 3000));
+    }
+
+    @Test
+    void momentumStacksIncrementWithinDecayWindow() {
+        assertEquals(4, CombatHandler.resolveMomentumStacks(3, 500));
+    }
+
+    @Test
+    void momentumCapsAtMaxStacks() {
+        assertEquals(20, CombatHandler.resolveMomentumStacks(19, 500));
+        assertEquals(20, CombatHandler.resolveMomentumStacks(25, 500));
+    }
 }

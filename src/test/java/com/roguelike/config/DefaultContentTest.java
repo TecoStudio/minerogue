@@ -347,19 +347,19 @@ class DefaultContentTest {
     @Test
     void defaultItemsKeepHealingPotionAndExposeDistinctExpansionItems() {
         Map<String, CustomItem> items = DefaultItems.create();
-        Set<String> expansionItemIds = Set.of("greater_healing_potion", "swift_tonic", "iron_skin_tonic", "burger");
+        Set<String> expansionItemIds = Set.of("burger");
 
         assertTrue(items.isEmpty());
     }
 
     @Test
     void defaultItemEffectsAreDefensiveCopies() {
-        CustomItem item = DefaultItems.create().get("greater_healing_potion");
+        CustomItem item = DefaultItems.create().get("burger");
         if (item == null) return;
 
-        item.getEffects().put("heal_amount", 99.0);
+        item.getEffects().put("heal_percent", 99.0);
 
-        assertEquals(20.0, item.getEffect("heal_amount"), 0.001);
+        assertEquals(0.30, item.getEffect("heal_percent"), 0.001);
     }
 
     @Test

@@ -13,7 +13,7 @@ class BossLootPlannerTest {
         BossEventConfig.DropConfig drops = new BossEventConfig.DropConfig(List.of(
                 new BossEventConfig.DropItemDefinition("minecraft:diamond", null, null, 2, 1.0),
                 new BossEventConfig.DropItemDefinition(null, "crimson_oath", null, 1, 0.0),
-                new BossEventConfig.DropItemDefinition(null, null, "greater_healing_potion", 3, 1.0)
+                new BossEventConfig.DropItemDefinition(null, null, "burger", 3, 1.0)
         ));
 
         var rolled = BossLootPlanner.rollDrops(drops, new Random(1));
@@ -21,7 +21,7 @@ class BossLootPlannerTest {
         assertEquals(2, rolled.size());
         assertEquals("minecraft:diamond", rolled.get(0).material());
         assertEquals(2, rolled.get(0).amount());
-        assertEquals("greater_healing_potion", rolled.get(1).itemTemplate());
+        assertEquals("burger", rolled.get(1).itemTemplate());
         assertEquals(3, rolled.get(1).amount());
     }
 }

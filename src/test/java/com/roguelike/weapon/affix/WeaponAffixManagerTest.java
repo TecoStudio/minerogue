@@ -1,12 +1,9 @@
 package com.roguelike.weapon.affix;
 
 import com.roguelike.equipment.EquipmentKind;
-import com.roguelike.item.CustomWeapon;
-import com.roguelike.item.WeaponInstanceData;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -31,19 +28,6 @@ class WeaponAffixManagerTest {
         }
     }
 
-
-    @Test
-    void weaponScalingTagsDefaultToDeadCellsStyleColors() {
-        CustomWeapon flameSword = weapon("flame_sword", Map.of("fire_damage", 4.0));
-        CustomWeapon frostCleaver = weapon("frost_cleaver", Map.of("slow_duration", 2.5));
-        CustomWeapon stormSpear = weapon("storm_spear", Map.of("lightning_chance", 0.10));
-        WeaponInstanceData data = new WeaponInstanceData("test");
-
-        assertTrue(WeaponAffixManager.scalingTags(flameSword, data).contains("暴虐"));
-        assertTrue(WeaponAffixManager.scalingTags(frostCleaver, data).contains("生存"));
-        assertTrue(WeaponAffixManager.scalingTags(stormSpear, data).contains("战术"));
-        assertFalse(WeaponAffixManager.scalingTags(flameSword, data).isEmpty());
-    }
 
     @Test
     void oilAffixesAreRemovedBecauseMinecraftHasNoClearOilState() {
@@ -89,7 +73,26 @@ class WeaponAffixManagerTest {
         }
     }
 
-    private static CustomWeapon weapon(String id, Map<String, Double> effects) {
-        return new CustomWeapon(id, id, "", "minecraft:wooden_sword", 1.0, 1.0, 100, "common", effects);
+    @Test
+    void momentumAndCritLifestealAreWeaponOnlyPercentageAffixes() {
+        assertTrue(WeaponAffixManager.effectIds().contains("momentum"));
+        assertTrue(WeaponAffixManager.effectIds().contains("crit_lifesteal_percent"));
+
+        assertTrue(WeaponAffixManager.isApplicable("momentum", EquipmentKind.WEAPON));
+        assertFalse(WeaponAffixManager.isApplicable("momentum", EquipmentKind.BOW));
+        assertTrue(WeaponAffixManager.isApplicable("crit_lifesteal_percent", EquipmentKind.WEAPON));
+        assertFalse(WeaponAffixManager.isApplicable("crit_lifesteal_percent", EquipmentKind.BOW));
+
+        Random random = new Random(7);
+        for (int i = 0; i < 20; i++) {
+            double momentum = WeaponAffixManager.generateBaseValue("momentum", random);
+            assertTrue(momentum >= 0.02 && momentum <= 0.05, "momentum must be 0.02-0.05, got " + momentum);
+            assertTrue(WeaponAffixManager.format("momentum", momentum).endsWith("%"));
+        }
+        for (int i = 0; i < 20; i++) {
+            double critLife = WeaponAffixManager.generateBaseValue("crit_lifesteal_percent", random);
+            assertTrue(critLife >= 0.10 && critLife <= 0.25, "crit_lifesteal must be 0.10-0.25, got " + critLife);
+            assertTrue(WeaponAffixManager.format("crit_lifesteal_percent", critLife).endsWith("%"));
+        }
     }
 }

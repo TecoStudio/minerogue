@@ -8,10 +8,6 @@
 
 | ID | 名称 | 类型 | 说明 |
 | --- | --- | --- | --- |
-| `healing_potion` | 治疗药水 | potion | 回复固定生命 |
-| `greater_healing_potion` | 强效治疗药水 | potion | 更高回复 |
-| `swift_tonic` | 迅捷药剂 | tonic | 速度效果 |
-| `iron_skin_tonic` | 铁肤药剂 | tonic | 抗性效果 |
 | `burger` | 汉堡 | food | 右键食用，回复最大生命 30% 并补满饱食度 |
 
 ## YAML 驱动防具

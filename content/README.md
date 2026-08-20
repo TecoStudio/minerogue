@@ -38,7 +38,7 @@ content:
     base-url: "https://raw.githubusercontent.com/<owner>/<repo>/<branch>/content"
     files:
       - weapons/flame_sword.yml
-      - items/healing_potion.yml
+      - items/burger.yml
       - armor/thorns_helmet.yml
       - mobs/skeleton-elite.yml
     overwrite-existing: true
