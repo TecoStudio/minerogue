@@ -3,6 +3,7 @@ package com.roguelike.item;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.roguelike.RoguelikePlugin;
+import com.roguelike.debug.WeaponDebugContext;import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -245,6 +246,16 @@ public class WeaponInstanceData {
             }
             return data;
         } catch (Exception e) {
+            try {
+                Material material = stack.getType();
+                ItemMeta failedMeta = stack.getItemMeta();
+                boolean pdcPresent = failedMeta != null
+                        && failedMeta.getPersistentDataContainer().has(KEY, PersistentDataType.STRING);
+                WeaponDebugContext.trace("weapon_instance_data", "error", material, null,
+                        Map.of("errorType", e.getClass().getSimpleName(), "pdcPresent", pdcPresent));
+            } catch (RuntimeException ignored) {
+                // Diagnostic collection must not change the original null semantics.
+            }
             return null;
         }
     }

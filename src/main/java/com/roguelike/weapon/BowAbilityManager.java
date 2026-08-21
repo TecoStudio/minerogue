@@ -1,11 +1,11 @@
 package com.roguelike.weapon;
 
 import com.roguelike.equipment.EquipmentTypeResolver;
-import com.roguelike.item.CustomWeapon;
+import com.roguelike.debug.WeaponDebugContext;import com.roguelike.item.CustomWeapon;
 import com.roguelike.item.WeaponInstanceData;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.Particle;
+import org.bukkit.Material;import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.Arrow;
@@ -58,6 +58,8 @@ public final class BowAbilityManager {
         WeaponInstanceData data = WeaponManager.getData(bow);
         if (template == null || data == null || plugin == null) return;
 
+        WeaponDebugContext context = WeaponDebugContext.from(bow.getType(), data);
+        WeaponDebugContext.trace("bow_shoot", "entry", context, Map.of("force", event.getForce()));
         int scatter = (int) data.getTotalEffect(template, "scatter_shot", 0.0);
         int rapid = (int) data.getTotalEffect(template, "rapid_shot", 0.0);
         int charge = (int) data.getTotalEffect(template, "charge_power", 0.0);
@@ -75,18 +77,26 @@ public final class BowAbilityManager {
         int extraScatter = extraScatterProjectiles(scatter);
         if (extraScatter > 0) spawnScatter(player, arrow, snapshot, extraScatter, template.getId(), data.getInstanceId(), chargeMultiplier);
         if (rapid > 0) scheduleRapid(player, bow.clone(), rapid, template.getId(), data.getInstanceId(), chargeMultiplier, snapshot);
+        WeaponDebugContext.trace("bow_shoot", "exit", context,
+                Map.of("scatter", extraScatter, "rapid", rapid, "chargeMultiplier", chargeMultiplier));
     }
 
     public static boolean handleArrowDamage(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof AbstractArrow arrow)) return false;
         if (!(event.getEntity() instanceof LivingEntity)) return false;
         BowShotData shot = shotData(arrow);
-        if (shot == null) return false;
+        if (shot == null) {
+            WeaponDebugContext.trace("bow_damage", "skip", Material.AIR, null, Map.of("reason", "metadata_missing"));
+            return false;
+        }
 
         // Bow shots intentionally keep Bukkit/Paper's vanilla arrow damage as the base.
         // Do not call CombatHandler.processAttack here: melee weapon damage, crits,
         // stored damage, lifesteal, etc. are a separate system from bows.
         event.setDamage(applyChargeMultiplier(event.getDamage(), shot.chargeMultiplier));
+        WeaponDebugContext.trace("bow_damage", "exit", Material.AIR, null,
+                Map.of("templateId", shot.templateId, "chargeMultiplier", shot.chargeMultiplier,
+                        "damage", event.getDamage()));
         return true;
     }
 

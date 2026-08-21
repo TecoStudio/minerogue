@@ -7,8 +7,10 @@ import com.roguelike.combat.CombatHandler;
 import com.roguelike.combat.DamageTestDummyManager;
 import com.roguelike.config.ConfigManager;
 import com.roguelike.config.MobExperienceConfig;
+import com.roguelike.debug.WeaponDebugContext;
 import com.roguelike.data.PlayerData;
 import com.roguelike.data.PlayerDataManager;
+import com.roguelike.equipment.EquipmentTypeResolver;
 import com.roguelike.integration.IntegrationManager;
 import com.roguelike.item.CustomItem;
 import com.roguelike.item.CustomItemStackFactory;
@@ -186,24 +188,42 @@ public class EventListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onDamage(EntityDamageByEntityEvent event) {
+        try {
+            WeaponDebugContext.trace("damage_event", "entry", event.getDamager() instanceof Player player
+                    ? player.getInventory().getItemInMainHand().getType() : Material.AIR, null,
+                    java.util.Map.of("cause", event.getCause().name(), "damage", event.getDamage()));
+        } catch (RuntimeException ignored) {
+            // Diagnostics must never affect damage handling.
+        }
         if (DamageTestDummyManager.isProtected(event.getEntity())) {
             event.setCancelled(true);
         }
-        if (BowAbilityManager.handleArrowDamage(event)) return;
+        if (BowAbilityManager.handleArrowDamage(event)) {
+            WeaponDebugContext.trace("damage_event", "bow_handled", Material.AIR, null,
+                    java.util.Map.of("damage", event.getDamage()));
+            return;
+        }
         if (!(event.getDamager() instanceof Player player)) return;
         if (!(event.getEntity() instanceof LivingEntity target)) return;
 
-        if (CombatHandler.isInternalDamage()) return;
+        if (CombatHandler.isInternalDamage()) {
+            WeaponDebugContext.trace("damage_event", "internal_damage", player.getInventory().getItemInMainHand().getType(), null, java.util.Map.of());
+            return;
+        }
         ItemStack hand = player.getInventory().getItemInMainHand();
         if (WeaponAbilityManager.hasEffect(hand, "smash") && player.hasCooldown(hand.getType())) {
             event.setCancelled(true);
             Message.send(player, "&c武器暂时无法使用。");
+            WeaponDebugContext.trace("damage_event", "smash_cooldown", hand.getType(), null,
+                    java.util.Map.of("cancelled", true));
             return;
         }
         if (CombatHandler.shouldProcessAttack(WeaponInstanceData.isRoguelikeWeapon(hand),
                 DamageTestDummyManager.isProtected(target))) {
             double damage = CombatHandler.processAttack(player, target, event.getDamage());
             event.setDamage(damage);
+            WeaponDebugContext.trace("damage_event", "attack_result", hand.getType(), WeaponInstanceData.fromItemStack(hand),
+                    java.util.Map.of("damage", damage));
         }
     }
 
@@ -374,9 +394,14 @@ public class EventListener implements Listener {
         CustomWeapon template = WeaponManager.getTemplate(hand);
         WeaponInstanceData data = WeaponManager.getData(hand);
         if (template == null || data == null) return;
+        if (!isVictimExplosionApplicable(hand.getType())) return;
         double chance = data.getTotalEffect(template, "victim_explosion_chance", 0.0);
         if (!shouldTriggerChance(chance, ThreadLocalRandom.current().nextDouble())) return;
         victim.getWorld().createExplosion(victim.getLocation(), 2.0f, false, false, player);
+    }
+
+    static boolean isVictimExplosionApplicable(Material material) {
+        return !EquipmentTypeResolver.isBow(material);
     }
 
     static boolean shouldTriggerChance(double chance, double roll) {

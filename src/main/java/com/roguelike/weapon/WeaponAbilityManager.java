@@ -2,7 +2,7 @@ package com.roguelike.weapon;
 
 import com.roguelike.RoguelikePlugin;
 import com.roguelike.armor.ArmorSetManager;
-import com.roguelike.armor.affix.ArmorAffixManager;
+import com.roguelike.debug.WeaponDebugContext;import com.roguelike.armor.affix.ArmorAffixManager;
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.item.WeaponInstanceData;
 import com.roguelike.util.Message;
@@ -51,7 +51,11 @@ public class WeaponAbilityManager {
     }
 
     public static double applySmash(Player player, ItemStack weapon, CustomWeapon template, WeaponInstanceData data, double damage) {
-        if (data.getTotalEffect(template, "smash", 0.0) <= 0.0) return damage;
+        WeaponDebugContext context = WeaponDebugContext.from(weapon.getType(), data);
+        if (data.getTotalEffect(template, "smash", 0.0) <= 0.0) {
+            WeaponDebugContext.trace("weapon_smash", "skip", context, Map.of("reason", "effect_missing"));
+            return damage;
+        }
         player.setCooldown(weapon.getType(), 140);
         double multiplier = 3.0;
         PotionEffect strength = player.getPotionEffect(PotionEffectType.STRENGTH);
@@ -60,6 +64,8 @@ public class WeaponAbilityManager {
         }
         player.getWorld().playSound(player.getLocation(), Sound.ITEM_SHIELD_BREAK, 0.8f, 1.2f);
         Message.send(player, "&6&l猛击！ &f伤害倍率 x" + WeaponManager.format(multiplier, 1));
+        WeaponDebugContext.trace("weapon_smash", "effect", context,
+                Map.of("multiplier", multiplier, "damage", damage * multiplier));
         return damage * multiplier;
     }
 
@@ -73,12 +79,19 @@ public class WeaponAbilityManager {
     }
 
     public static void applyGiftKill(Player player) {
-        if (!hasEffect(player.getInventory().getItemInMainHand(), "gift")) return;
+        ItemStack hand = player.getInventory().getItemInMainHand();
+        WeaponDebugContext context = WeaponDebugContext.from(hand.getType(), WeaponManager.getData(hand));
+        if (!hasEffect(hand, "gift")) {
+            WeaponDebugContext.trace("weapon_gift_kill", "skip", context, Map.of("reason", "effect_missing"));
+            return;
+        }
         double maxHealth = maxHealth(player);
         giftHeals.put(player.getUniqueId(), new GiftHeal(player.getUniqueId(), maxHealth * 0.5, 140));
         player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 60, 0, true, true));
         player.getWorld().spawnParticle(Particle.HEART, player.getLocation().add(0, 1, 0), 8, 0.4, 0.5, 0.4);
         Message.send(player, "&d馈赠触发，7秒内回复最大生命值的50%。");
+        WeaponDebugContext.trace("weapon_gift_kill", "effect", context,
+                Map.of("heal", maxHealth * 0.5, "durationTicks", 140));
     }
 
     public static void cancelGiftHeal(EntityDamageEvent event) {

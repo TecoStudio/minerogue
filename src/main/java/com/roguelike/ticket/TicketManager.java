@@ -134,9 +134,19 @@ public class TicketManager {
         return data != null && data.hasOpenRandomAffixSlot(template);
     }
 
+    static boolean isSuperDevelopmentAllowed(Material material) {
+        return material != null && !EquipmentTypeResolver.isTool(material);
+    }
+
     public static boolean applyForgeTicket(Player player, ItemStack ticketStack, ItemStack weaponStack) {
         TicketType type = getTicketType(ticketStack);
         if (type == null) return false;
+
+        if (type == TicketType.SUPER_TICKET_B && weaponStack != null
+                && !isSuperDevelopmentAllowed(weaponStack.getType())) {
+            Message.send(player, "&c超级开发券不能用于工具。");
+            return false;
+        }
 
         if (weaponStack != null && EquipmentTypeResolver.isWearable(weaponStack.getType())) {
             return applyArmorTicket(player, ticketStack, weaponStack, type);
@@ -275,7 +285,7 @@ public class TicketManager {
             return false;
         }
         if (getTicketType(targetStack) != null) {
-            Message.send(player, "&c不能将强化券开发为武器。");
+            Message.send(player, "&c不能将券类物品开发为武器。");
             return false;
         }
         CustomWeapon template = ConfigManager.getWeapon("special_weapon");
@@ -1144,6 +1154,9 @@ public class TicketManager {
     public static ItemStack previewForge(ItemStack ticketStack, ItemStack targetStack) {
         TicketType type = getTicketType(ticketStack);
         if (type == null || targetStack == null || targetStack.getType().isAir()) return null;
+        if (type == TicketType.SUPER_TICKET_B && !isSuperDevelopmentAllowed(targetStack.getType())) {
+            return previewItem("&c超级开发券不能用于工具");
+        }
         boolean armor = EquipmentTypeResolver.isWearable(targetStack.getType());
         return switch (type) {
             case TICKET_A, SUPER_TICKET_A -> previewTicketA(targetStack, armor, type);

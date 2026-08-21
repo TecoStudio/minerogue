@@ -1,6 +1,10 @@
 package com.roguelike.combat;
 
+import com.roguelike.item.CustomWeapon;
+import com.roguelike.item.WeaponInstanceData;
 import org.junit.jupiter.api.Test;
+
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -44,6 +48,24 @@ class CombatHandlerTest {
     void attackSpeedAboveTickCapConvertsOverflowToDamageProportionally() {
         assertEquals(1.5, CombatHandler.attackSpeedOverflowMultiplier(30.0), 0.001);
         assertEquals(2.0, CombatHandler.attackSpeedOverflowMultiplier(40.0), 0.001);
+    }
+
+    @Test
+    void incomingDamageContractListIncludesBerserkSelfHarmContract() {
+        CustomWeapon weapon = new CustomWeapon("test", "test", "", "DIAMOND_SWORD",
+                10.0, 1.0, 100, "common", Map.of("contract_berserk_self_harm", 1.0));
+        WeaponInstanceData data = new WeaponInstanceData("test");
+
+        assertTrue(CombatHandler.hasAnyIncomingDamageDouble(weapon, data));
+    }
+
+    @Test
+    void incomingDamageContractListDoesNotFlagUnrelatedAffix() {
+        CustomWeapon weapon = new CustomWeapon("test", "test", "", "DIAMOND_SWORD",
+                10.0, 1.0, 100, "common", Map.of("lifesteal_percent", 0.1));
+        WeaponInstanceData data = new WeaponInstanceData("test");
+
+        assertFalse(CombatHandler.hasAnyIncomingDamageDouble(weapon, data));
     }
 
     @Test

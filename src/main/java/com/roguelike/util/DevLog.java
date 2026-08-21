@@ -10,7 +10,9 @@ public class DevLog {
     }
 
     public static boolean isEnabled() {
-        return plugin != null && plugin.getConfig().getBoolean("debug.enabled", false);
+        return plugin != null && (plugin.getDebugService() != null
+                ? plugin.getDebugService().isEnabled()
+                : plugin.getConfig().getBoolean("debug.enabled", false));
     }
 
     public static void info(String message) {
@@ -22,6 +24,9 @@ public class DevLog {
     public static void debug(String message) {
         if (isEnabled()) {
             plugin.getLogger().info("[Debug] " + message);
+            if (plugin.getDebugService() != null) {
+                plugin.getDebugService().event("devlog", message);
+            }
         }
     }
 

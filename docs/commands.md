@@ -15,11 +15,13 @@
 
 需要权限：`roguelike.admin`。
 
+`/rw debug` 只管理 Roguelike 插件自身登记的调试记录，不是全服事件捕获器。默认排除高频 `PlayerMoveEvent`（对应事件名 `player_move`）；如需记录可在 `debug.exclude-events` 中移除该事件。记录会经过采样率（`sample-rate`）和最小耗时（`min-duration-ms`）过滤，默认分别为 `1.0` 和 `0.0`。每条记录包含时间、`category`、`event`、`message`、`duration_ms` 以及插件按事件提供的标量字段；内存记录默认保留 1000 条，文件默认写入 `plugins/minerogue/debug/`（仅开启 `debug.file.enabled` 后）。
+
 | 命令 | 说明 |
 | --- | --- |
 | `/rw reload` | 重载配置、内容 YAML、侧边栏等 |
 | `/rw backup` | 手动备份玩家数据 |
-| `/rw debug <on|off|status>` | 调试日志开关 |
+| `/rw debug <status|on|off|reload|tail [1-50]|stats|clear|flush>` | 管理调试日志、内存记录和统计；`on/off` 也支持 `true/false/enable/disable` 别名，`tail` 数量限制为 1-50（默认 10） |
 | `/rw affixes` | 打开词条图鉴 GUI（控制台为聊天列表） |
 | `/rw affixes held [玩家]` | 查看玩家手持 Roguelike 武器词条 |
 | `/rw give` | 打开发放 GUI |
@@ -40,5 +42,7 @@
 | `/rw boss event next <小时>` | 调整下次 Boss 事件时间（支持小数，如 `0.1`） |
 | `/rw fixhand` | 刷新手持武器属性 |
 | `/rw help` | 管理员帮助 |
+
+弓箭伤害保留 Bukkit/Paper 原版箭矢伤害，并只应用弓专属链（如散射、连发、蓄能）；弓不会进入近战词条执行链，因此近战暴击、吸血、雷击、爆炸等词条不会因弓可用或通用配置而执行。`Target.ALL` 仍可能作用于弓的非命中属性、被动或受击契约；它不表示弓会执行近战命中效果。手工或旧数据若把仅适用于近战的击杀后置词条配置到弓上，运行时也会跳过该词条。
 
 券 ID：`ticket_a`、`super_ticket_a`、`ticket_b`、`super_ticket_b`、`ticket_c`、`super_ticket_c`。

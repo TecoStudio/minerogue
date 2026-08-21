@@ -9,6 +9,8 @@ import com.roguelike.combat.CombatHandler;
 import com.roguelike.combat.DamageTestDummyManager;
 import com.roguelike.config.ConfigManager;
 import com.roguelike.data.PlayerDataManager;
+import com.roguelike.debug.DebugService;
+import com.roguelike.debug.DebugEventListener;
 import com.roguelike.forge.ForgeTableManager;
 import com.roguelike.forge.ForgeRecipeManager;
 import com.roguelike.gui.AffixCodexGui;
@@ -28,6 +30,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public class RoguelikePlugin extends JavaPlugin {
     private static RoguelikePlugin instance;
+    private DebugService debugService;
 
     @Override
     public void onEnable() {
@@ -36,6 +39,7 @@ public class RoguelikePlugin extends JavaPlugin {
         DevLog.init(this);
 
         ConfigManager.loadAll(this);
+        debugService = DebugService.init(this);
         IntegrationManager.init(this);
         PlayerDataManager.init(this);
         WeaponManager.init(this);
@@ -58,6 +62,7 @@ public class RoguelikePlugin extends JavaPlugin {
         ResourcePackManager.init(this);
 
         getServer().getPluginManager().registerEvents(new EventListener(), this);
+        getServer().getPluginManager().registerEvents(new DebugEventListener(), this);
 
         RoguelikeCommand command = new RoguelikeCommand();
         getCommand("rl").setExecutor(command);
@@ -79,10 +84,15 @@ public class RoguelikePlugin extends JavaPlugin {
         RoguelikeScoreboard.shutdown();
         ResourcePackManager.shutdown();
         PlayerDataManager.shutdown();
+        if (debugService != null) debugService.shutdown();
         DevLog.info("Roguelike plugin disabled.");
     }
 
     public static RoguelikePlugin getInstance() {
         return instance;
+    }
+
+    public DebugService getDebugService() {
+        return debugService;
     }
 }

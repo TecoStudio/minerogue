@@ -1,7 +1,7 @@
 package com.roguelike.combat;
 
 import com.roguelike.RoguelikePlugin;
-import com.roguelike.armor.affix.ArmorAffixManager;
+import com.roguelike.debug.WeaponDebugContext;import com.roguelike.armor.affix.ArmorAffixManager;
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.item.WeaponInstanceData;
 import com.roguelike.util.Message;
@@ -14,7 +14,7 @@ import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
-import org.bukkit.potion.PotionEffect;
+import org.bukkit.inventory.ItemStack;import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
@@ -57,9 +57,15 @@ public class CombatHandler {
     }
 
     public static double processAttack(Player player, LivingEntity target, double baseDamage) {
-        CustomWeapon template = WeaponManager.getTemplate(player.getInventory().getItemInMainHand());
-        WeaponInstanceData data = WeaponInstanceData.fromItemStack(player.getInventory().getItemInMainHand());
+        ItemStack hand = player.getInventory().getItemInMainHand();
+        WeaponDebugContext.trace("combat_attack", "entry", hand.getType(), null,
+                Map.of("baseDamage", baseDamage));
+        CustomWeapon template = WeaponManager.getTemplate(hand);
+        WeaponInstanceData data = WeaponInstanceData.fromItemStack(hand);
+        WeaponDebugContext context = WeaponDebugContext.from(hand.getType(), data);
+        WeaponDebugContext.trace("combat_attack", "parsed", context, Map.of("template", template != null));
         if (template == null || data == null) {
+            WeaponDebugContext.trace("combat_attack", "skip", context, Map.of("reason", "missing_template_or_data"));
             if (DamageTestDummyManager.isProtected(target)) {
                 sendBaseDamageFormula(player, baseDamage);
             } else {
@@ -271,6 +277,7 @@ public class CombatHandler {
         }
 
         sendDamageFormula(player, target, damage, formulaParts, damageParts, extraParts);
+        WeaponDebugContext.trace("combat_attack", "exit", context, Map.of("finalDamage", damage));
         return damage;
     }
 
@@ -371,8 +378,9 @@ public class CombatHandler {
         }
     }
 
-    private static boolean hasAnyIncomingDamageDouble(CustomWeapon template, WeaponInstanceData data) {
+    static boolean hasAnyIncomingDamageDouble(CustomWeapon template, WeaponInstanceData data) {
         return data.getTotalEffect(template, "contract_damage_200", 0.0) > 0
+                || data.getTotalEffect(template, "contract_berserk_self_harm", 0.0) > 0
                 || data.getTotalEffect(template, "chain_targets", 0.0) > 0
                 || data.getTotalEffect(template, "chain_damage_percent", 0.0) > 0
                 || data.getTotalEffect(template, "crit_chance", 0.0) > 0

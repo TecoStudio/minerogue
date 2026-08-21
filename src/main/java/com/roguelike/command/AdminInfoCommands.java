@@ -11,7 +11,6 @@ import com.roguelike.level.LevelManager;
 import com.roguelike.mob.MobManager;
 import com.roguelike.resourcepack.ResourcePackManager;
 import com.roguelike.scoreboard.RoguelikeScoreboard;
-import com.roguelike.util.DevLog;
 import com.roguelike.util.Message;
 import com.roguelike.weapon.WeaponManager;
 import org.bukkit.Bukkit;
@@ -22,7 +21,7 @@ import org.bukkit.inventory.ItemStack;
 class AdminInfoCommands {
     void handleReload(CommandSender sender) {
         ConfigManager.getPlugin().reloadConfig();
-        DevLog.init(ConfigManager.getPlugin());
+        if (ConfigManager.getPlugin().getDebugService() != null) ConfigManager.getPlugin().getDebugService().reload();
         ConfigManager.reload();
         ResourcePackManager.reload();
         MobManager.reload();
@@ -132,7 +131,7 @@ class AdminInfoCommands {
     void showAdminHelp(CommandSender sender) {
         Message.send(sender, "&6&l═══ Roguelike 管理员帮助 ═══");
         Message.send(sender, "&e/rw backup &7- 立即异步备份玩家数据");
-        Message.send(sender, "&e/rw debug <on|off|status> &7- 控制开发日志输出");
+        Message.send(sender, "&e/rw debug <status|on|off|reload|tail [1-50]|stats|clear|flush> &7- 管理开发日志与调试记录（开关别名 true/false/enable/disable）");
         Message.send(sender, "&e/rw affixes [held] &7- 查看可用词条/手持武器词条");
         Message.send(sender, "&e/rw reload &7- 重载配置");
         Message.send(sender, "&e/rw give &7- 打开给予 GUI");

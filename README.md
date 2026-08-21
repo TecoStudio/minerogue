@@ -133,7 +133,7 @@ D:\LIPis\Documents\Minecraft\roguelike-production\plugins\minerogue-0.2-<commiti
 ```text
 /rw reload
 /rw backup
-/rw debug <on|off|status>
+/rw debug <status|on|off|reload|tail [1-50]|stats|clear|flush>
 /rw affixes
 /rw affixes held [玩家]
 /rw give
@@ -152,7 +152,9 @@ D:\LIPis\Documents\Minecraft\roguelike-production\plugins\minerogue-0.2-<commiti
 /rw help
 ```
 
-常用验证组合：
+`/rw debug` 只管理 Roguelike 插件主动登记的调试记录，不是全服事件捕获器。默认排除高频 `PlayerMoveEvent`（事件名 `player_move`）；记录还会按 `sample-rate` 采样和 `min-duration-ms` 最小耗时过滤。记录字段包括时间、`category`、`event`、`message`、`duration_ms` 以及对应事件的标量字段；内存默认保留 1000 条，开启文件记录后默认写入 `plugins/minerogue/debug/`。所有 debug 子命令需要 `roguelike.admin` 权限。
+
+弓箭不进入近战词条执行链：弓只保留原版箭伤害和散射、连发、蓄能等弓专属逻辑，近战暴击、吸血、雷击、爆炸等词条不会在弓命中时执行。`Target.ALL` 仍可用于弓的非命中属性、被动或受击契约，不能据此推断弓会执行近战命中效果。
 
 ```text
 /rw list armor

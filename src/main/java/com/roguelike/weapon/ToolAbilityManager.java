@@ -2,7 +2,7 @@ package com.roguelike.weapon;
 
 import com.roguelike.RoguelikePlugin;
 import com.roguelike.equipment.EquipmentTypeResolver;
-import com.roguelike.equipment.affix.AffixManager;
+import com.roguelike.debug.WeaponDebugContext;import com.roguelike.equipment.affix.AffixManager;
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.item.WeaponInstanceData;
 import org.bukkit.Location;
@@ -102,19 +102,28 @@ public class ToolAbilityManager {
         CustomWeapon template = WeaponManager.getTemplate(stack);
         WeaponInstanceData data = WeaponManager.getData(stack);
         if (template == null || data == null) return;
-
+        WeaponDebugContext context = WeaponDebugContext.from(stack.getType(), data);
+        WeaponDebugContext.trace("tool_item_damage", "entry", context, Map.of("damage", event.getDamage()));
         int level = (int) data.getTotalEffect(template, "durability_restore", 0.0);
-        if (level <= 0 || ThreadLocalRandom.current().nextDouble() >= AffixManager.durabilityRestoreChance(level)) return;
+        if (level <= 0 || ThreadLocalRandom.current().nextDouble() >= AffixManager.durabilityRestoreChance(level)) {
+            WeaponDebugContext.trace("tool_item_damage", "skip", context, Map.of("reason", "roll_failed", "level", level));
+            return;
+        }
 
         int repair = 3 - event.getDamage();
         event.setDamage(0);
-        if (repair <= 0) return;
+        if (repair <= 0) {
+            WeaponDebugContext.trace("tool_item_damage", "skip", context, Map.of("reason", "no_repair"));
+            return;
+        }
 
         ItemMeta meta = stack.getItemMeta();
         if (meta instanceof Damageable damageable) {
             damageable.setDamage(Math.max(0, damageable.getDamage() - repair));
             stack.setItemMeta(meta);
         }
+        WeaponDebugContext.trace("tool_item_damage", "exit", context,
+                Map.of("level", level, "eventDamage", event.getDamage()));
     }
 
     public static void handleBlockBreak(BlockBreakEvent event) {
@@ -123,7 +132,9 @@ public class ToolAbilityManager {
         CustomWeapon template = WeaponManager.getTemplate(tool);
         WeaponInstanceData data = WeaponManager.getData(tool);
         if (template == null || data == null) return;
-
+        WeaponDebugContext context = WeaponDebugContext.from(tool.getType(), data);
+        WeaponDebugContext.trace("tool_block_break", "entry", context,
+                Map.of("material", event.getBlock().getType().name()));
         if (hasCrazyMiner(tool)) {
             UUID uuid = player.getUniqueId();
             long now = System.currentTimeMillis();
@@ -137,6 +148,7 @@ public class ToolAbilityManager {
         if (data.getTotalEffect(template, "ore_highlight", 0.0) > 0 && ThreadLocalRandom.current().nextDouble() < 0.10) {
             highlightNearbyOres(player, event.getBlock().getLocation());
         }
+        WeaponDebugContext.trace("tool_block_break", "exit", context, Map.of());
     }
 
     private static void highlightNearbyOres(Player player, Location origin) {

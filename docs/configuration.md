@@ -27,7 +27,33 @@ plugins/minerogue/
 
 关键段落：storage、debug、content.github-sync（包括 `enabled`、`download-recipes`、`base-url`、`files` 和 `overwrite-existing`）、gameplay.exp-multiplier、gameplay.progression-exp-multiplier、gameplay.weapon-drop-multiplier、integrations、scoreboard、resource-pack。
 
-## `config.yml` — 资源包（resource-pack）
+## `debug` 调试日志
+
+`config.yml` 的 `debug` 段控制开发调试日志和内存/文件记录：
+
+```yaml
+debug:
+  enabled: false
+  memory-records: 1000
+  file:
+    enabled: false
+    directory: debug
+    max-bytes: 1048576
+    keep-files: 5
+  flush-interval-ticks: 20
+  sample-rate: 1.0
+  min-duration-ms: 0.0
+  exclude-events: []
+```
+
+管理员可使用 `/rw debug status|on|off|reload|tail [1-50]|stats|clear|flush` 管理运行时调试服务。`on/off` 另支持 `true/false/enable/disable`；`tail` 默认显示最近 10 条记录，数量限制为 1-50。`reload` 会重新读取 `debug` 配置，`clear` 清空内存记录和统计，`flush` 刷新待写入的调试文件。
+
+Debug 只记录 Roguelike 插件主动登记的业务事件和 trace，不会捕获全服所有 Bukkit 事件。默认配置排除高频 `PlayerMoveEvent`（事件名 `player_move`），可在 `exclude-events` 中按事件名继续排除或移除排除项。记录还会按 `sample-rate` 采样，并按 `min-duration-ms` 丢弃耗时低于阈值的 trace/event；默认采样率为 `1.0`、最小耗时为 `0.0` 毫秒。字段包括时间、`category`、`event`、`message`、`duration_ms` 及对应事件提供的标量字段（玩家、实体、世界、坐标、伤害、物品等）。启用后，`flush-interval-ticks` 由 DebugService 创建异步定时 flush 任务；`/rw debug flush` 还会等待调用前已进入队列的记录写入文件。
+
+内存记录默认保留 1000 条。开启 `debug.file.enabled` 后，调试文件写入插件数据目录下的 `plugins/minerogue/debug/`（可由 `debug.file.directory` 修改），单文件默认上限 1 MiB、保留 5 个文件。所有 `/rw debug` 子命令需要 `roguelike.admin` 权限。
+
+弓箭伤害不调用近战 `CombatHandler` 执行链，仅保留原版箭伤害并应用弓专属的散射、连发、蓄能逻辑；因此近战暴击、吸血、雷击、爆炸等词条不会在弓命中时执行。`Target.ALL` 只表示词条可被弓的配置/词条池接受，仍可能用于非命中属性、被动或受击契约，不改变弓的运行时伤害链。手工或旧数据把仅适用于近战的击杀后置词条配置到弓上时，运行时会跳过该词条。
+## `resource-pack` 资源包
 
 控制玩家进服时是否自动下发武器资源包：
 

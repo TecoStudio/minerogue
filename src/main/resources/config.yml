@@ -20,6 +20,22 @@ storage:
 debug:
   # 开启后会在控制台输出更多开发调试日志，包括玩家破坏方块、吃东西、升级、击杀和用券
   enabled: false
+  # 内存中保留的最近调试记录数量。
+  memory-records: 1000
+  # 文件写入设置；文件位于插件数据目录下的 debug/。
+  file:
+    enabled: false
+    directory: debug
+    max-bytes: 1048576
+    keep-files: 5
+  # 异步写入刷新间隔（ticks）。
+  flush-interval-ticks: 20
+  # 记录采样率，范围 0.0-1.0。
+  sample-rate: 1.0
+  # 仅记录不低于此耗时（毫秒）的 trace/event；0 表示不限制。
+  min-duration-ms: 0.0
+  # 不记录的事件名列表（不区分大小写）；显式 [] 表示不排除任何事件。
+  exclude-events: [player_move]
 
 content:
   github-sync:

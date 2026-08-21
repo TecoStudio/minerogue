@@ -14,6 +14,13 @@ class EventListenerTest {
     }
 
     @Test
+    void deathExplosionIsNotApplicableToBowEquipment() {
+        assertFalse(EventListener.isVictimExplosionApplicable(org.bukkit.Material.BOW));
+        assertFalse(EventListener.isVictimExplosionApplicable(org.bukkit.Material.CROSSBOW));
+        assertTrue(EventListener.isVictimExplosionApplicable(org.bukkit.Material.DIAMOND_SWORD));
+    }
+
+    @Test
     void deathExplosionChanceUsesClampedChanceRoll() {
         assertTrue(EventListener.shouldTriggerChance(1.5, 0.99));
         assertFalse(EventListener.shouldTriggerChance(-0.1, 0.0));

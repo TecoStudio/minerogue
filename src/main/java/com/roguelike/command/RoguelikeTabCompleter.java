@@ -26,7 +26,9 @@ class RoguelikeTabCompleter {
             } else if (args.length == 2 && args[0].equalsIgnoreCase("give")) {
                 list.addAll(Arrays.asList("weapon", "item", "armor", "ticket"));
             } else if (args.length == 2 && args[0].equalsIgnoreCase("debug")) {
-                list.addAll(Arrays.asList("on", "off", "status"));
+                list.addAll(Arrays.asList("status", "on", "off", "true", "false", "enable", "disable", "reload", "tail", "stats", "clear", "flush"));
+            } else if (args.length == 3 && args[0].equalsIgnoreCase("debug") && args[1].equalsIgnoreCase("tail")) {
+                list.addAll(Arrays.asList("1", "5", "10", "20", "50"));
             } else if (args.length == 2 && args[0].equalsIgnoreCase("stats")) {
                 list.add("top");
                 Bukkit.getOnlinePlayers().forEach(p -> list.add(p.getName()));

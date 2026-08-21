@@ -55,6 +55,15 @@ class WeaponAffixManagerTest {
     }
 
     @Test
+    void allTargetAffixesAreApplicableToBowsButBowAttacksDoNotUseMeleeChain() {
+        assertTrue(WeaponAffixManager.isApplicable("contract_crit_chance_100", EquipmentKind.BOW));
+        assertTrue(WeaponAffixManager.isApplicable("contract_berserk_self_harm", EquipmentKind.BOW));
+        assertFalse(WeaponAffixManager.isApplicable("crit_chance", EquipmentKind.BOW));
+        assertFalse(WeaponAffixManager.isApplicable("lifesteal_percent", EquipmentKind.BOW));
+        assertFalse(WeaponAffixManager.isApplicable("lightning_chance", EquipmentKind.BOW));
+        assertFalse(WeaponAffixManager.isApplicable("explosion_chance", EquipmentKind.BOW));
+    }
+    @Test
     void crazyMinerIsPickaxeOnlyToolAffix() {
         assertTrue(WeaponAffixManager.toolOnlyEffectIds().contains("crazy_miner"));
         assertTrue(WeaponAffixManager.isApplicable("crazy_miner", org.bukkit.Material.DIAMOND_PICKAXE));
