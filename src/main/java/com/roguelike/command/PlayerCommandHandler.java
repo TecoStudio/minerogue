@@ -2,6 +2,7 @@ package com.roguelike.command;
 
 import com.roguelike.data.PlayerData;
 import com.roguelike.data.PlayerDataManager;
+import com.roguelike.gui.AffixCodexGui;
 import com.roguelike.util.Message;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -19,6 +20,7 @@ class PlayerCommandHandler {
         switch (args[0].toLowerCase()) {
             case "tickets" -> showTickets(player);
             case "trade" -> showTrade(player);
+            case "affixes" -> AffixCodexGui.open(player);
             case "help", "?" -> showHelp(player);
             default -> Message.send(player, "&c未知命令。使用 /rl help");
         }
@@ -55,5 +57,6 @@ class PlayerCommandHandler {
         Message.send(player, "&e/rl &7- 查看状态");
         Message.send(player, "&e/rl tickets &7- 查看已使用武器券数量");
         Message.send(player, "&e/rl trade &7- 查看自由交易说明");
+        Message.send(player, "&e/rl affixes &7- 打开词条图鉴");
     }
 }

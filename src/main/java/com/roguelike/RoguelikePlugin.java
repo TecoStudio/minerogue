@@ -11,6 +11,7 @@ import com.roguelike.config.ConfigManager;
 import com.roguelike.data.PlayerDataManager;
 import com.roguelike.forge.ForgeTableManager;
 import com.roguelike.forge.ForgeRecipeManager;
+import com.roguelike.gui.AffixCodexGui;
 import com.roguelike.integration.IntegrationManager;
 import com.roguelike.level.LevelManager;
 import com.roguelike.listener.EventListener;
@@ -39,6 +40,7 @@ public class RoguelikePlugin extends JavaPlugin {
         PlayerDataManager.init(this);
         WeaponManager.init(this);
         GiveCommand.init(this);
+        AffixCodexGui.init(this);
         TicketManager.init(this);
         MobManager.init(this);
         BossEventManager.init(this);

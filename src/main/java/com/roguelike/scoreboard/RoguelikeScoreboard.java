@@ -60,6 +60,8 @@ public class RoguelikeScoreboard {
 
     public static void updatePlayer(Player player) {
         if (!isEnabled() || player == null || !player.isOnline()) return;
+        // 玩家正在查看 Boss 伤害侧边栏时，不覆盖。
+        if (com.roguelike.boss.BossDamageScoreboard.isViewing(player)) return;
         org.bukkit.scoreboard.ScoreboardManager manager = Bukkit.getScoreboardManager();
         if (manager == null) return;
 

@@ -2,6 +2,7 @@ package com.roguelike.command;
 
 import com.roguelike.equipment.EquipmentKind;
 import com.roguelike.equipment.affix.AffixManager;
+import com.roguelike.gui.AffixCodexGui;
 import com.roguelike.item.CustomWeapon;
 import com.roguelike.item.WeaponInstanceData;
 import com.roguelike.ticket.TicketManager;
@@ -27,6 +28,10 @@ class AffixesCommand {
         }
         if (args.length >= 2) {
             Message.send(sender, "&c用法: /rw affixes [held]");
+            return true;
+        }
+        if (sender instanceof Player player) {
+            AffixCodexGui.open(player);
             return true;
         }
 

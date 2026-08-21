@@ -18,7 +18,7 @@ class RoguelikeTabCompleter {
         List<String> list = new ArrayList<>();
         if (cmd.equals("rl")) {
             if (args.length == 1) {
-                list.addAll(Arrays.asList("status", "tickets", "trade", "help"));
+                list.addAll(Arrays.asList("status", "tickets", "trade", "affixes", "help"));
             }
         } else if (cmd.equals("rw") || cmd.equals("roguelike")) {
             if (args.length == 1) {

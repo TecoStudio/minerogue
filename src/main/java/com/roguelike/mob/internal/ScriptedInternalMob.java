@@ -552,4 +552,11 @@ public class ScriptedInternalMob implements InternalMob {
         String value = entity.getPersistentDataContainer().get(mobKey, PersistentDataType.STRING);
         return MobManager.matchesInternalMobValue(this, value);
     }
+
+    /** 读取实体的内置怪物 ID（PDC roguelike:internal_mob），非内置怪物返回 null。 */
+    public static String mobIdOf(LivingEntity entity) {
+        if (entity == null) return null;
+        return entity.getPersistentDataContainer().get(
+                new NamespacedKey(RoguelikePlugin.getInstance(), "internal_mob"), PersistentDataType.STRING);
+    }
 }

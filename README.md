@@ -42,7 +42,7 @@ Roguelike 经验 / 升级 / 券奖励
 | 模块 | 数量 / 说明 |
 | --- | --- |
 | 武器模板 | 27 个，位于 `content/weapons/*.yml` |
-| 物品 | 5 个，位于 `content/items/*.yml` |
+| 物品 | 1 个，位于 `content/items/*.yml` |
 | 防具 | 24 件，6 套，每套 4 件，位于 `content/armor/*.yml` |
 | 防具套装 | 荆棘、神速、炸药、守护、猩红、雷暴 |
 | 怪物内容 | 19 个 YAML，覆盖经验、普通怪强化、内置精英怪/Boss |

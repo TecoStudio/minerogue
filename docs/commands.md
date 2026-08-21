@@ -8,6 +8,7 @@
 | `/rl status` | 查看等级、当前等级经验、击杀、死亡 |
 | `/rl tickets` | 查看已使用武器券数量 |
 | `/rl trade` | 查看自由交易说明 |
+| `/rl affixes` | 打开词条图鉴（武器/防具/基础属性词条，悬停查看具体效果） |
 | `/rl help` | 玩家帮助 |
 
 ## 管理员命令 `/rw` / `/roguelike`
@@ -19,7 +20,7 @@
 | `/rw reload` | 重载配置、内容 YAML、侧边栏等 |
 | `/rw backup` | 手动备份玩家数据 |
 | `/rw debug <on|off|status>` | 调试日志开关 |
-| `/rw affixes` | 列出武器/防具词条 |
+| `/rw affixes` | 打开词条图鉴 GUI（控制台为聊天列表） |
 | `/rw affixes held [玩家]` | 查看玩家手持 Roguelike 武器词条 |
 | `/rw give` | 打开发放 GUI |
 | `/rw give weapon <id> [玩家] [数量]` | 发放武器 |
@@ -32,7 +33,11 @@
 | `/rw stats top <level|kills|deaths> [数量]` | 查看排行榜数据 |
 | `/rw reset [玩家]` | 重置玩家 Roguelike 数据 |
 | `/rw monster spawn <id>` | 生成内置怪物 |
-| `/rw boss ...` | 周期 Boss 事件管理 |
+| `/rw boss spawn <id>` | 在当前位置直接生成指定 Boss（仅玩家可用） |
+| `/rw boss event status` | 查看周期 Boss 事件状态 |
+| `/rw boss event force` | 立即触发周期 Boss 事件 |
+| `/rw boss event clear` | 清除当前活动区域并解除区域保护 |
+| `/rw boss event next <小时>` | 调整下次 Boss 事件时间（支持小数，如 `0.1`） |
 | `/rw fixhand` | 刷新手持武器属性 |
 | `/rw help` | 管理员帮助 |
 

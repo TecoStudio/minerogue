@@ -143,6 +143,14 @@ scoreboard:
   # 更新间隔 (ticks)
   update-interval: 20
 
+boss-damage-scoreboard:
+  # 是否启用 Boss 伤害实时侧边栏（战斗中显示伤害排行，死亡后恢复普通侧边栏）
+  enabled: true
+  # 侧边栏刷新间隔 (ticks)
+  update-interval-ticks: 10
+  # 侧边栏最多显示的名次
+  top-display: 10
+
 resource-pack:
   # 进服时自动向玩家下发资源包。url 留空则关闭下发（玩家需手动安装）。
   # 默认指向 minerogue-resourcepack 的每夜构建（nightly release，始终只有最新一份）。

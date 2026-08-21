@@ -39,6 +39,8 @@ public class BossEventManager {
         reload();
         plugin.getServer().getPluginManager().registerEvents(new BossArenaProtectionListener(), plugin);
         plugin.getServer().getPluginManager().registerEvents(new BossEventListener(), plugin);
+        plugin.getServer().getPluginManager().registerEvents(new BossDamageListener(), plugin);
+        BossDamageScoreboard.init(plugin);
     }
 
     public static void reload() {
@@ -62,6 +64,7 @@ public class BossEventManager {
             }
         }
         leashService.start(plugin, config);
+        BossDamageScoreboard.loadConfig();
         tickTask = plugin.getServer().getScheduler().runTaskTimer(plugin, BossEventManager::tick, 20L * 60L, 20L * 60L);
     }
 
@@ -69,6 +72,7 @@ public class BossEventManager {
         cancelTickTask();
         if (beaconService != null) beaconService.stop();
         if (leashService != null) leashService.stop();
+        BossDamageScoreboard.shutdown();
         if (storage != null && state != null) storage.save(state);
         plugin = null;
     }
@@ -137,6 +141,14 @@ public class BossEventManager {
         arena.setState(terminalState);
         state.clearActiveArena();
         saveQuietly();
+        // 死亡（COMPLETED）的收尾由 BossEventListener 处理（含聊天总榜与延迟恢复侧边栏）；
+        // 清除/过期在此立即恢复玩家侧边栏并清空伤害记录。
+        if (terminalState == ActiveBossArena.State.CLEARED || terminalState == ActiveBossArena.State.EXPIRED) {
+            if (arena.bossEntityUuid() != null) {
+                BossDamageScoreboard.restoreAll();
+                BossDamageTracker.clear(arena.bossEntityUuid());
+            }
+        }
         if (config != null && config.broadcast().onDeath() && terminalState == ActiveBossArena.State.COMPLETED) {
             Bukkit.broadcast(com.roguelike.util.Message.toComponent("&6周期 Boss 已被击败，事件结束。"));
         }
@@ -204,6 +216,16 @@ public class BossEventManager {
             if (boss.id().equalsIgnoreCase(bossId)) return boss.mobId();
         }
         return bossId;
+    }
+
+    /** 所有已配置 Boss 对应的内置怪物 ID 集合，用于识别手动 /rw boss spawn 的 Boss。 */
+    public static java.util.Set<String> configuredBossMobIds() {
+        BossEventConfig source = config == null ? BossEventConfig.defaults() : config;
+        java.util.Set<String> ids = new java.util.HashSet<>();
+        for (BossEventConfig.BossDefinition boss : source.bosses()) {
+            ids.add(boss.mobId());
+        }
+        return ids;
     }
 
     public static BossEventConfig.BossDefinition activeBossDefinition() {

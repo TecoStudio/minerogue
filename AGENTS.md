@@ -53,7 +53,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\build-script-check.p
 - Use docs-first, root-cause fixes. If the user updated docs, treat those docs as the intended spec before editing code.
 - UX constraints: no VIP/supporter rank; main GUI title is “菜单”; compass opens the menu on right-click only; Quests are removed; teleport center includes `/delhome home`.
 - Boss events: no buildings or marker blocks; use a red particle-only beam; announce `"<boss> 已经苏醒，在 x y z 位置。"`.
-- Armor design: armor set names should reflect built-in armor affixes such as thorns/swift/explosive; remove random armor affixes that merely duplicate vanilla enchants; keep both vanilla Protection and custom `damage_reduction` because they are not considered conflicting.
+- Armor design: armor set names should reflect built-in armor affixes such as thorns/swift/explosive; remove random armor affixes that merely duplicate vanilla enchants; keep vanilla Protection and the `guardian` set damage reduction since they are not considered conflicting. The plain `damage_reduction` affix has been removed — its role is now handled by the `guardian` set.
 
 ## Documentation Rules
 
